@@ -365,7 +365,11 @@ onBeforeUnmount(() => {
 .vs-left p { color: rgba(255, 255, 255, 0.78); font-size: 0.86rem; margin-top: 3px; }
 .vs-tag { background: rgba(255, 255, 255, 0.2); color: #fff; }
 
-.sec-title { margin: 30px 0 14px; font-size: 1.05rem; font-weight: 700; }
+.sec-title {
+  margin: 30px 0 14px; font-size: 1.05rem; font-weight: 700;
+  display: flex; align-items: center; gap: 9px;
+}
+.sec-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
 
 .benefit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .benefit { display: flex; align-items: flex-start; gap: 12px; padding: 16px; }

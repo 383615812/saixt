@@ -148,7 +148,11 @@ onMounted(load)
 .ph-label { font-size: 0.82rem; color: rgba(255, 255, 255, 0.72); }
 .ph-balance { font-size: 2.4rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
 
-.sec-title { margin: 28px 0 14px; font-size: 1.05rem; font-weight: 700; }
+.sec-title {
+  margin: 28px 0 14px; font-size: 1.05rem; font-weight: 700;
+  display: flex; align-items: center; gap: 9px;
+}
+.sec-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
 .sec-sub { font-size: 0.8rem; color: var(--muted-2); font-weight: 500; margin-left: 8px; }
 
 .exchange-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }

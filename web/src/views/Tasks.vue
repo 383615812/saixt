@@ -170,8 +170,9 @@ onMounted(load)
 .pc-main { display: flex; align-items: center; gap: 20px; margin-bottom: 18px; flex-wrap: wrap; }
 .pc-ring {
   position: relative; width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0;
-  background: conic-gradient(var(--accent) var(--pct), var(--rule-soft) 0);
+  background: conic-gradient(from 0deg, #4f5ff0 0deg, #6b58e8 var(--pct), var(--rule-soft) var(--pct));
   display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(79, 95, 240, 0.18);
 }
 .pc-ring::before {
   content: ''; position: absolute; width: 64px; height: 64px; border-radius: 50%;
@@ -185,7 +186,7 @@ onMounted(load)
 .pc-done svg { width: 15px; height: 15px; }
 .pc-tip { display: inline-block; margin-top: 6px; color: var(--muted); font-size: 0.82rem; }
 .pc-track { height: 8px; border-radius: var(--radius-full); background: var(--rule-soft); overflow: hidden; }
-.pc-fill { height: 100%; border-radius: var(--radius-full); background: var(--accent); transition: width 0.5s var(--ease); }
+.pc-fill { height: 100%; border-radius: var(--radius-full); background: linear-gradient(90deg, #4f5ff0, #6b58e8); transition: width 0.5s var(--ease); }
 
 /* 骨架屏 */
 .sk-ring { width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0; }

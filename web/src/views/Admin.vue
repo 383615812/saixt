@@ -718,7 +718,11 @@ onMounted(load)
 .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 28px 0 0; }
 .sec-head .sec-title { margin: 0 0 14px; }
 .sec-head-left { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
-.sec-title { margin: 28px 0 14px; font-size: 1.05rem; font-weight: 700; }
+.sec-title {
+  margin: 28px 0 14px; font-size: 1.05rem; font-weight: 700;
+  display: flex; align-items: center; gap: 9px;
+}
+.sec-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
 .sec-sub { font-size: 0.8rem; color: var(--muted-2); font-weight: 500; margin-left: 8px; }
 
 .toolbar { display: flex; gap: 8px; margin-bottom: 14px; align-items: center; }

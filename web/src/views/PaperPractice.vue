@@ -29,6 +29,7 @@
               :class="{ chosen: chosenSet.has(w.subject + ':' + w.chapter) }"
               @click="toggleWeak(w)"
             >
+              <span class="weak-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
               <span class="weak-icon">{{ w.accuracy <= 40 ? '🔥' : (w.accuracy <= 50 ? '⚠️' : '💪') }}</span>
               <span class="weak-name">{{ w.subject }}·{{ w.chapter }}</span>
               <span class="weak-total">{{ w.total }}题</span>
@@ -98,7 +99,7 @@
     <!-- 套卷概览：分节展示 -->
     <div v-else-if="paper && !answering" class="card overview">
       <div class="ov-head">
-        <span class="ov-title-badge">📄 {{ paper.paper_title }}</span>
+        <span class="ov-title-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>{{ paper.paper_title }}</span>
       </div>
       <div class="ov-stats">
         <div class="ov-stat"><div class="num">{{ paper.sections.length }}</div><div class="lbl">覆盖章节</div></div>
@@ -127,7 +128,7 @@
           </div>
         </div>
       </div>
-      <p class="ov-note">套卷作答采用逐题即时评分，每答一题都会更新该章节的掌握度，用于后续排名与复习安排。</p>
+      <p class="ov-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>套卷作答采用逐题即时评分，每答一题都会更新该章节的掌握度，用于后续排名与复习安排。</p>
       <div class="ov-actions">
         <button class="btn btn-ghost" @click="backToSetup">取消</button>
         <button class="btn btn-primary" @click="startAnswer">开始作答</button>
@@ -231,7 +232,7 @@
 
     <!-- 完成面板 -->
     <div v-if="finished" class="card finish-panel">
-      <div class="fp-badge">{{ isAllCorrect ? '🏆' : '📊' }}</div>
+      <div class="fp-badge" :class="isAllCorrect ? 'all' : ''">{{ isAllCorrect ? '🏆' : '📊' }}</div>
       <h3>{{ isAllCorrect ? '全部攻克！掌握度已刷新' : '套卷完成，继续巩固薄弱点' }}</h3>
       <div class="fp-stats">
         <div class="fp-stat"><div class="num">{{ correctCount }}</div><div class="lbl">答对</div></div>
@@ -550,10 +551,18 @@ onMounted(() => {
 .weak-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px;
   border: 1px solid var(--rule); border-radius: var(--radius-sm); background: var(--surface);
-  cursor: pointer; transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  cursor: pointer; transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
 }
-.weak-item:hover { border-color: var(--accent); box-shadow: var(--shadow-xs); }
+.weak-item:hover { border-color: var(--accent); box-shadow: var(--shadow-xs); transform: translateY(-1px); }
 .weak-item.chosen { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+.weak-check {
+  width: 20px; height: 20px; flex-shrink: 0; border-radius: 6px;
+  border: 1.5px solid var(--rule); background: var(--surface);
+  display: flex; align-items: center; justify-content: center; color: transparent;
+  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.weak-check svg { width: 12px; height: 12px; }
+.weak-item.chosen .weak-check { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(1.05); }
 .weak-icon { font-size: 1rem; }
 .weak-name { font-weight: 600; color: var(--ink); font-size: 0.92rem; flex: 1; }
 .weak-total { font-size: 0.78rem; color: var(--muted); }
@@ -584,23 +593,30 @@ onMounted(() => {
 .sk-q-opt { width: 100%; height: 46px; border-radius: var(--radius-sm); margin-top: 8px; }
 
 /* 卷面概览 */
-.overview { padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; }
-.ov-head {}
-.ov-title-badge { font-size: 1.15rem; font-weight: 800; color: var(--accent); }
+.overview { padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; position: relative; overflow: hidden; }
+.overview::before { content: ''; position: absolute; top: -90px; right: -70px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(79, 95, 240, 0.08) 0%, transparent 65%); pointer-events: none; }
+.ov-head { position: relative; }
+.ov-title-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 1.15rem; font-weight: 800; color: var(--accent); }
+.ov-title-badge svg { width: 20px; height: 20px; }
 .ov-stats { display: flex; gap: 32px; flex-wrap: wrap; }
-.ov-stat .num { font-size: 1.7rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ov-stat { position: relative; padding: 12px 20px; border-radius: 12px; background: var(--grad-accent-soft); border: 1px solid rgba(79, 95, 240, 0.1); }
+.ov-stat .num { font-size: 1.7rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; background: var(--grad-accent); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
 .ov-stat .lbl { color: var(--muted); font-size: 0.82rem; }
 .ov-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.ov-section { border: 1px solid var(--rule); border-radius: var(--radius-sm); padding: 14px; background: var(--surface); }
+.ov-section { border: 1px solid var(--rule); border-radius: var(--radius-sm); padding: 14px; background: var(--surface); position: relative; overflow: hidden; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease); }
+.ov-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad-accent); transform: scaleX(0); transform-origin: left; transition: transform 0.4s var(--ease); }
+.ov-section:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); border-color: rgba(79, 95, 240, 0.2); }
+.ov-section:hover::before { transform: scaleX(1); }
 .ov-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
 .ov-sec-no { font-size: 0.75rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 2px 8px; border-radius: 999px; }
 .ov-sec-body { display: flex; align-items: center; gap: 8px; }
 .ov-sec-label { font-size: 0.75rem; color: var(--muted); }
 .ov-sec-bar { flex: 1; height: 7px; background: var(--rule-soft); border-radius: 999px; overflow: hidden; }
-.ov-sec-fill { height: 100%; background: var(--ov-bar); border-radius: 999px; }
+.ov-sec-fill { height: 100%; background: var(--ov-bar); border-radius: 999px; transition: width 0.5s var(--ease); }
 .ov-sec-acc { font-weight: 800; font-size: 0.82rem; min-width: 36px; text-align: right; }
 .ov-sec-type { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
-.ov-note { font-size: 0.82rem; color: var(--muted); line-height: 1.7; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); }
+.ov-note { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.7; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); }
+.ov-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: var(--accent); }
 .ov-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 /* 作答 */
@@ -612,7 +628,9 @@ onMounted(() => {
 .at-result-badge { font-size: 0.8rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 4px 10px; border-radius: 999px; }
 .at-result-badge.ok { color: var(--green, #0da678); border-color: rgba(13,166,120,0.3); background: var(--green-soft, rgba(13,166,120,0.09)); }
 
-.question-card { margin-bottom: 16px; }
+.question-card { margin-bottom: 16px; position: relative; overflow: hidden; }
+.question-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad-accent); transform: scaleX(0); transform-origin: left; transition: transform 0.4s var(--ease); }
+.question-card:hover::before { transform: scaleX(1); }
 .q-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .multi-hint { font-size: 0.8rem; color: var(--amber); font-weight: 600; }
 .judge-hint { font-size: 0.8rem; color: var(--accent-deep); font-weight: 600; }
@@ -682,15 +700,23 @@ onMounted(() => {
 .answer-sheet-final .btn { min-width: 200px; padding: 12px 28px; }
 
 /* 完成 */
-.finish-panel { text-align: center; padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.fp-badge { font-size: 3rem; }
+.finish-panel { text-align: center; padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; position: relative; overflow: hidden; }
+.finish-panel::before { content: ''; position: absolute; top: -110px; left: 50%; transform: translateX(-50%); width: 320px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(79, 95, 240, 0.1) 0%, transparent 65%); pointer-events: none; }
+.fp-badge {
+  position: relative; width: 76px; height: 76px; border-radius: 24px;
+  display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+  background: var(--grad-accent-soft); border: 1px solid rgba(79, 95, 240, 0.18);
+  box-shadow: 0 4px 16px rgba(79, 95, 240, 0.14);
+}
+.fp-badge.all { background: var(--green-soft); border-color: rgba(13, 166, 120, 0.25); box-shadow: 0 4px 16px rgba(13, 166, 120, 0.16); }
 .finish-panel h3 { font-size: 1.3rem; }
 .fp-stats { display: flex; justify-content: center; gap: 40px; margin-bottom: 4px; }
-.fp-stat .num { font-size: 2rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.fp-stat { padding: 10px 22px; border-radius: 12px; background: var(--grad-accent-soft); border: 1px solid rgba(79, 95, 240, 0.1); }
+.fp-stat .num { font-size: 2rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; background: var(--grad-accent); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
 .fp-stat .lbl { color: var(--muted); font-size: 0.85rem; }
 .fp-tip { font-size: 0.85rem; color: var(--muted); max-width: 480px; line-height: 1.7; }
 .fp-sections { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.fp-section { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; }
+.fp-section { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; background: var(--surface-2); }
 .fp-sec-name { font-weight: 600; }
 .fp-sec-status { color: var(--accent); font-weight: 700; }
 .fp-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }

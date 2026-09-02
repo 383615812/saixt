@@ -62,10 +62,12 @@
     <template v-else-if="result">
       <!-- 得分概览 -->
       <div class="card score-banner">
+        <div class="sb-glow" aria-hidden="true"></div>
         <div class="sb-main">
           <div class="sb-score">{{ result.score }}</div>
           <div class="sb-lbl">你的预估总分</div>
         </div>
+        <div class="sb-divider" aria-hidden="true"></div>
         <div class="sb-note">
           <p>共匹配 <strong>{{ result.total }}</strong> 所院校</p>
           <p>冲 {{ result.tiers.chong.length }} · 稳 {{ result.tiers.wen.length }} · 保 {{ result.tiers.bao.length }}</p>
@@ -169,8 +171,15 @@ onMounted(async () => {
 .form-tip { margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
 
 .score-banner {
+  position: relative; overflow: hidden;
   display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
   padding: 22px 24px; margin-bottom: 16px;
+}
+.sb-glow {
+  position: absolute; top: -80px; right: -60px;
+  width: 240px; height: 240px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 95, 240, 0.1) 0%, transparent 65%);
+  pointer-events: none;
 }
 .sb-main { text-align: center; }
 .sb-score {
@@ -180,6 +189,10 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 .sb-lbl { color: var(--muted); font-size: 0.85rem; }
+.sb-divider {
+  width: 1px; height: 52px; align-self: center;
+  background: linear-gradient(180deg, transparent, var(--rule) 30%, var(--rule) 70%, transparent);
+}
 .sb-note { color: var(--muted); font-size: 0.9rem; }
 .sb-note strong { color: var(--accent); }
 .sb-kw { margin-top: 4px; }

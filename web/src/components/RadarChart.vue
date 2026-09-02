@@ -26,6 +26,7 @@
         stroke="var(--accent)"
         stroke-width="2"
         stroke-linejoin="round"
+        class="radar-poly"
       />
       <!-- 数据点（含放大点击热区） -->
       <circle
@@ -154,13 +155,14 @@ const labels = computed(() => {
 <style scoped>
 .radar-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .radar-svg { width: 100%; max-width: 440px; height: auto; }
+.radar-poly { filter: drop-shadow(0 2px 6px rgba(79, 95, 240, 0.18)); }
 .radar-label { font-size: 12px; fill: var(--muted); font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; cursor: pointer; pointer-events: all; transition: fill 0.2s var(--ease); }
 .radar-label:hover { fill: var(--accent); }
-.radar-dot { cursor: pointer; transition: fill 0.15s var(--ease); }
+.radar-dot { cursor: pointer; transition: fill 0.15s var(--ease), r 0.15s var(--ease); }
 .radar-dot:hover { fill: var(--accent-2); }
 .radar-hit { cursor: pointer; pointer-events: all; }
 .radar-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; }
-.radar-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+.radar-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--rule-soft); }
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 .legend-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .radar-legend-item strong { color: var(--ink); font-variant-numeric: tabular-nums; }

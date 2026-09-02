@@ -205,6 +205,7 @@ onBeforeUnmount(() => {
   display: flex; align-items: center; gap: 12px;
   padding: 20px 20px 16px;
   border-bottom: 1px solid var(--rule-soft);
+  background: linear-gradient(180deg, rgba(79, 95, 240, 0.04) 0%, transparent 100%);
 }
 .drawer-user { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 .drawer-user:active { opacity: 0.75; }
@@ -246,8 +247,13 @@ onBeforeUnmount(() => {
 
 .drawer-nav { flex: 1; overflow-y: auto; padding: 8px 14px 14px; overscroll-behavior: contain; }
 .drawer-sec {
-  padding: 16px 10px 6px; font-size: 0.72rem; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 10px 6px; font-size: 0.72rem; font-weight: 700;
   color: var(--muted-2); letter-spacing: 0.08em;
+}
+.drawer-sec::before {
+  content: ''; width: 3px; height: 12px; border-radius: 2px;
+  background: var(--grad-accent);
 }
 .drawer-item {
   display: flex; align-items: center; gap: 12px;

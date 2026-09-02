@@ -477,7 +477,8 @@ onMounted(() => {
   color: var(--accent);
 }
 .sc-icon svg { width: 42px; height: 42px; }
-.select-card h3 { font-size: 22px; margin: 0 0 8px; }
+.select-card h3 { font-size: 22px; margin: 0 0 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.select-card h3::before { content: ''; width: 4px; height: 18px; border-radius: 2px; background: var(--grad-accent); }
 .select-card > p { color: var(--muted); margin-bottom: 20px; }
 
 .rarity-legend {
@@ -620,7 +621,7 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 240px;
   height: 240px;
-  background: radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%);
+  background: radial-gradient(circle, rgba(79, 95, 240, 0.3), transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -685,7 +686,15 @@ onMounted(() => {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.4s var(--ease-out), transform 0.4s var(--ease-out);
+  position: relative;
+  overflow: hidden;
 }
+.question-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}
+.question-card.show::before { transform: scaleX(1); }
 .question-card.show {
   opacity: 1;
   transform: translateY(0);
@@ -782,17 +791,23 @@ onMounted(() => {
 }
 .qc-option.disabled { cursor: default; }
 .qco-letter {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: var(--surface);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
   flex-shrink: 0;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
 }
+.qc-option:hover:not(.disabled) .qco-letter { transform: scale(1.06); }
+.qc-option.selected .qco-letter { background: var(--accent); color: #fff; }
+.qc-option.correct .qco-letter { background: var(--green); color: #fff; }
+.qc-option.wrong .qco-letter { background: var(--red); color: #fff; }
 .qco-text { line-height: 1.5; overflow-wrap: break-word; word-break: break-word; }
 
 .qc-subjective { text-align: center; padding: 20px 0; }
@@ -879,6 +894,7 @@ onMounted(() => {
   gap: 7px;
   font-weight: 600;
 }
+.collection-panel h4::before { content: ''; width: 4px; height: 14px; border-radius: 2px; background: var(--grad-accent); }
 .collection-panel h4 svg { width: 17px; height: 17px; color: var(--accent); }
 .collection-stats {
   display: flex;
@@ -898,11 +914,26 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .bb-header { flex-direction: column; }
   .bbh-stats { width: 100%; justify-content: space-between; }
   .stat-item { flex: 1; padding: 8px 10px; min-width: auto; }
   .select-card { padding: 24px; }
   .question-card { padding: 16px; }
+  .box-wrapper { padding: 44px 0; }
+  .blind-box { width: 150px; height: 150px; }
+  .box-emoji svg { width: 52px; height: 52px; }
+  .box-question { font-size: 64px; }
+  .rarity-legend { gap: 10px; }
+  .qc-stem { font-size: 15px; }
+}
+@media (max-width: 400px) {
+  .stat-val { font-size: 17px; }
+  .stat-lbl { font-size: 11px; }
+  .select-card { padding: 18px 14px; }
+  .select-card h3 { font-size: 19px; }
+  .subject-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .qc-rarity { flex-wrap: wrap; }
+  .qr-score { margin-left: 0; }
 }
 </style>

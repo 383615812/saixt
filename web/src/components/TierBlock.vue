@@ -1,7 +1,10 @@
 <template>
   <div class="tier-block">
     <div class="tier-head">
-      <span class="tier-badge" :class="color">{{ title }}</span>
+      <span class="tier-badge" :class="color">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        {{ title }}
+      </span>
       <span class="tier-count">{{ schools.length }} 所</span>
     </div>
     <div class="tier-grid">
@@ -111,16 +114,28 @@ function formatTuition(v) {
 .tier-block { margin-bottom: 24px; }
 .tier-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .tier-badge {
+  display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 14px; border-radius: 999px; font-size: 0.88rem; font-weight: 700;
 }
+.tier-badge svg { width: 15px; height: 15px; }
 .tier-badge.red { background: var(--red-soft); color: #be123c; }
 .tier-badge.blue { background: var(--accent-soft); color: var(--accent); }
 .tier-badge.green { background: var(--green-soft); color: #047857; }
 .tier-count { font-size: 0.85rem; color: var(--muted); }
 
 .tier-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.tier-card { display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+.tier-card {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: 12px;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.tier-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}
 .tier-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: rgba(79, 95, 240, 0.24); }
+.tier-card:hover::before { transform: scaleX(1); }
 .tier-card:active { transform: translateY(0) scale(0.985); }
 
 .tc-head { display: flex; align-items: center; gap: 10px; }
@@ -129,7 +144,10 @@ function formatTuition(v) {
   background: var(--grad-accent);
   color: #fff; display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(79, 95, 240, 0.2);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
+.tier-card:hover .tc-logo { transform: scale(1.05) rotate(-3deg); box-shadow: 0 5px 14px rgba(79, 95, 240, 0.28); }
 .tc-info h4 { font-size: 0.95rem; line-height: 1.4; }
 .tc-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
 .tc-code { font-size: 0.75rem; color: var(--muted); }
@@ -149,7 +167,7 @@ function formatTuition(v) {
 .tc-match-track { height: 6px; border-radius: 999px; background: var(--bg, #eef1f6); overflow: hidden; }
 .tc-match-fill {
   height: 100%; border-radius: 999px;
-  background: var(--accent);
+  background: linear-gradient(90deg, #4f5ff0, #6b58e8);
   transition: width 0.5s var(--ease);
 }
 

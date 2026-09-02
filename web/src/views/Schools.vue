@@ -4,7 +4,6 @@
       <h2>院校库</h2>
       <p>云南省春季招生院校与专业计划查询，共收录 {{ total }} 所院校</p>
     </div>
-
     <!-- 搜索排序 -->
     <div class="card filter-bar">
       <div class="search">
@@ -88,7 +87,7 @@
           </div>
         </div>
         <div class="sc-foot">
-          <span class="btn btn-ghost btn-sm">查看专业计划 →</span>
+          <span class="btn btn-ghost btn-sm">查看专业计划 <svg class="sc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
         </div>
       </router-link>
     </div>
@@ -227,17 +226,29 @@ onMounted(() => load(0))
 .sel:focus { border-color: var(--accent); }
 
 .school-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.school-card { display: flex; flex-direction: column; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+.school-card {
+  display: flex; flex-direction: column; position: relative; overflow: hidden;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.school-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}
 .school-card:hover { transform: translateY(-3px); border-color: rgba(79, 95, 240, 0.24); box-shadow: var(--shadow-lg); }
+.school-card:hover::before { transform: scaleX(1); }
 .school-card:active { transform: translateY(0) scale(0.985); }
 
 .sc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .sc-logo {
   width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  background: var(--accent);
+  background: linear-gradient(135deg, #4f5ff0 0%, #6b58e8 100%);
   color: #fff; display: flex; align-items: center; justify-content: center;
   font-weight: 700; font-size: 0.95rem;
+  box-shadow: 0 3px 10px rgba(79, 95, 240, 0.22);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
+.school-card:hover .sc-logo { transform: scale(1.06) rotate(-3deg); box-shadow: 0 6px 16px rgba(79, 95, 240, 0.3); }
 .sc-info h3 {
   font-size: 1.02rem; line-height: 1.4;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -258,6 +269,8 @@ onMounted(() => load(0))
 
 .sc-foot { margin-top: auto; padding-top: 14px; text-align: center; }
 .btn-sm { padding: 8px 16px; font-size: 0.85rem; min-height: 38px; }
+.sc-arrow { width: 14px; height: 14px; vertical-align: -2px; transition: transform 0.25s var(--ease); }
+.school-card:hover .sc-arrow { transform: translateX(3px); }
 
 .pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 24px; }
 .pager-info { color: var(--muted); font-size: 0.9rem; }

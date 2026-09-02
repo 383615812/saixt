@@ -3,6 +3,8 @@
     <!-- Hero -->
     <section class="hero">
       <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-blob hero-blob-a" aria-hidden="true"></div>
+      <div class="hero-blob hero-blob-b" aria-hidden="true"></div>
       <div class="container hero-inner">
         <div class="hero-text">
           <span class="hero-badge hero-anim">云南省春季招生 · 2027 备考</span>
@@ -23,18 +25,19 @@
           </div>
         </div>
         <div class="hero-card hero-anim">
+          <div class="hc-glow" aria-hidden="true"></div>
           <div class="hc-head">
-            <span>2027 春招考试构成</span>
+            <span class="hc-title">2027 春招考试构成</span>
             <span class="tag tag-blue">满分 600 分</span>
           </div>
           <div class="hc-item">
             <div class="hc-label"><strong>文化素质</strong><span>11 门会考科目等级量化</span></div>
-            <div class="hc-bar"><div class="hc-fill" style="width:50%"></div></div>
+            <div class="hc-bar"><div class="hc-fill hc-fill-a" style="width:50%"></div></div>
             <div class="hc-num">300 分</div>
           </div>
           <div class="hc-item">
             <div class="hc-label"><strong>职业技能</strong><span>信息技术 + 通用技术</span></div>
-            <div class="hc-bar"><div class="hc-fill" style="width:50%"></div></div>
+            <div class="hc-bar"><div class="hc-fill hc-fill-b" style="width:50%"></div></div>
             <div class="hc-num">300 分</div>
           </div>
           <div class="hc-sub">
@@ -246,10 +249,22 @@
         <button class="btn btn-ghost btn-sm" @click="loadStats">点击重试</button>
       </div>
       <div v-else class="stats" v-reveal>
-        <div class="stat"><div class="num">600</div><div class="lbl">春招考试满分</div></div>
-        <div class="stat"><div class="num">{{ stats.schools ?? '—' }}</div><div class="lbl">收录高职院校</div></div>
-        <div class="stat"><div class="num">{{ stats.plans ?? '—' }}</div><div class="lbl">招生计划</div></div>
-        <div class="stat"><div class="num">{{ displayQuestions.toLocaleString() }}</div><div class="lbl">真实题目（持续更新）</div></div>
+        <div class="stat">
+          <span class="stat-ic ic-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4L12 3z"/></svg></span>
+          <div class="num">600</div><div class="lbl">春招考试满分</div>
+        </div>
+        <div class="stat">
+          <span class="stat-ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/></svg></span>
+          <div class="num">{{ stats.schools ?? '—' }}</div><div class="lbl">收录高职院校</div>
+        </div>
+        <div class="stat">
+          <span class="stat-ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></span>
+          <div class="num">{{ stats.plans ?? '—' }}</div><div class="lbl">招生计划</div>
+        </div>
+        <div class="stat">
+          <span class="stat-ic ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          <div class="num">{{ displayQuestions.toLocaleString() }}</div><div class="lbl">真实题目（持续更新）</div>
+        </div>
       </div>
     </section>
 
@@ -577,6 +592,27 @@ onBeforeUnmount(() => clearInterval(timer))
       radial-gradient(560px 280px at -8% 10%, rgba(79, 95, 240, 0.05) 0%, transparent 70%);
     opacity: 0.85;
   }
+  .hero-blob {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    filter: blur(2px); opacity: 0.5;
+  }
+  .hero-blob-a {
+    width: 220px; height: 220px; top: -70px; right: 6%;
+    background: radial-gradient(circle, rgba(79, 95, 240, 0.12) 0%, transparent 65%);
+    animation: blobFloat 9s var(--ease) infinite;
+  }
+  .hero-blob-b {
+    width: 160px; height: 160px; bottom: -50px; left: 4%;
+    background: radial-gradient(circle, rgba(107, 88, 232, 0.1) 0%, transparent 65%);
+    animation: blobFloat 11s var(--ease) infinite reverse;
+  }
+  @keyframes blobFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(14px, -18px) scale(1.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-blob { animation: none; }
+  }
 .hero-inner { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 44px; align-items: center; position: relative; }
 .hero-badge {
   display: inline-flex; align-items: center; gap: 7px;
@@ -623,19 +659,35 @@ onBeforeUnmount(() => clearInterval(timer))
 }
 
 .hero-card {
+    position: relative;
     background: var(--surface);
-    border: 1px solid var(--rule);
+    border: 1px solid rgba(79, 95, 240, 0.14);
     border-radius: var(--radius-lg); padding: 26px;
     box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .hc-glow {
+    position: absolute; top: -60px; right: -60px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(79, 95, 240, 0.1) 0%, transparent 65%);
+    pointer-events: none;
   }
   .hc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; font-weight: 600;
 font-size: 0.95rem; color: var(--ink); }
+  .hc-title { position: relative; padding-left: 12px; }
+  .hc-title::before {
+    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 4px; height: 16px; border-radius: 2px;
+    background: var(--grad-accent);
+  }
   .hc-item { margin-bottom: 16px; }
   .hc-label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 7px; }
   .hc-label strong { color: var(--ink); font-weight: 650; }
   .hc-label span { color: var(--muted); font-size: 0.8rem; }
   .hc-bar { height: 8px; background: var(--rule-soft); border-radius: var(--radius-full); overflow: hidden; }
-  .hc-fill { height: 100%; border-radius: var(--radius-full); background: var(--accent); transition: width 0.7s var(--ease); }
+  .hc-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.7s var(--ease); }
+  .hc-fill-a { background: linear-gradient(90deg, #4f5ff0, #6b58e8); }
+  .hc-fill-b { background: linear-gradient(90deg, #0da678, #34d399); }
   .hc-num { text-align: right; font-weight: 700; color: var(--accent); margin-top: 5px; font-variant-numeric: tabular-nums; }
   .hc-sub { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.85rem; border-top: 1px dashed var(--rule); padding-top: 14px; }
   .hc-foot {
@@ -833,9 +885,26 @@ font-size: 0.95rem; color: var(--ink); }
 .stat {
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
   padding: 22px 16px; text-align: center; box-shadow: var(--shadow);
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
+  position: relative; overflow: hidden;
 }
-.stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.stat::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 44px; height: 3px; border-radius: 0 0 3px 3px;
+  background: var(--grad-accent); opacity: 0; transition: opacity 0.3s var(--ease);
+}
+.stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: rgba(79, 95, 240, 0.2); }
+.stat:hover::before { opacity: 1; }
+.stat-ic {
+  width: 38px; height: 38px; border-radius: 11px;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 10px;
+}
+.stat-ic svg { width: 19px; height: 19px; }
+.ic-indigo { background: var(--accent-soft); color: var(--accent); }
+.ic-blue { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+.ic-green { background: var(--green-soft); color: var(--green); }
+.ic-amber { background: var(--amber-soft); color: var(--amber); }
 .stat .num {
   font-size: 2rem; font-weight: 800;
   color: var(--accent);
@@ -865,27 +934,42 @@ font-size: 0.95rem; color: var(--ink); }
 .feat {
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
   padding: 24px 20px; box-shadow: var(--shadow); transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
+  position: relative; overflow: hidden;
 }
-.feat:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.feat::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--grad-accent); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}
+.feat:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: rgba(79, 95, 240, 0.2); }
+.feat:hover::before { transform: scaleX(1); }
 .feat-icon {
     width: 46px; height: 46px; border-radius: 13px; display: flex; align-items: center;
     justify-content: center; margin-bottom: 14px;
+    transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
   }
+  .feat:hover .feat-icon { transform: scale(1.08) rotate(-3deg); box-shadow: 0 6px 16px rgba(79, 95, 240, 0.16); }
   .feat-icon svg { width: 22px; height: 22px; }
 .feat h3 { font-size: 1.05rem; margin-bottom: 8px; }
 .feat p { color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
 
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 52px; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 52px; position: relative; }
+.steps::before {
+  content: ''; position: absolute; top: 21px; left: 16%; right: 16%;
+  height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(79, 95, 240, 0.28) 12%, rgba(79, 95, 240, 0.28) 88%, transparent);
+}
 .step {
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
   padding: 28px 24px; box-shadow: var(--shadow); position: relative;
   transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
 }
-.step:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.step:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: rgba(79, 95, 240, 0.2); }
 .step-no {
   width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  background: var(--accent); color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 14px;
+  background: var(--grad-accent); color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 14px;
   box-shadow: 0 3px 10px rgba(79, 95, 240, 0.24);
+  position: relative; z-index: 1;
 }
 .step h3 { margin-bottom: 8px; }
 .step p { color: var(--muted); font-size: 0.9rem; }

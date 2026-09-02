@@ -147,45 +147,82 @@ onMounted(async () => {
 .page-head p { color: var(--muted); margin-top: 4px; }
 .plan-btn { margin-top: 12px; }
 
-.chat-card { display: flex; flex-direction: column; height: calc(100vh - 240px); min-height: 480px; padding: 0; overflow: hidden; }
-
-.chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-
-.chat-welcome { text-align: center; padding: 30px 20px; }
-.cw-icon {
-  width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 16px;
-  background: var(--accent);
-  color: #fff; display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 1.2rem; box-shadow: 0 8px 24px rgba(79, 95, 240, 0.3);
+.chat-card {
+  display: flex; flex-direction: column; height: calc(100vh - 240px); min-height: 480px;
+  padding: 0; overflow: hidden; position: relative;
 }
-.chat-welcome h3 { font-size: 1.15rem; margin-bottom: 6px; }
+.chat-card::before {
+  content: ''; position: absolute; top: -120px; right: -80px; width: 300px; height: 260px;
+  border-radius: 50%; background: radial-gradient(circle, rgba(79, 95, 240, 0.05) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+
+.chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+
+.chat-welcome { text-align: center; padding: 34px 20px; }
+.cw-icon {
+  position: relative; width: 60px; height: 60px; margin: 0 auto 16px; border-radius: 18px;
+  background: var(--grad-accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.25rem;
+  box-shadow: 0 8px 24px rgba(79, 95, 240, 0.3);
+}
+.cw-icon::after {
+  content: ''; position: absolute; inset: -5px; border-radius: 22px;
+  border: 1px solid rgba(79, 95, 240, 0.18);
+  animation: cwPulse 2.6s var(--ease) infinite;
+}
+@keyframes cwPulse { 0%, 100% { transform: scale(1); opacity: 0.7; } 50% { transform: scale(1.08); opacity: 0.2; } }
+.chat-welcome h3 {
+  font-size: 1.15rem; margin-bottom: 6px;
+  display: inline-flex; align-items: center; gap: 9px;
+}
+.chat-welcome h3::before {
+  content: ''; width: 4px; height: 17px; border-radius: 2px; background: var(--grad-accent);
+}
 .chat-welcome p { color: var(--muted); font-size: 0.9rem; max-width: 520px; margin: 0 auto 18px; }
 .quick-list { display: flex; flex-direction: column; gap: 8px; max-width: 520px; margin: 0 auto; }
 .quick-item {
-  padding: 10px 16px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  position: relative; padding: 11px 16px 11px 18px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
   background: var(--surface); color: var(--accent); font-size: 0.9rem;
-  text-align: left; transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+  text-align: left; overflow: hidden;
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
 }
-.quick-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+.quick-item::before {
+  content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+  background: var(--grad-accent); transform: scaleY(0); transform-origin: center;
+  transition: transform 0.25s var(--ease);
+}
+.quick-item:hover { border-color: rgba(79, 95, 240, 0.35); background: var(--accent-soft); box-shadow: var(--shadow-sm); }
+.quick-item:hover::before { transform: scaleY(1); }
 .quick-item:active { transform: scale(0.97); }
 
-.msg { display: flex; gap: 10px; max-width: 85%; }
+.msg { display: flex; gap: 10px; max-width: 85%; animation: msgIn 0.32s var(--ease-out) both; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .msg.user { align-self: flex-end; flex-direction: row-reverse; }
 .msg-avatar {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.72rem; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
-.msg-avatar.assistant { background: var(--accent); color: #fff; }
+.msg-avatar.assistant { background: var(--grad-accent); color: #fff; }
 .msg-avatar.user { background: var(--green-soft); color: #047857; }
 .msg-bubble {
-  padding: 10px 14px; border-radius: 14px; font-size: 0.92rem; line-height: 1.8;
+  padding: 11px 15px; border-radius: 14px; font-size: 0.92rem; line-height: 1.8;
   white-space: pre-wrap; word-break: break-word;
+  transition: box-shadow 0.25s var(--ease);
 }
-.msg.assistant .msg-bubble { background: var(--surface); border: 1px solid var(--rule); border-top-left-radius: 4px; }
-.msg.user .msg-bubble { background: var(--accent); color: #fff; border-top-right-radius: 4px; }
+.msg.assistant .msg-bubble {
+  background: var(--surface); border: 1px solid var(--rule); border-top-left-radius: 4px;
+}
+.msg.assistant .msg-bubble:hover { box-shadow: var(--shadow-sm); }
+.msg.user .msg-bubble {
+  background: var(--grad-accent); color: #fff; border-top-right-radius: 4px;
+  box-shadow: 0 3px 12px rgba(79, 95, 240, 0.22);
+}
 
-.typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+.typing { display: flex; gap: 4px; align-items: center; padding: 13px 15px; }
 .typing span {
   width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
   animation: blink 1.2s infinite;
@@ -194,7 +231,7 @@ onMounted(async () => {
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
 
-.chat-input { display: flex; gap: 10px; padding: 14px; border-top: 1px solid var(--rule); background: var(--surface); }
+.chat-input { display: flex; gap: 10px; padding: 14px; border-top: 1px solid var(--rule); background: var(--surface); position: relative; z-index: 1; }
 .chat-input textarea {
   flex: 1; min-width: 0; resize: none; padding: 10px 14px; border: 1px solid var(--rule);
   border-radius: var(--radius-sm); font-size: 0.92rem; outline: none; line-height: 1.6;

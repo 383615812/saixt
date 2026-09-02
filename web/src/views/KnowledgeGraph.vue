@@ -517,6 +517,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
+  gap: 16px;
 }
 .gh-left h2 {
   font-size: 22px;
@@ -532,27 +533,41 @@ onUnmounted(() => {
   color: var(--muted);
   font-size: 14px;
 }
+.gh-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .subject-selector {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 5px 8px 5px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
 }
 .ss-label {
   font-size: 14px;
   color: var(--muted);
+  white-space: nowrap;
 }
 .ss-select {
-  padding: 8px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
+  padding: 6px 32px 6px 12px;
+  border: none;
+  border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   outline: none;
 }
 .ss-select:focus {
-  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-radius: 999px;
 }
 .gw-toggle {
   display: flex;
@@ -564,9 +579,11 @@ onUnmounted(() => {
   background: var(--surface);
   color: var(--muted);
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease), box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
   white-space: nowrap;
+  box-shadow: var(--shadow-xs);
 }
 .gw-toggle .gw-dot {
   width: 8px;
@@ -578,7 +595,9 @@ onUnmounted(() => {
 .gw-toggle:hover {
   border-color: #f43f5e;
   color: var(--ink);
+  transform: translateY(-1px);
 }
+.gw-toggle:active { transform: translateY(0) scale(0.97); }
 .gw-toggle.on {
   border-color: #f43f5e;
   background: rgba(244, 63, 94, 0.12);
@@ -592,6 +611,17 @@ onUnmounted(() => {
   border: 1px solid rgba(79, 95, 240, 0.15);
   overflow: hidden;
   min-height: 560px;
+  box-shadow: 0 4px 24px rgba(5, 10, 24, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.graph-container::before {
+  content: '';
+  position: absolute;
+  top: -140px; right: -100px;
+  width: 360px; height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 95, 240, 0.12) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
 }
 .chart-canvas {
   width: 100%;

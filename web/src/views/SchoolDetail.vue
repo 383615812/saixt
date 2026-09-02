@@ -28,11 +28,15 @@
     </div>
     <template v-else>
       <div class="back-row">
-        <router-link to="/schools" class="back-link">← 返回院校库</router-link>
+        <router-link to="/schools" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+          返回院校库
+        </router-link>
       </div>
 
       <!-- 院校概览 -->
       <div class="card hero">
+        <div class="hero-glow" aria-hidden="true"></div>
         <div class="hero-logo">{{ school.name.slice(0, 2) }}</div>
         <div class="hero-info">
           <h2>{{ school.name }}</h2>
@@ -168,12 +172,30 @@ onMounted(load)
 
 <style scoped>
 .back-row { margin-bottom: 14px; }
-.back-link { color: var(--muted); font-size: 0.9rem; }
-.back-link:hover { color: var(--accent); }
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); font-size: 0.9rem; font-weight: 500;
+  padding: 7px 14px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--rule);
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background-color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.back-link svg { width: 15px; height: 15px; }
+.back-link:hover { color: var(--accent); border-color: rgba(79, 95, 240, 0.35); background: var(--accent-soft); transform: translateX(-2px); }
 
 .hero {
+  position: relative; overflow: hidden;
   display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
   padding: 26px; margin-bottom: 20px;
+}
+.hero::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--grad-accent);
+}
+.hero-glow {
+  position: absolute; top: -70px; right: -50px;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 95, 240, 0.09) 0%, transparent 65%);
+  pointer-events: none;
 }
 .hero-logo {
   width: 64px; height: 64px; border-radius: 16px; flex-shrink: 0;
@@ -206,7 +228,10 @@ table { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 0
 thead th {
   text-align: left; padding: 9px 10px; background: var(--accent-soft);
   color: var(--accent); font-weight: 600; font-size: 0.85rem; white-space: nowrap;
+  border-bottom: 2px solid rgba(79, 95, 240, 0.18);
 }
+thead th:first-child { border-radius: 8px 0 0 8px; }
+thead th:last-child { border-radius: 0 8px 8px 0; }
 tbody td { padding: 9px 10px; border-bottom: 1px solid var(--rule); }
 tbody tr { transition: background-color 0.2s var(--ease); }
 tbody tr:hover { background: var(--accent-soft); }

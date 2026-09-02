@@ -31,20 +31,23 @@
           </button>
           <transition name="more">
             <div v-if="moreOpen" class="more-panel" role="menu" aria-label="更多功能">
-              <router-link
-                v-for="item in moreNav"
-                :key="item.to"
-                :to="item.to"
-                role="menuitem"
-                :class="{ active: isActive(item) }"
-                @click="moreOpen = false"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS[item.icon]"></svg>
-                <span class="mp-text">
-                  <strong>{{ item.label }}</strong>
-                  <small>{{ item.desc }}</small>
-                </span>
-              </router-link>
+              <div v-for="group in moreGroups" :key="group.title" class="more-group">
+                <div class="more-group-title">{{ group.title }}</div>
+                <router-link
+                  v-for="item in group.items"
+                  :key="item.to"
+                  :to="item.to"
+                  role="menuitem"
+                  :class="{ active: isActive(item) }"
+                  @click="moreOpen = false"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" v-html="ICONS[item.icon]"></svg>
+                  <span class="mp-text">
+                    <strong>{{ item.label }}</strong>
+                    <small>{{ item.desc }}</small>
+                  </span>
+                </router-link>
+              </div>
             </div>
           </transition>
         </div>
@@ -112,28 +115,48 @@ const mainNav = [
   { to: '/dashboard', label: '个人中心', icon: 'user' }
 ]
 
-const moreNav = [
-  { to: '/tasks', label: '任务中心', icon: 'check', desc: '每日学习任务' },
-  { to: '/paper', label: '薄弱专项套卷', icon: 'page', desc: '自动针对薄弱点出卷' },
-  { to: '/ai', label: 'AI 答疑', icon: 'chat', desc: '智能问答' },
-  { to: '/review', label: '复习计划', icon: 'refresh', desc: '错题复习' },
-  { to: '/remind', label: '提醒设置', icon: 'bell', desc: '复习提醒' },
-  { to: '/recommend', label: '志愿推荐', icon: 'target', desc: '择校建议' },
-  { to: '/schools', label: '院校库', icon: 'school', desc: '院校信息' },
-  { to: '/achievements', label: '成就徽章', icon: 'trophy', desc: '学习成就' },
-  { to: '/weekly-report', label: '学习周报', icon: 'chart', desc: '每周总结' },
-  { to: '/favorites', label: '我的收藏', icon: 'star', desc: '收藏题目' },
-  { to: '/plan', label: '学习计划', icon: 'calendar', desc: 'AI 计划' },
-  { to: '/ranking', label: '排行榜', icon: 'podium', desc: '学习排行' },
-  { to: '/data-screen', label: '数据大屏', icon: 'chart', desc: '可视化看板' },
-  { to: '/knowledge-graph', label: '知识图谱', icon: 'spark', desc: '知识点关联' },
-  { to: '/blind-box', label: '盲盒刷题', icon: 'spark', desc: '抽题抽惊喜' },
-  { to: '/vip', label: 'VIP 会员', icon: 'trophy', desc: '解锁无限 AI' },
-  { to: '/points', label: '积分中心', icon: 'star', desc: '积分明细' },
-  { to: '/invite', label: '邀请好友', icon: 'user', desc: '邀请得积分' }
+const moreGroups = [
+  {
+    title: '学习中心',
+    items: [
+      { to: '/tasks', label: '任务中心', icon: 'check', desc: '每日学习任务' },
+      { to: '/paper', label: '薄弱专项套卷', icon: 'page', desc: '自动针对薄弱点出卷' },
+      { to: '/review', label: '复习计划', icon: 'refresh', desc: '错题复习' },
+      { to: '/plan', label: '学习计划', icon: 'calendar', desc: 'AI 计划' },
+      { to: '/favorites', label: '我的收藏', icon: 'star', desc: '收藏题目' },
+      { to: '/remind', label: '提醒设置', icon: 'bell', desc: '复习提醒' }
+    ]
+  },
+  {
+    title: '成长工具',
+    items: [
+      { to: '/ai', label: 'AI 答疑', icon: 'chat', desc: '智能问答' },
+      { to: '/achievements', label: '成就徽章', icon: 'trophy', desc: '学习成就' },
+      { to: '/weekly-report', label: '学习周报', icon: 'chart', desc: '每周总结' },
+      { to: '/data-screen', label: '数据大屏', icon: 'chart', desc: '可视化看板' },
+      { to: '/knowledge-graph', label: '知识图谱', icon: 'spark', desc: '知识点关联' },
+      { to: '/blind-box', label: '盲盒刷题', icon: 'spark', desc: '抽题抽惊喜' }
+    ]
+  },
+  {
+    title: '志愿择校',
+    items: [
+      { to: '/recommend', label: '志愿推荐', icon: 'target', desc: '择校建议' },
+      { to: '/schools', label: '院校库', icon: 'school', desc: '院校信息' },
+      { to: '/ranking', label: '排行榜', icon: 'podium', desc: '学习排行' }
+    ]
+  },
+  {
+    title: '会员与邀请',
+    items: [
+      { to: '/vip', label: 'VIP 会员', icon: 'trophy', desc: '解锁无限 AI' },
+      { to: '/points', label: '积分中心', icon: 'star', desc: '积分明细' },
+      { to: '/invite', label: '邀请好友', icon: 'user', desc: '邀请得积分' }
+    ]
+  }
 ]
 
-const moreActive = computed(() => moreNav.some(item => isActive(item)))
+const moreActive = computed(() => moreGroups.some(group => group.items.some(item => isActive(item))))
 
 function isActive(item) {
   if (item.to === '/') return route.path === '/'
@@ -203,8 +226,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 .nav-link svg { width: 18px; height: 18px; flex-shrink: 0; transition: transform 0.22s var(--ease); }
 .nav-link::after {
   content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px;
-  height: 2px; border-radius: 2px;
-  background: var(--accent);
+  height: 2.5px; border-radius: 2px;
+  background: var(--grad-accent);
   transform: scaleX(0); transform-origin: center;
   transition: transform 0.28s var(--ease);
 }
@@ -215,6 +238,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   color: var(--accent); font-weight: 600;
   background: var(--accent-soft);
 }
+.nav-link.active svg { color: var(--accent); }
 .nav-link.active::after { transform: scaleX(1); }
 @media (prefers-reduced-motion: reduce) {
   .nav-link.active, .nav-more-btn.active { animation: none; }
@@ -241,14 +265,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 
 .more-panel {
   position: absolute; top: calc(100% + 14px); right: 0;
-  width: 430px; padding: 10px;
-  background: rgba(255, 255, 255, 0.94);
+  width: 520px; padding: 12px;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: 18px;
   box-shadow: var(--shadow-lg);
-  display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px;
 }
 .more-panel::before {
   content: ''; position: absolute; top: -6px; right: 30px;
@@ -256,9 +280,16 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   background: #fff; border-left: 1px solid var(--glass-border); border-top: 1px solid var(--glass-border);
   transform: rotate(45deg); border-radius: 2px;
 }
+.more-group { display: flex; flex-direction: column; }
+.more-group-title {
+  font-size: 0.7rem; font-weight: 700; color: var(--muted-2);
+  letter-spacing: 0.1em; padding: 6px 12px 4px;
+  text-transform: uppercase;
+}
+.more-group + .more-group { margin-top: 6px; }
 .more-panel a {
   display: flex; align-items: center; gap: 12px;
-  padding: 11px 12px; border-radius: 12px;
+  padding: 9px 12px; border-radius: 12px;
   color: var(--ink); transition: background-color 0.22s var(--ease), transform 0.22s var(--ease);
 }
 .more-panel a > svg {
@@ -359,13 +390,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   .nav-link, .nav-more-btn { padding: 8px 8px; font-size: 0.88rem; gap: 5px; }
   .nav-link svg, .nav-more-btn > svg { width: 16px; height: 16px; }
   .reg-btn { display: none; }
-  .more-panel { width: min(400px, 92vw); }
+  .more-panel { width: min(480px, 92vw); }
 }
 @media (max-width: 960px) {
   .topbar-inner { gap: 14px; }
   .nav { gap: 2px; }
   .nav-link, .nav-more-btn { padding: 8px 7px; }
-  .more-panel { width: min(380px, 92vw); }
+  .more-panel { width: min(440px, 92vw); }
 }
 
 @media (max-width: 900px) {
