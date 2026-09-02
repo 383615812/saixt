@@ -116,7 +116,8 @@ async function run() {
     // 作答：选首选项 -> 提交 -> 校验结果区
     await page.locator('.question-card .option').first().click()
     await page.click('.q-actions button:has-text("提交答案")')
-    const result = await page.locator('.question-card .result').first().waitFor({ timeout: 15000 })
+    const result = page.locator('.question-card .result').first()
+    await result.waitFor({ timeout: 15000 })
     const resultText = (await result.textContent()) || ''
     if (!/正确答案：/.test(resultText)) throw new Error('作答后未见"正确答案"反馈')
     console.log(`✓ 作答提交成功，${/回答正确/.test(resultText) ? '回答正确' : '回答错误'}（${resultText.slice(0, 40)}…）`)
