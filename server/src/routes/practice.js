@@ -94,6 +94,7 @@ router.post('/session', requireAuth, submitLimiter, (req, res) => {
       const userAns = String(a.answer ?? '').slice(0, 50);
       const ok = gradeAnswer(q, userAns);
       if (ok) correct++;
+      else scheduleReview(req.userId, q.id);
       recorded++;
       stmt.run(req.userId, q.id, userAns, ok ? 1 : 0, sid);
     }

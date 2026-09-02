@@ -69,6 +69,12 @@
 
       <!-- 任务列表 -->
       <div class="card task-list">
+        <div v-if="!data.tasks.length" class="task-empty">
+          <div class="te-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg></div>
+          <p>今天还没有任务</p>
+          <p class="te-sub">去刷几道题，任务会自动生成</p>
+          <router-link to="/practice" class="btn btn-primary btn-sm">去刷题</router-link>
+        </div>
         <div v-for="t in data.tasks" :key="t.key" class="task-item" :class="{ done: t.done >= t.target }">
           <div class="task-icon">
             {{ t.icon }}
@@ -231,6 +237,12 @@ onMounted(load)
 .tp-num { font-size: 0.78rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .tp-num.ok { color: var(--green); font-weight: 700; }
 .task-btn { flex-shrink: 0; }
+
+.task-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 36px 20px; text-align: center; }
+.te-icon { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); margin-bottom: 6px; }
+.te-icon svg { width: 26px; height: 26px; }
+.task-empty p { color: var(--muted); font-size: 0.95rem; font-weight: 600; }
+.task-empty .te-sub { color: var(--muted-2); font-size: 0.82rem; font-weight: 400; margin-bottom: 8px; }
 
 .task-note { padding: 18px 22px; background: var(--amber-soft); border-color: transparent; }
 .task-note strong { color: #b45309; font-size: 0.95rem; }

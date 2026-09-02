@@ -104,7 +104,7 @@
               <div class="analysis"><strong>解析：</strong>{{ q.analysis }}</div>
             </div>
             <div class="re-actions">
-              <button v-if="!practiceAnswered" class="btn btn-primary" :disabled="!practiceSel.length" @click="practiceSubmit(q)">提交答案</button>
+              <button v-if="!practiceAnswered" class="btn btn-primary" :disabled="!practiceSel.length || practiceSubmitting" @click="practiceSubmit(q)">{{ practiceSubmitting ? '提交中…' : '提交答案' }}</button>
               <button v-else-if="practiceCorrect" class="btn btn-primary" @click="mastered(q)">标记已掌握</button>
               <button v-else class="btn btn-ghost" @click="showAnalysis(q)">查看解析</button>
               <button class="btn btn-ghost" @click="cancelPractice">收起</button>
@@ -173,6 +173,7 @@ const practiceId = ref(0)
 const practiceSel = ref('')
 const practiceAnswered = ref(false)
 const practiceCorrect = ref(false)
+const practiceSubmitting = ref(false)
 const analysisId = ref(0)
 const exporting = ref(false)
 const aiExplainId = ref(0)
@@ -307,9 +308,23 @@ function practiceUserAnswer() {
   if (qtypeOf(currentPractice.value) === 'multiple') return (Array.isArray(practiceSel.value) ? practiceSel.value.join('') : '')
   return practiceSel.value || ''
 }
-function practiceSubmit(q) {
-  practiceCorrect.value = practiceUserAnswer() === String(q.answer || '').trim().toUpperCase()
+async function practiceSubmit(q) {
+  if (practiceSubmitting.value) return
+  practiceSubmitting.value = true
   practiceAnswered.value = true
+  try {
+    // 复用后端判分：正确则沉淀练习记录，答错则自动进入遗忘曲线复习队列
+    const res = await api.post('/practice/submit', {
+      question_id: q.id,
+      answer: practiceUserAnswer()
+    })
+    practiceCorrect.value = !!res.correct
+  } catch (e) {
+    practiceAnswered.value = false
+    toast(e.message || '提交失败，请稍后重试', 'error')
+  } finally {
+    practiceSubmitting.value = false
+  }
 }
 function cancelPractice() {
   practiceId.value = 0
