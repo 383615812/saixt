@@ -1,0 +1,35 @@
+# systemd 单实例守护（不使用 PM2 时的替代方案）
+# 安装：sudo cp deploy/saaixt.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now saixt
+#
+# 关键环境变量务必在 /opt/saixt/server/.env 中配全：
+#   NODE_ENV=production  SAIXT_SECRET=<强随机hex>  CORS_ORIGIN=https://你的域名
+#   TRUST_PROXY=1  SAIXT_DB_PATH=/opt/saixt/server/data/saixt.db  及其它支付/AI 参数
+[Unit]
+Description=Yunnan Spring Recruitment Saixt Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/saixt/server
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=3
+# 优雅关闭信号耗时上限（与 kill_timeout 对应），超时后 systemd 强杀
+TimeoutStopSec=15
+# 日志轮转交给 journald（journalctl -u saixt -f）
+StandardOutput=journal
+StandardError=journal
+# 生产收紧权限：新建 sqlite 数据文件仅服务用户可读写
+User=saixt
+Group=saixt
+UMask=0077
+# 进程级安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/saixt/server/data /opt/saixt/server/public
+
+[Install]
+WantedBy=multi-user.target

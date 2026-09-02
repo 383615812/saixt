@@ -1,0 +1,57 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lg" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="55%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="sg" x1="32" y1="1" x2="32" y2="15" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="60%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- 书本底座 -->
+  <path d="M8 50 C 8 43, 18 39, 32 39 C 46 39, 56 43, 56 50 V 54
+           C 56 47, 46 44, 32 44 C 18 44, 8 47, 8 54 Z
+           M 13 53 C 13 49, 21 46, 32 46 C 43 46, 51 49, 51 53 V 56
+           C 51 53, 43 51, 32 51 C 21 51, 13 53, 13 56 Z"
+        fill="url(#lg)"/>
+
+  <!-- 大脑整体轮廓（实心，简化造型，左右连为一体更整体） -->
+  <path d="M22 37
+           C 14 37, 9 31, 9 23
+           C 9 15, 15 9, 23 9
+           C 26 9, 28 10, 30 11.5
+           C 31 10, 32 9, 32 9
+           C 32 9, 33 10, 34 11.5
+           C 36 10, 38 9, 41 9
+           C 49 9, 55 15, 55 23
+           C 55 31, 50 37, 42 37
+           C 39 37, 36 36.5, 32 36.5
+           C 28 36.5, 25 37, 22 37 Z"
+        fill="url(#lg)"/>
+
+  <!-- 大脑内部脑沟回（简洁两笔，保持小尺寸清晰度） -->
+  <path d="M14 22 C 17 18, 22 17, 26 19" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.85"/>
+  <path d="M50 22 C 47 18, 42 17, 38 19" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-opacity="0.85"/>
+  <path d="M15 28 C 19 25, 24 24.5, 28 26" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+  <path d="M49 28 C 45 25, 40 24.5, 36 26" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+
+  <!-- 星光（四角星 + 发光） -->
+  <path d="M32 2
+           L 35 10.5
+           L 43.5 13.5
+           L 35 16.5
+           L 32 25
+           L 29 16.5
+           L 20.5 13.5
+           L 29 10.5
+           Z"
+        fill="url(#sg)" filter="url(#glow)"/>
+</svg>

@@ -1,0 +1,84 @@
+name: CI 冒烟
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: 前端冒烟（登录 + 智能出题页 e2e + 单测）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        node: [22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 使用 Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            e2e/package-lock.json
+
+      # 前端单测依赖
+      - name: 安装前端依赖
+        working-directory: web
+        run: npm ci
+
+      # e2e 依赖 + chromium（含系统库）
+      - name: 安装 e2e 依赖
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # 算法门禁（发布前置）：知识图谱连通性/教学边 + 志愿推荐分档均衡回归
+      # 纯自包含脚本（服务器脚本目录内，仅依赖 node 内置模块），不消耗 AI 配额、不依赖生产
+      - name: 运行算法门禁（图谱连通 + 推荐分档）
+        run: npm run smoke:gate
+
+      # API 健康门禁（前后端通信只读冒烟）：连到冒烟目标服务（默认线上）验证公共+登录态端点
+      # 与下方 smoke:e2e 复用同一 SAIXT_BASE；全只读 + 一次登录，不耗 AI 配额、不写数据
+      - name: 运行 API 健康门禁（前后端通信冒烟）
+        env:
+          API_BASE: ${{ vars.SAIXT_BASE || 'http://62.234.79.165/saixt' }}/api
+          TEST_PHONE: ${{ vars.SAIXT_PHONE || '13800000099' }}
+          TEST_PASSWORD: ${{ vars.SAIXT_PASSWORD || 'Test@123456' }}
+        run: npm run health:api
+
+      # 数据库完整性门禁：需 SQLite 库文件，仅在检查出仓库内存在 .db 的环境执行。
+      # CI 通常无生产库也无 SSH 直连，会打印 skip 正常退出；本地/服务器上请跑 npm run health:db
+      - name: 运行数据库完整性门禁（无库时跳过）
+        run: |
+          if [ -f server/data/saixt.db ]; then
+            npm run health:db
+          else
+            echo "skip: 未发现 server/data/saixt.db（本门禁用于本地/服务器，CI 无库时跳过）"
+          fi
+
+      # 冒烟测试：前端单测 + ai-practice 登录/选择 e2e（不耗 AI 配额）
+      # （gate 已在上面单独跑过，这里不再重复，避免双跑）
+      - name: 运行冒烟
+        env:
+          SAIXT_BASE: ${{ vars.SAIXT_BASE || 'http://62.234.79.165/saixt' }}
+          SAIXT_PHONE: ${{ vars.SAIXT_PHONE || '13800000099' }}
+          SAIXT_PASSWORD: ${{ vars.SAIXT_PASSWORD || 'Test@123456' }}
+        run: npm run smoke:e2e && npm run test:web
+
+      # 失败时留存 e2e 截图，便于排查
+      - name: 上传失败截图
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-fail-screenshots
+          path: screenshots/
+          if-no-files-found: ignore
+          retention-days: 7

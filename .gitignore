@@ -1,0 +1,48 @@
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+web/dist/
+
+# ===== 运行数据 / 临时文件 =====
+server/data/
+server/data.db
+server/public/
+screenshots/
+e2e/screenshots/
+exam_papers/
+_ty3_media*/
+_docx_ty*/
+server/scripts/_*
+server/_*
+scripts/_*
+__pycache__/
+*.pyc
+*.log
+
+# ===== 敏感 / 环境 =====
+.env
+.env.*
+server/.env*
+
+# ===== 参考资料 / 大文件与二进制 =====
+# 课程/题库原稿、媒体、真题汇编目录
+【好题汇编】*/
+【*】2025年高中学业水平合格考真题分类汇编/
+化学/
+地理/
+数学/
+物理/
+生物/
+英语/
+语文/
+# 根目录大型/敏感文档
+*.xlsx
+*.pdf
+*.rar
+*.zip
+*.doc
+*.docx
+
+# ===== 系统杂项 =====
+.DS_Store
+Thumbs.db

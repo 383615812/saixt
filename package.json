@@ -1,0 +1,16 @@
+{
+  "name": "saixt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "云南省春季单招智能学习平台 —— 前端 + 后端 + e2e 冒烟一键入口",
+  "scripts": {
+    "smoke": "npm run smoke:gate && npm run smoke:e2e && npm run test:web",
+    "smoke:gate": "node server/scripts/ci/kg-connectivity.mjs && node server/scripts/ci/rec-balance.mjs",
+    "smoke:e2e": "node e2e/ai-practice.e2e.mjs",
+    "smoke:e2e:full": "node e2e/ai-practice.e2e.mjs --generate",
+    "test:web": "cd web && npm run test",
+    "health:api": "node server/scripts/ci/api-health.mjs",
+    "health:db": "node server/scripts/ci/db-integrity.cjs",
+    "health": "npm run health:api && npm run health:db"
+  }
+}

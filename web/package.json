@@ -1,0 +1,25 @@
+{
+  "name": "saixt-web",
+  "version": "1.0.0",
+  "description": "云南省春季单招智能学习平台 - 前端",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --base=/saixt/ && node scripts/postbuild-sw.mjs",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "qrcode": "^1.5.4",
+    "vue": "^3.4.31",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "@vue/test-utils": "^2.5.0",
+    "jsdom": "^29.1.1",
+    "vite": "^5.3.3",
+    "vitest": "^4.1.11"
+  }
+}

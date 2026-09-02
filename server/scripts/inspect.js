@@ -1,0 +1,10 @@
+const { DatabaseSync } = require('node:sqlite');
+const db = new DatabaseSync('E:/saixt/server/data/saixt.db');
+const cols = db.prepare("SELECT name FROM pragma_table_info('schools')").all();
+console.log('schools cols:', cols.map(c => c.name).join(','));
+const cols2 = db.prepare("SELECT name FROM pragma_table_info('plans')").all();
+console.log('plans cols:', cols2.map(c => c.name).join(','));
+const s = db.prepare('SELECT * FROM schools LIMIT 3').all();
+console.log(JSON.stringify(s, null, 1).slice(0, 1800));
+const p = db.prepare('SELECT * FROM plans LIMIT 3').all();
+console.log('plans sample:', JSON.stringify(p, null, 1).slice(0, 1200));
