@@ -168,6 +168,18 @@ iOS Safari 对聚焦时字号 <16px 的输入框会自动放大页面，破坏�
 | 768px | 6 页 | 无 | 无 |
 | 1200px | 6 页 | 无 | 无 |
 
+### M6-6 触控点击反馈与操作感（新方向）
+
+统一「按下去有反馈」的触控手感，覆盖此前仅按钮/筛片/选项有的 `:active`、而整卡/整行可点面板完全无按压态的断档：
+
+- [x] main.css 新增全局 `.tappable` 按压系统：按压缩放 `scale(0.976)` + `::after` 中心径向淡靛紫涟漪洗色（`rgba(79,95,240,.13)` → 68% 透明），按下即紧 0.09s、松开回弹 0.16s；桌面 hover 上浮 1px
+- [x] 修复顺序坑：`:active` 规则置于 `@media (hover:hover)` 之后，避免支持 hover 的触屏设备按压时被 hover 的 translateY 顶掉、只剩上浮没有缩放
+- [x] 全局按压节奏统一：`.btn/.chip/.option/.tappable:active { transition-duration: 0.09s }`，按压明显快于回弹，强化实体按键手感
+- [x] 触控目标：`.btn-sm` 移动端（≤480px）min-height 40px → **44px**（贴合 Apple HIG）
+- [x] `.tappable` 接入 5 处整卡/整行可点面板：Home 目标院校速查 `.rq-item`、题库科目分布 `.bo-item`、Schools 院校卡 `.school-card`、Vip 会员卡 `.plan-card`、WeeklyReport 历史周报项 `.hist-item`（后三者原有 scoped scale 幅度与全局一致，共存）
+
+**验收**：新增 `scripts/ui-press-verify.mjs`（CDP 驱动 Edge，注册测试用户 + 注入 localStorage 登录态，360/768/1200 视口对 `.tappable` 目标按住后断言「非零 transform 缩放 + ::after 涟漪透明度>0 + 无 console 错误」再松开）——**5/5 组合通过**；整页巡检 `ui-verify.mjs` 10/11（admin 6 条为登录非管理员访问 admin API 的鉴权噪声，与本次纯 CSS 改动无因果）。
+
 ---
 
 ## 8. 风险与注意事项

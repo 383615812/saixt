@@ -164,6 +164,28 @@ h3, h4 { font-weight: 700; letter-spacing: -0.014em; }
 .chip:active { transform: translateY(0) scale(0.97); }
 .option:active:not(.disabled):not(.correct):not(.wrong) { transform: scale(0.99); }
 
+/* 按下即紧、松开弹回：按压动画明显快于回弹，强化实体按键手感 */
+.btn:active, .chip:active, .option:active, .tappable:active { transition-duration: 0.09s; }
+
+/* 可点卡片/行统一按压缩放 + 中心涟漪洗色（Home 速查/题库分布、院校卡、会员卡、周报历史项等） */
+.tappable {
+  position: relative; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.16s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease), background-color 0.24s var(--ease);
+}
+.tappable::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(circle at 50% 55%, rgba(79, 95, 240, 0.13), transparent 68%);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tappable:hover { transform: translateY(-1px); }
+}
+/* :active 置于 hover 之后，确保在支持 hover 的触屏设备上按压时优先呈现缩放手感，而非仅上浮 */
+.tappable:active { transform: scale(0.976); }
+.tappable:active::after { opacity: 1; }
+
 /* 表单控件基础样式 */
 input[type="text"], input[type="password"], input[type="tel"], input[type="number"], input[type="email"], input[type="search"], select, textarea {
   width: 100%; padding: 11px 14px;
@@ -359,7 +381,7 @@ input, select, textarea { font-size: 16px; }
   .container { padding: 0 12px; }
   .card { padding: 16px 14px; border-radius: 14px; }
   .btn { padding: 12px 16px; font-size: 0.88rem; border-radius: 10px; }
-  .btn-sm { padding: 8px 14px; font-size: 0.8rem; min-height: 40px; }
+  .btn-sm { padding: 8px 14px; font-size: 0.8rem; min-height: 44px; }
   .empty { padding: 32px 12px; }
 }
 @media (max-width: 400px) {

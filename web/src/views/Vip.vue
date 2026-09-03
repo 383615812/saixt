@@ -43,7 +43,7 @@
       <div
         v-for="p in data.products"
         :key="p.code"
-        class="card plan-card"
+        class="card plan-card tappable"
         :class="{ selected: selected === p.code, hot: p.code === 'vip_quarter' }"
         @click="selected = p.code"
       >

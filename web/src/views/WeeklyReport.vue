@@ -198,7 +198,7 @@
         </div>
         <div v-else-if="!history.length" class="empty-mini">暂无历史周报，本周结束后系统将自动生成</div>
         <div v-else class="hist-list">
-          <div v-for="h in history" :key="h.id" class="hist-item" role="button" tabindex="0" @click="openHistory(h)" @keydown.enter.prevent="openHistory(h)">
+          <div v-for="h in history" :key="h.id" class="hist-item tappable" role="button" tabindex="0" @click="openHistory(h)" @keydown.enter.prevent="openHistory(h)">
             <div class="hist-week">{{ h.week_start }} ~ {{ h.week_end }}</div>
             <div class="hist-stats">
               <span class="hs-item"><b>{{ h.total }}</b> 题</span>

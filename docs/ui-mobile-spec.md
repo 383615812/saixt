@@ -166,15 +166,24 @@ height: 100dvh;     /* 动态视口 */
 padding-bottom: calc(18px + var(--safe-bottom));
 ```
 
+### 3.7.5 按压反馈与触控目标
+
+- 所有可点元素须有 `:active` 按压反馈；整卡/整行可点面板统一追加 `.tappable` 类：按压缩放 `scale(0.976)` + `::after` 中心径向涟漪洗色（`rgba(79,95,240,.13)`，`border-radius: inherit` 裁剪）
+- 按压节奏「按下即紧、松开回弹」：`.btn/.chip/.option/.tappable:active { transition-duration: 0.09s }`（按压明显快于回弹）
+- `:active` 规则必须写在 `@media (hover:hover)` 之后，避免支持 hover 的触屏设备按压时被 hover 上浮覆盖、丢失缩放手感
+- 触控高度：主按钮 ≥44px；移动端小号按钮 `.btn-sm` ≥44px；图标关闭/缩放类小控件（modal-x/gc-btn 等）保持各自既定尺寸，首选 ≥40px
+- 涟漪洗色为克制的淡靛紫（≤0.13 透明度径向渐变），禁止高饱和大范围覆盖内容
+
 ---
 
 ## 4. 验收标准
 
 1. 全站可点击元素最小触控高度 ≥ 40px（grep 巡检 + 截图抽查）
-2. 移动端（375×667 / 390×844）截图无横向滚动、无内容挤压
-3. 弹窗/抽屉/搜索面板在移动端近全屏，关闭按钮触控友好
-4. 全站辅助字号 ≥ 0.72rem，无 0.7rem 临界值
-5. 桌面端视觉无回归（与优化前截图对比）
-6. 构建通过，`smoke:gate` + `test:web` + e2e 冒烟通过
-7. 表单控件字号 ≥ 16px（grep 巡检，防 iOS 聚焦缩放）
-8. 滚动容器含 `overscroll-behavior: contain`，底部弹层含 safe-bottom
+2. 可点卡片/行均有唯一按压反馈（`ui-press-verify.mjs` 按住断言缩放 + 涟漪透明度）
+3. 移动端（375×667 / 390×844）截图无横向滚动、无内容挤压
+4. 弹窗/抽屉/搜索面板在移动端近全屏，关闭按钮触控友好
+5. 全站辅助字号 ≥ 0.72rem，无 0.7rem 临界值
+6. 桌面端视觉无回归（与优化前截图对比）
+7. 构建通过，`smoke:gate` + `test:web` + e2e 冒烟通过
+8. 表单控件字号 ≥ 16px（grep 巡检，防 iOS 聚焦缩放）
+9. 滚动容器含 `overscroll-behavior: contain`，底部弹层含 safe-bottom

@@ -194,7 +194,7 @@
               <span class="rq-count">{{ t.items.length }} 所</span>
             </div>
             <div class="rq-list">
-              <router-link v-for="s in t.items" :key="s.code" :to="`/schools/${s.code}`" class="rq-item">
+              <router-link v-for="s in t.items" :key="s.code" :to="`/schools/${s.code}`" class="rq-item tappable">
                 <span class="rq-name">{{ s.name.replace(/^\(民办\)/, '') }}</span>
                 <span v-if="s.region" class="rq-region">{{ s.region }}</span>
                 <span v-if="s.estimateScore" class="rq-line">{{ s.estimateScore }}</span>
@@ -301,7 +301,7 @@
           <router-link to="/bank" class="btn btn-ghost btn-sm">进入题库 →</router-link>
         </div>
         <div class="bo-grid">
-          <div v-for="s in subjectDist" :key="s.subject" class="bo-item" role="button" tabindex="0" @click="goPractice(s.subject)" @keydown.enter.prevent="goPractice(s.subject)">
+          <div v-for="s in subjectDist" :key="s.subject" class="bo-item tappable" role="button" tabindex="0" @click="goPractice(s.subject)" @keydown.enter.prevent="goPractice(s.subject)">
             <div class="bo-top">
               <span class="bo-name">{{ s.subject }}</span>
               <span class="bo-count">{{ s.count.toLocaleString() }} 题</span>

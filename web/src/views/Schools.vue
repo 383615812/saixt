@@ -62,7 +62,7 @@
         v-for="s in list"
         :key="s.code"
         :to="`/schools/${s.code}`"
-        class="card school-card"
+        class="card school-card tappable"
       >
         <div class="sc-head">
           <div class="sc-logo">{{ s.name.slice(0, 2) }}</div>
