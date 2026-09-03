@@ -359,6 +359,15 @@ router.afterEach(() => {
 @media (min-width: 901px) {
   .install-banner { bottom: 24px; }
 }
+@media (max-width: 600px) {
+  /* 移动端更紧凑轻量，减少对内容与 TabBar 的遮挡 */
+  .install-banner { width: calc(100vw - 20px); padding: 9px 12px; gap: 9px; border-radius: 14px; }
+  .ib-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .ib-icon svg { width: 18px; height: 18px; }
+  .ib-text strong { font-size: 0.85rem; }
+  .ib-text span { font-size: 0.72rem; }
+  .ib-btn { padding: 7px 14px; min-height: 36px; }
+}
 
 .footer {
   border-top: 1px solid var(--rule-soft);
