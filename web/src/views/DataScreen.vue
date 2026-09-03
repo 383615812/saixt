@@ -344,6 +344,28 @@ function initCharts() {
   // 科目柱状图纯色板（按科目循环，避免渐变填充）
   const barPalette = ['#4f5ff0', '#7c3aed', '#0da678', '#d97706', '#0891b2', '#e11d48', '#65a30d', '#ea580c', '#64748b', '#0d9488', '#a16207']
 
+  // 环形/饼图中心统计文字插件：窄屏利用环心空白呈现总题数，减少对外部图例依赖
+  const centerLegend = {
+    id: 'centerLegend',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0)
+      const pts = meta && meta.data
+      if (!pts || !pts.length) return
+      const { ctx } = chart
+      const { x, y } = pts[0]
+      const total = (chart.data.datasets[0] && chart.data.datasets[0].data || []).reduce((a, b) => a + (Number(b) || 0), 0)
+      ctx.save()
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.font = '800 21px system-ui, -apple-system, sans-serif'
+      ctx.fillStyle = '#ffffff'
+      ctx.fillText(total >= 10000 ? (total / 10000).toFixed(1) + 'w' : String(total), x, y - 9)
+      ctx.font = '12px system-ui, -apple-system, sans-serif'
+      ctx.fillStyle = 'rgba(255,255,255,.6)'
+      ctx.fillText('总题数', x, y + 13)
+      ctx.restore()
+    }
+  }
+
   // 题型分布 - 环形图
   if (typeChart.value && window.Chart) {
     const td = Object.entries(d.typeDist || {}).map(([type, count]) => ({ type, count }))
@@ -367,14 +389,15 @@ function initCharts() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '60%',
+        cutout: '62%',
         plugins: {
           legend: {
-            position: 'right',
+            position: 'bottom',
             labels: { color: colors.text, padding: 12, font: { size: 12 } }
           }
         }
-      }
+      },
+      plugins: [centerLegend]
     })
   }
 
