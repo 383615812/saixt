@@ -13,10 +13,10 @@ const db = new DatabaseSync(DB);
 db.exec('PRAGMA busy_timeout=5000');
 db.exec('PRAGMA synchronous=FULL');
 
-// 载入生产已有键
+// 载入生产已有键（用完整题干去重，避免材料题子题被前50字误判为重复）
 const existing = new Set();
 for (const r of db.prepare('SELECT subject, stem FROM questions').all()) {
-  existing.add(`${r.subject}\u0000${norm(r.stem).slice(0, 50)}`);
+  existing.add(`${r.subject}\u0000${norm(r.stem)}`);
 }
 console.log('生产现有题量:', existing.size);
 
@@ -26,7 +26,7 @@ const ins = db.prepare(
 let inserted = 0, skipped = 0;
 db.exec('BEGIN IMMEDIATE');
 for (const r of data.rows) {
-  const key = `${r.subject}\u0000${norm(r.stem).slice(0, 50)}`;
+  const key = `${r.subject}\u0000${norm(r.stem)}`;
   if (existing.has(key)) { skipped++; continue; }
   existing.add(key);
   ins.run(r.subject, r.chapter, r.type, r.difficulty, r.stem, r.options, r.answer, r.analysis, r.source);
