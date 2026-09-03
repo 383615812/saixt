@@ -148,7 +148,7 @@ onMounted(async () => {
 .plan-btn { margin-top: 12px; }
 
 .chat-card {
-  display: flex; flex-direction: column; height: calc(100vh - 240px); min-height: 480px;
+  display: flex; flex-direction: column; height: calc(100vh - 240px); height: calc(100dvh - 240px); min-height: 480px;
   padding: 0; overflow: hidden; position: relative;
 }
 .chat-card::before {
@@ -157,7 +157,7 @@ onMounted(async () => {
   pointer-events: none; z-index: 0;
 }
 
-.chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; }
+.chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 1; overscroll-behavior: contain; }
 
 .chat-welcome { text-align: center; padding: 34px 20px; }
 .cw-icon {
@@ -240,19 +240,19 @@ onMounted(async () => {
 .chat-input textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
 @media (max-width: 768px) {
-  .chat-card { height: calc(100vh - 180px); min-height: 420px; }
+  .chat-card { height: calc(100vh - 180px); height: calc(100dvh - 180px); min-height: 420px; }
 }
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
   .page-head p { font-size: 0.82rem; }
   .plan-btn { margin-top: 10px; width: 100%; }
-  .chat-card { height: calc(100vh - 160px); min-height: 380px; }
+  .chat-card { height: calc(100vh - 160px); height: calc(100dvh - 160px); min-height: 380px; }
   .msg { max-width: 92%; }
   .msg-avatar { width: 36px; height: 36px; font-size: 0.78rem; }
   .msg-bubble { font-size: 0.96rem; padding: 10px 13px; line-height: 1.75; }
   .chat-body { padding: 12px 10px; gap: 12px; }
   .chat-input { padding: 10px 12px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); gap: 8px; }
-  .chat-input textarea { font-size: 0.9rem; padding: 9px 12px; }
+  .chat-input textarea { font-size: 1rem; padding: 9px 12px; }
   .chat-input .btn { padding: 10px 14px; font-size: 0.85rem; flex-shrink: 0; }
   .quick-item { padding: 12px 14px; font-size: 0.86rem; min-height: 44px; }
   .cw-icon { width: 48px; height: 48px; font-size: 1.05rem; }

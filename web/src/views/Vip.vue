@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 600px) {
   .pay-mask { padding: 12px; align-items: flex-end; }
-  .pay-modal { max-width: 100%; border-radius: 18px 18px 14px 14px; }
+  .pay-modal { max-width: 100%; border-radius: 18px 18px 14px 14px; padding-bottom: calc(24px + var(--safe-bottom)); }
 }
 @media (max-width: 480px) {
   .benefit-grid, .plan-grid { grid-template-columns: 1fr; }

@@ -210,7 +210,7 @@ onMounted(async () => {
   .page-head p { font-size: 0.82rem; }
   .rec-form { padding: 16px 14px; }
   .form-row { flex-direction: column; align-items: stretch; gap: 10px; }
-  .form-row input, .form-row select { width: 100%; max-width: none; }
+  .form-row input, .form-row select { width: 100%; max-width: none; font-size: 1rem; }
   .form-row label { width: 100%; }
   .form-row .btn { width: 100%; }
   .score-banner { justify-content: center; text-align: center; gap: 14px; padding: 18px 16px; }

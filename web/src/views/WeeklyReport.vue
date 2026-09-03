@@ -758,7 +758,7 @@ onMounted(() => {
 }
 .hist-close:hover { background: var(--accent-soft); color: var(--accent); }
 .hist-close:active { transform: scale(0.92); }
-.hist-modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.hist-modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; overscroll-behavior: contain; }
 .hm-ov { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
 .hm-cell { text-align: center; background: var(--accent-soft); border-radius: 12px; padding: 14px 6px; }
 .hm-cell b { display: block; font-size: 1.4rem; font-weight: 800; color: var(--accent); }
@@ -808,7 +808,7 @@ onMounted(() => {
   .hist-stats { width: 100%; gap: 10px; }
   .hist-ai-tag { font-size: 0.75rem; }
   .hist-mask { padding: 10px; }
-  .hist-modal { max-height: 95vh; border-radius: 16px; }
+  .hist-modal { max-height: 95vh; max-height: 95dvh; border-radius: 16px; }
   .hist-modal-head { padding: 14px 16px; }
   .hist-modal-body { padding: 14px; }
   .hm-ov { grid-template-columns: repeat(2, 1fr); gap: 8px; }

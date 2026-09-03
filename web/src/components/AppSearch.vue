@@ -224,7 +224,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 .si-clear:hover { background: var(--accent-soft); color: var(--accent); }
 .si-clear:active { transform: scale(0.92); }
 .si-clear svg { width: 14px; height: 14px; }
-.search-body { overflow-y: auto; padding: 8px 0; }
+.search-body { overflow-y: auto; padding: 8px 0; overscroll-behavior: contain; }
 .search-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px 0; color: var(--muted); font-size: 0.88rem; }
 .search-loading .spinner { width: 20px; height: 20px; border-width: 2px; }
 .search-error { text-align: center; padding: 40px 20px; color: var(--muted); }

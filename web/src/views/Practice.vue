@@ -783,7 +783,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 .sheet-panel {
-  width: 100%; max-width: 420px; max-height: 82vh; overflow-y: auto;
+  width: 100%; max-width: 420px; max-height: 82vh; overflow-y: auto; overscroll-behavior: contain;
   background: var(--surface); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg); padding: 22px;
   animation: sheetPop 0.3s var(--ease-out);
@@ -945,7 +945,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .timer-tip { margin-left: 0; width: 100%; }
   .sheet-btn { margin-left: auto; }
   .sheet-mask { padding: 12px; align-items: flex-end; }
-  .sheet-panel { padding: 18px 16px; max-height: 92vh; border-radius: 18px 18px 14px 14px; }
+  .sheet-panel { padding: 18px 16px calc(18px + var(--safe-bottom)); max-height: 92vh; max-height: 92dvh; border-radius: 18px 18px 14px 14px; }
   .sheet-grid { grid-template-columns: repeat(5, 1fr); gap: 7px; }
   .timer-num { font-size: 1.3rem; }
   .result-head { flex-wrap: wrap; }
@@ -961,7 +961,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .rp-stat .lbl { font-size: 0.78rem; }
   .result-panel { padding: 20px 14px; }
   .subjective-box .btn { width: 100%; }
-  .subjective-box textarea { font-size: 0.9rem; padding: 12px; }
+  .subjective-box textarea { font-size: 1rem; padding: 12px; }
   .analysis { font-size: 0.86rem; }
   .multi-hint { font-size: 0.76rem; }
 }

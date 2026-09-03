@@ -1158,7 +1158,7 @@ onMounted(loadAll)
 .ts-hint { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
 .ts-tip { margin-top: 12px; font-size: 0.82rem; color: var(--amber); background: var(--amber-soft); padding: 8px 12px; border-radius: 8px; }
 
-.grade-grid { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 6px; }
+.grade-grid { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 6px; overscroll-behavior: contain; }
 .grade-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--rule); }
 .grade-name { font-size: 0.85rem; color: var(--ink); width: 70px; flex-shrink: 0; }
 .grade-opts { display: flex; gap: 6px; }
@@ -1173,10 +1173,7 @@ onMounted(loadAll)
 
 .form { display: flex; flex-direction: column; gap: 12px; }
 .form label { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--muted); }
-.form input {
-  padding: 9px 12px; border: 1px solid var(--rule); border-radius: 10px;
-  font-size: 0.92rem; outline: none; transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
-}
+.form input { padding: 9px 12px; border: 1px solid var(--rule); border-radius: 10px; font-size: 0.92rem; outline: none; transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease); }
 .form input:hover { border-color: #d6dae6; }
 .form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .hui-kao { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -1404,6 +1401,7 @@ onMounted(loadAll)
   .panel-sub { font-size: 0.8rem; }
   .panel-head { flex-wrap: wrap; gap: 10px; }
   .panel-head-right { width: 100%; justify-content: flex-start; }
+  .form input { font-size: 1rem; }
 }
 @media (max-width: 400px) {
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }

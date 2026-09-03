@@ -824,6 +824,7 @@ onUnmounted(() => {
   gap: 6px;
   max-height: 200px;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .dp-related-item {
   display: flex;
@@ -1020,6 +1021,7 @@ onUnmounted(() => {
     top: 12px;
     max-height: calc(100% - 24px);
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }
   .gc-btn { width: 36px; height: 36px; font-size: 15px; }

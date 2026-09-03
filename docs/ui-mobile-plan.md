@@ -1,8 +1,8 @@
 # 前端移动端适配优化 · 实施计划（Plan）
 
 > 项目：saixt 云南春招智能学习平台
-> 版本：v1.1（2026-09-03）
-> 状态：✅ 已实施完成 · 三端验证通过
+> 版本：v1.2（2026-09-03）
+> 状态：✅ M0-M6 已实施 · 待部署
 > 关联文档：[ui-mobile-spec.md](./ui-mobile-spec.md)、[ui-spec.md](./ui-spec.md)
 
 ---
@@ -17,6 +17,7 @@
 | M3 | 页面断点补齐与触控修复 | `Tasks`、`Recommend`、`Favorites`、`SchoolDetail`、`KnowledgeGraph`、`Remind`、`Schools` | 中 |
 | M4 | 辅助字号基线提升（0.7 → 0.75rem） | 全站涉及页面 | 中 |
 | M5 | 三端渲染验证 + 构建 + 冒烟 | 全部 + CI | 高 |
+| M6 | 专业级细节打磨（iOS 缩放/overscroll/dvh/安全区） | main.css + 表单/弹窗页面 | 高 |
 
 ---
 
@@ -100,9 +101,9 @@
 - [x] 360 / 768 / 1200 三端截图对比（puppeteer-core + Edge，18 组合全通过）
 - [x] 浏览器 console 无报错，无横向溢出（`scrollWidth - clientWidth ≤ 2px`）
 - [x] `npm run build` 构建通过（5.63s，主包 gzip 75.12kB）
-- [ ] `npm run smoke:gate` + `test:web` + e2e 冒烟通过
-- [ ] 提交 + 推送，CI 通过
-- [ ] 生产部署（dist 同步 + 备份），线上验证
+- [x] `npm run smoke:gate` + `test:web` + e2e 冒烟通过
+- [x] 提交 + 推送（57a8fc9），CI 通过（run 33699263539 success）
+- [x] 生产部署（dist 同步 + 备份 dist.bak-mobile-ui），线上验证通过
 
 ### 7.1 三端渲染验证结果（2026-09-03）
 
@@ -115,6 +116,57 @@
 - 移动端底部 TabBar 激活态单高亮正常（`isTabActive` 逻辑正确，截图分析"双高亮"为误判）
 - 知识图谱 360px 节点/标签/控制按钮均正常渲染，可缩放
 - 登录页 360px 表单、密码可见切换、按钮触控目标合规
+
+---
+
+## 7.2 阶段 M6：专业级细节打磨
+
+**目标**：补齐移动端专业级体验细节——iOS 输入防缩放、滚动链治理、动态视口、底部安全区。
+
+### M6-1 iOS 输入防缩放（font-size ≥ 16px）
+
+iOS Safari 对聚焦时字号 <16px 的输入框会自动放大页面，破坏体验。修复所有文本输入控件：
+
+- [x] Login.vue `.field input`：0.95rem → 1rem
+- [x] AiChat.vue `.chat-input textarea`（≤600px）：0.9rem → 1rem
+- [x] Practice.vue `.subjective-box textarea`（≤600px）：0.9rem → 1rem
+- [x] QuestionBank.vue `.search input`（≤600px）：0.88rem → 1rem
+
+### M6-2 overscroll 链式滚动治理
+
+防止弹窗/抽屉滚动到底后带动背景页面滚动（scroll chaining）：
+
+- [x] main.css：`html, body { overscroll-behavior-y: none; }`
+- [x] 滚动容器补 `overscroll-behavior: contain`：AppSearch.search-body、WeeklyReport.hist-modal-body、AiChat.chat-body、Admin.modal-body、Achievements.poster-body、Practice.sheet-panel、Dashboard.grade-grid、KnowledgeGraph.dp-related + detail-panel
+
+### M6-3 动态视口单位 100dvh
+
+移动端浏览器地址栏显隐导致 `100vh` 跳动，补 `100dvh` 兜底（旧浏览器自动回退 100vh）：
+
+- [x] App.vue `.app` / `.main`：min-height 补 100dvh
+- [x] DataScreen.vue `.screen`：min-height 补 100dvh
+- [x] AiChat.vue `.chat-card`：三档断点 height 补 100dvh
+- [x] 底部弹层 max-height 补 dvh：Practice 92dvh / Admin 94dvh / WeeklyReport 95dvh
+
+### M6-4 弹窗底部安全区 + 触控反馈
+
+- [x] 底部对齐弹层 padding-bottom 含 `var(--safe-bottom)`：Vip.pay-modal、Practice.sheet-panel、Admin.modal-body
+- [x] 触控反馈已在 M0-M3 统一（.btn/.chip/.option/关闭按钮均有 :active）
+
+**验收**：grep 确认表单控件无 <16px 字号；滚动容器均含 overscroll-behavior；三端截图无回归。✅ 通过
+
+### M6-5 三端构建验证结果（2026-09-03）
+
+- [x] `npm run build` 构建通过（5.30s，主包 gzip 52.80kB / DataScreen gzip 75.12kB）
+- [x] 本地新构建 6 页面（首页/仪表盘/刷题/图谱/计划/登录）× 3 视口（360/768/1200）截图验证，**18 组合全通过**：无横向溢出、无 console 错误
+- [x] 登录表单字号 ≥16px 可视化确认，iOS 防缩放生效
+- [x] 底部弹层（Practice/Vip/Admin）安全区内边距与 dvh 高度就位，headless 环境下 safe-area=0 属预期
+
+| 视口 | 页面 | 溢出 | console 错误 |
+|---|---|---|---|
+| 360px | 6 页 | 无 | 无 |
+| 768px | 6 页 | 无 | 无 |
+| 1200px | 6 页 | 无 | 无 |
 
 ---
 

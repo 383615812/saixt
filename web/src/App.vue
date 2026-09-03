@@ -262,9 +262,9 @@ router.afterEach(() => {
 </script>
 
 <style scoped>
-.app { min-height: 100vh; display: flex; flex-direction: column; }
+.app { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 
-.main { flex: 1; padding: 26px 0 52px; min-height: calc(100vh - 64px - 240px); }
+.main { flex: 1; padding: 26px 0 52px; min-height: calc(100vh - 64px - 240px); min-height: calc(100dvh - 64px - 240px); }
 
 .page-enter-active, .page-leave-active { transition: opacity 0.16s var(--ease-out); }
 .page-enter-from, .page-leave-to { opacity: 0; }

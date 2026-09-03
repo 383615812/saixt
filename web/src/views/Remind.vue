@@ -398,7 +398,7 @@ onMounted(load)
   .db-btn { width: 100%; text-align: center; }
   .set-card, .test-card, .log-card { padding: 18px 16px; }
   .set-row { align-items: flex-start; }
-  .set-input { width: 100%; min-width: 0; }
+  .set-input { width: 100%; min-width: 0; font-size: 1rem; }
   .set-actions .btn { flex: 1; }
   .test-actions .btn { flex: 1; min-width: 120px; }
   .log-item { padding: 10px 12px; }

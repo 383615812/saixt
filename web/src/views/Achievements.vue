@@ -483,7 +483,7 @@ onMounted(async () => {
 }
 .poster-close:hover { background: var(--accent-soft); color: var(--accent); }
 .poster-close:active { transform: scale(0.92); }
-.poster-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); }
+.poster-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); overscroll-behavior: contain; }
 .poster-img { width: 100%; max-width: 380px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
 .poster-actions { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
 .poster-actions .btn { flex: 1; min-width: 88px; }

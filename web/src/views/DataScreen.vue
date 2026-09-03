@@ -595,6 +595,7 @@ onUnmounted(() => {
 <style scoped>
 .screen {
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(ellipse at top, #0a1628 0%, #050a18 60%, #02040a 100%);
   color: #fff;
   padding: 16px 20px 32px;

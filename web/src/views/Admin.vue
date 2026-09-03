@@ -807,7 +807,7 @@ onMounted(load)
 }
 .modal-x:hover { background: var(--surface-2); color: var(--ink); }
 .modal-x:active { transform: scale(0.92); }
-.modal-body { padding: 18px 22px 22px; overflow-y: auto; }
+.modal-body { padding: 18px 22px 22px; overflow-y: auto; overscroll-behavior: contain; }
 .modal-body.centered { min-height: 140px; display: flex; align-items: center; justify-content: center; }
 
 .ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
@@ -856,9 +856,10 @@ onMounted(load)
 }
 @media (max-width: 600px) {
   .modal-mask { padding: 10px; align-items: flex-end; }
-  .modal-panel { max-height: 94vh; border-radius: 16px 16px 12px 12px; }
+  .modal-panel { max-height: 94vh; max-height: 94dvh; border-radius: 16px 16px 12px 12px; }
   .modal-head { padding: 14px 16px 12px; }
-  .modal-body { padding: 14px 16px 18px; }
+  .modal-body { padding: 14px 16px calc(18px + var(--safe-bottom)); }
+  .tool-input { font-size: 1rem; }
 }
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr; }

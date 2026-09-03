@@ -360,7 +360,7 @@ onMounted(async () => {
   .filter-row + .filter-row { margin-top: 10px; }
   .chip { padding: 8px 12px; font-size: 0.84rem; }
   .chip-sm { padding: 6px 11px; font-size: 0.76rem; min-height: 32px; }
-  .search input { padding: 10px 12px; font-size: 0.88rem; }
+  .search input { padding: 10px 12px; font-size: 1rem; }
   .search .btn { padding: 10px 14px; font-size: 0.85rem; }
   .q-item { padding: 14px 12px; }
   .q-stem { font-size: 0.95rem; line-height: 1.65; overflow-wrap: break-word; }

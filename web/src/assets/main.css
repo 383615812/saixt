@@ -97,6 +97,7 @@ a:hover { color: var(--accent-deep); }
 button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
 .btn { touch-action: manipulation; }
 input, select, textarea { font-family: inherit; }
+html, body { overscroll-behavior-y: none; }
 
 h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.011em;

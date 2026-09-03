@@ -1,8 +1,8 @@
 # 前端移动端适配优化 · 规格说明（Spec）
 
 > 项目：saixt 云南春招智能学习平台
-> 版本：v1.1（2026-09-03）
-> 状态：✅ 已实施完成 · 三端验证通过
+> 版本：v1.2（2026-09-03）
+> 状态：✅ M0-M6 已实施 · 待部署
 > 关联文档：[ui-spec.md](./ui-spec.md)（全站设计系统）、[ui-mobile-plan.md](./ui-mobile-plan.md)
 
 ---
@@ -121,6 +121,53 @@
 
 ---
 
+## 3.7 专业级细节规范（M6）
+
+### 3.7.1 iOS 输入防缩放
+
+iOS Safari 对聚焦时字号 <16px 的 input/textarea 会自动放大页面。**所有文本输入控件字号必须 ≥ 16px（1rem）**，否则在移动端断点内显式提升：
+
+| 控件 | 修复 |
+|---|---|
+| Login `.field input` | 1rem |
+| AiChat `.chat-input textarea`（≤600px） | 1rem |
+| Practice `.subjective-box textarea`（≤600px） | 1rem |
+| QuestionBank `.search input`（≤600px） | 1rem |
+| AppSearch `.search-input` | 1rem |
+| Dashboard `.form input`（≤600px） | 1rem |
+| Admin `.tool-input`（≤600px） | 1rem |
+| Schools `.search input`（≤768px） | 1rem |
+| Remind `.set-input`（≤768px） | 1rem |
+| Recommend `.form-row input`（≤768px） | 1rem |
+
+> 注：`<select>` 聚焦不触发 iOS 缩放，可保持桌面字号；全局兜底规则 `input, select, textarea { font-size: 16px; }` 已在 main.css 末尾，未被更高优先级类覆盖时自动生效。
+
+### 3.7.2 overscroll 滚动链治理
+
+- 页面级：`html, body { overscroll-behavior-y: none; }` 防下拉刷新/滚动链
+- 弹窗/抽屉/独立滚动容器：`overscroll-behavior: contain`，滚动到底不带动背景
+
+### 3.7.3 动态视口单位
+
+移动端地址栏显隐导致 `100vh` 跳动。全屏/近全屏容器统一写法：
+
+```css
+height: 100vh;      /* 旧浏览器兜底 */
+height: 100dvh;     /* 动态视口 */
+```
+
+底部弹层 max-height 同理补 dvh（92/94/95dvh）。
+
+### 3.7.4 底部安全区
+
+底部对齐弹层（bottom sheet）padding-bottom 必须含 `var(--safe-bottom)`，避免内容被 iPhone 底部横条遮挡：
+
+```css
+padding-bottom: calc(18px + var(--safe-bottom));
+```
+
+---
+
 ## 4. 验收标准
 
 1. 全站可点击元素最小触控高度 ≥ 40px（grep 巡检 + 截图抽查）
@@ -129,3 +176,5 @@
 4. 全站辅助字号 ≥ 0.72rem，无 0.7rem 临界值
 5. 桌面端视觉无回归（与优化前截图对比）
 6. 构建通过，`smoke:gate` + `test:web` + e2e 冒烟通过
+7. 表单控件字号 ≥ 16px（grep 巡检，防 iOS 聚焦缩放）
+8. 滚动容器含 `overscroll-behavior: contain`，底部弹层含 safe-bottom

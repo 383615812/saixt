@@ -253,7 +253,7 @@ async function submit() {
 }
 .field input {
   width: 100%; padding: 12px 16px 12px 42px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
-  font-size: 0.95rem; outline: none; transition: border-color 0.25s var(--ease), background-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  font-size: 1rem; outline: none; transition: border-color 0.25s var(--ease), background-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
   background: var(--surface-2);
 }
 .field input:hover { border-color: #d6dae6; }

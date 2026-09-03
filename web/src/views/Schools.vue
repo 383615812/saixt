@@ -283,7 +283,7 @@ onMounted(() => load(0))
   .page-head p { font-size: 0.82rem; }
   .filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }
   .search { width: 100%; }
-  .search input { width: 100%; }
+  .search input { width: 100%; font-size: 1rem; }
   .sorts { width: 100%; justify-content: flex-start; overflow-x: auto; }
   .filters { width: 100%; padding-top: 10px; margin-top: 4px; gap: 8px 14px; }
   .f-group { flex: 1 1 auto; min-width: 0; }
