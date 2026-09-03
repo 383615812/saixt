@@ -359,7 +359,7 @@ function initCharts() {
       ctx.font = '800 21px system-ui, -apple-system, sans-serif'
       ctx.fillStyle = '#ffffff'
       ctx.fillText(total >= 10000 ? (total / 10000).toFixed(1) + 'w' : String(total), x, y - 9)
-      ctx.font = '12px system-ui, -apple-system, sans-serif'
+      ctx.font = '13px system-ui, -apple-system, sans-serif'
       ctx.fillStyle = 'rgba(255,255,255,.6)'
       ctx.fillText('总题数', x, y + 13)
       ctx.restore()
@@ -393,7 +393,7 @@ function initCharts() {
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: colors.text, padding: 12, font: { size: 12 } }
+            labels: { color: colors.text, padding: 12, font: { size: 13 } }
           }
         }
       },
@@ -434,7 +434,7 @@ function initCharts() {
           },
           y: {
             grid: { display: false },
-            ticks: { color: colors.text, font: { size: 12 } }
+            ticks: { color: colors.text, font: { size: 13 } }
           }
         }
       }
@@ -464,7 +464,7 @@ function initCharts() {
         plugins: {
           legend: {
             position: 'bottom',
-            labels: { color: colors.text, padding: 12, font: { size: 12 } }
+            labels: { color: colors.text, padding: 12, font: { size: 13 } }
           }
         }
       }
@@ -581,11 +581,11 @@ function drawTrendChart() {
       scales: {
         x: {
           grid: { color: colors.grid },
-          ticks: { color: colors.text, maxRotation: 45, font: { size: 11 } }
+          ticks: { color: colors.text, autoSkip: true, maxTicksLimit: 5, maxRotation: 0, font: { size: 13 } }
         },
         y: isTotal
-          ? { grid: { color: colors.grid }, ticks: { color: colors.text }, beginAtZero: true }
-          : { grid: { color: colors.grid }, ticks: { color: colors.text, callback: v => v + '%' }, suggestedMin: 0, suggestedMax: 100 }
+          ? { grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 13 } }, beginAtZero: true }
+          : { grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 13 }, callback: v => v + '%' }, suggestedMin: 0, suggestedMax: 100 }
       }
     }
   })
