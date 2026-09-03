@@ -97,6 +97,11 @@ a:hover { color: var(--accent-deep); }
 button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
 .btn { touch-action: manipulation; }
 input, select, textarea { font-family: inherit; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 95, 240, 0.18);
+  outline: none;
+}
 html, body { overscroll-behavior-y: none; }
 * { -webkit-tap-highlight-color: transparent; }
 
