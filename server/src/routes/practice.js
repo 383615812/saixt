@@ -311,7 +311,7 @@ router.get('/blind-box/draw', requireAuth, drawLimiter, (req, res) => {
   // 若已有未作答的抽题，直接返回该题，防止反复抽题刷高稀有度
   const pending = db.prepare(`
     SELECT q.id, q.subject, q.chapter, q.type, q.stem, q.options, q.answer, q.analysis, q.difficulty, q.source,
-           d.rarity_score
+           q.image, q.images, d.rarity_score
     FROM blind_box_draws d JOIN questions q ON q.id = d.question_id
     WHERE d.user_id = ? AND d.used = 0
     ORDER BY d.id DESC LIMIT 1
@@ -355,7 +355,7 @@ router.get('/blind-box/draw', requireAuth, drawLimiter, (req, res) => {
   const where = `WHERE ${conds.join(' AND ')}`;
   // 随机取一道（ORDER BY RANDOM 单查询，避免 COUNT+OFFSET 的双查询与选择偏差）
   let question = db.prepare(
-    `SELECT id, subject, chapter, type, stem, options, answer, analysis, difficulty, source
+    `SELECT id, subject, chapter, type, stem, options, answer, analysis, difficulty, source, image, images
      FROM questions ${where} ORDER BY RANDOM() LIMIT 1`
   ).get(...args);
 
@@ -367,7 +367,7 @@ router.get('/blind-box/draw', requireAuth, drawLimiter, (req, res) => {
     conds2.push("type != 'subjective'");
     const where2 = conds2.length ? `WHERE ${conds2.join(' AND ')}` : '';
     question = db.prepare(
-      `SELECT id, subject, chapter, type, stem, options, answer, analysis, difficulty, source
+      `SELECT id, subject, chapter, type, stem, options, answer, analysis, difficulty, source, image, images
        FROM questions ${where2} ORDER BY RANDOM() LIMIT 1`
     ).get(...args2);
     // 降级稀有度

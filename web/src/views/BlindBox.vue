@@ -120,6 +120,11 @@
         </div>
         <div class="qc-stem">{{ currentQuestion.stem }}</div>
 
+        <!-- 题目配图 -->
+        <div v-if="currentQuestion.images && currentQuestion.images.length" class="qc-image">
+          <img v-for="(img, idx) in currentQuestion.images" :key="idx" :src="'/' + img" alt="题目配图" loading="lazy" @error="onImgError">
+        </div>
+
         <!-- 选项 -->
         <div v-if="currentQuestion.type !== 'subjective'" class="qc-options">
           <button
@@ -205,6 +210,9 @@
 import { toast } from '../toast'
 import { ref, computed, onMounted } from 'vue'
 import { api, getUser } from '../api.js'
+import { useImgError } from '../useImgError'
+
+const { onImgError } = useImgError()
 
 const phase = ref('select') // select | game
 const subjectList = ref([])
@@ -750,6 +758,15 @@ onMounted(() => {
   color: var(--ink);
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+.qc-image {
+  margin: 0 0 16px; padding: 14px; border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px dashed var(--rule);
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center;
+}
+.qc-image img {
+  max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px;
 }
 
 .qc-options {
