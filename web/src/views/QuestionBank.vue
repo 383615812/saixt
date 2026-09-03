@@ -10,12 +10,22 @@
       <div class="filter-row">
         <div class="chips">
           <button
-            v-for="s in subjects"
+            v-for="s in shownSubjects"
             :key="s.subject"
             class="chip"
             :class="{ on: subject === s.subject }"
             @click="selectSubject(s.subject)"
           >{{ s.subject }}<span class="chip-count">{{ s.count }}</span></button>
+          <button
+            v-if="subjectOverflow"
+            class="chip chip-toggle"
+            :class="{ on: !subjectCollapsed }"
+            :aria-expanded="!subjectCollapsed"
+            @click="subjectCollapsed = !subjectCollapsed"
+          >
+            {{ subjectCollapsed ? `+${hiddenCount} 更多` : '收起' }}
+            <svg class="ct-chev" :class="{ up: !subjectCollapsed }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
         </div>
         <div class="search">
           <input v-model="keyword" placeholder="搜索题目关键词…" aria-label="搜索题目关键词" @keyup.enter="load(0)" />
@@ -140,6 +150,24 @@ const offset = ref(0)
 const limit = 20
 const loading = ref(false)
 
+// 科目筛选折叠：移动端收起为 5 项、桌面为 8 项，保证已选科目始终可见
+const subjectCollapsed = ref(true)
+const collapseLimit = ref(8)
+const subjectOverflow = computed(() => subjects.value.length > collapseLimit.value)
+const shownSubjects = computed(() => {
+  if (!subjectOverflow.value || !subjectCollapsed.value) return subjects.value
+  const subs = subjects.value
+  const base = subs.slice(0, collapseLimit.value)
+  const onIdx = subs.findIndex(s => s.subject === subject.value)
+  if (onIdx >= collapseLimit.value && onIdx !== -1) base[collapseLimit.value - 1] = subs[onIdx]
+  return base
+})
+const hiddenCount = computed(() => {
+  if (!subjectCollapsed.value || !subjectOverflow.value) return 0
+  const shown = new Set(shownSubjects.value.map(s => s.subject))
+  return subjects.value.filter(s => !shown.has(s.subject)).length
+})
+
 // 章节仅展示当前所选科目的，避免跨科目混显
 const visibleChapters = computed(() => {
   if (!subject.value) return []
@@ -259,6 +287,10 @@ async function toggleDetail(q) {
 
 onMounted(async () => {
   readFavs()
+  const mqSmall = window.matchMedia('(max-width: 600px)')
+  const applyCollapse = () => { collapseLimit.value = mqSmall.matches ? 5 : 8 }
+  applyCollapse()
+  mqSmall.addEventListener?.('change', applyCollapse)
   await loadMeta()
   await load(0)
 })
@@ -287,6 +319,13 @@ onMounted(async () => {
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
 .chip-count { font-size: 0.75rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
 .chip-sm { padding: 4px 11px; font-size: 0.8rem; }
+.chip-toggle {
+  color: var(--accent); border-color: rgba(79, 95, 240, 0.4);
+  background: var(--accent-soft);
+}
+.chip-toggle:hover { transform: none; background: var(--accent); color: #fff; }
+.chip-toggle .ct-chev { width: 15px; height: 15px; transition: transform 0.3s var(--ease); }
+.chip-toggle .ct-chev.up { transform: rotate(180deg); }
 .search { display: flex; gap: 8px; }
 .search input {
   width: 100%; max-width: 220px; padding: 9px 14px; border: 1px solid var(--rule);
@@ -358,8 +397,8 @@ onMounted(async () => {
   .filter-bar { padding: 14px 12px; }
   .filter-row { gap: 8px; }
   .filter-row + .filter-row { margin-top: 10px; }
-  .chip { padding: 8px 12px; font-size: 0.84rem; }
-  .chip-sm { padding: 6px 11px; font-size: 0.76rem; min-height: 32px; }
+  .chip { padding: 8px 12px; font-size: 0.84rem; min-height: 40px; }
+  .chip-sm { padding: 6px 11px; font-size: 0.76rem; min-height: 36px; }
   .search input { padding: 10px 12px; font-size: 1rem; }
   .search .btn { padding: 10px 14px; font-size: 0.85rem; }
   .q-item { padding: 14px 12px; }
