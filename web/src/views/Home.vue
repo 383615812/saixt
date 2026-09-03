@@ -9,7 +9,7 @@
         <div class="hero-text">
           <span class="hero-badge hero-anim">云南省春季招生 · 2027 备考</span>
           <h1 class="hero-anim">刷题 · 排名 · 志愿推荐<br />一站式春招智能学习平台</h1>
-          <p class="hero-anim">覆盖信息技术、通用技术及 11 门会考科目，每道题配解题讲解；收录全省 66 所高职院校、4.5 万个招生计划，帮你科学预测分数、精准填报志愿。</p>
+          <p class="hero-anim">覆盖职业技能与全部会考科目，每道真题配解题讲解；收录全省 66 所高职院校、4.5 万个招生计划，助你科学预测分数、精准填报志愿。</p>
           <div class="hero-actions hero-anim">
             <router-link to="/practice" class="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -236,8 +236,8 @@
       </div>
     </section>
 
-    <!-- Stats -->
-    <section class="container">
+    <!-- Stats（营销数据：访客展示；登录用户已在学习概览看到个人数据，隐藏避免重复堆叠） -->
+    <section v-if="!user" class="container">
       <div v-if="statsLoading" class="stats">
         <div v-for="i in 4" :key="i" class="stat sk-stat">
           <div class="skeleton sk-num"></div>
@@ -1002,7 +1002,9 @@ font-size: 0.95rem; color: var(--ink); }
   .hero-text p { font-size: 0.88rem; }
   .hero-actions { gap: 8px; }
   .hero-actions .btn { flex: 1; padding: 10px 12px; font-size: 0.85rem; }
-  .hero-card { padding: 18px; border-radius: 18px; }
+  .hero-card { padding: 16px; border-radius: 18px; }
+  .hero-trust { gap: 10px; margin-top: 14px; }
+  .hero-trust span { font-size: 0.8rem; }
   .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 16px 0 36px; }
   .stat { padding: 16px 10px; }
   .stat .num { font-size: 1.5rem; }
