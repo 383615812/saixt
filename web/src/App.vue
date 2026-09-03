@@ -266,8 +266,10 @@ router.afterEach(() => {
 
 .main { flex: 1; padding: 26px 0 52px; min-height: calc(100vh - 64px - 240px); min-height: calc(100dvh - 64px - 240px); }
 
-.page-enter-active, .page-leave-active { transition: opacity 0.16s var(--ease-out); }
-.page-enter-from, .page-leave-to { opacity: 0; }
+.page-enter-active { transition: opacity 0.26s var(--ease), transform 0.26s var(--ease); }
+.page-leave-active { transition: opacity 0.16s var(--ease); }
+.page-enter-from { opacity: 0; transform: translateY(10px); }
+.page-leave-to { opacity: 0; }
 
 .top-btn {
   position: fixed; right: 24px; bottom: 24px; z-index: 90;
@@ -312,7 +314,7 @@ router.afterEach(() => {
 .tab-icon { position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 26px; border-radius: var(--radius-full); transition: background-color 0.22s var(--ease); }
 .tab-icon svg { width: 23px; height: 23px; transition: transform 0.22s var(--ease); }
 .tab-item.active .tab-icon { background: var(--accent-soft); }
-.tab-item.active .tab-icon svg { transform: translateY(-1px); }
+.tab-item.active .tab-icon svg { transform: translateY(-1px) scale(1.06); }
 .tab-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; }
 @media (max-width: 900px) {
   .tabbar { display: flex; }

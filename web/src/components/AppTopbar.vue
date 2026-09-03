@@ -411,10 +411,14 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   .user-chip { padding: 4px; }
 }
 @media (max-width: 600px) {
-  .topbar-inner { height: 56px; gap: 12px; padding-top: var(--safe-top); }
+  .topbar-inner { height: 56px; gap: 10px; padding-top: var(--safe-top); }
   .brand-logo { width: 34px; height: 34px; border-radius: 10px; }
   .brand-logo-img { width: 24px; height: 24px; }
   .brand-text strong { font-size: 0.98rem; }
   .brand-text small { display: none; }
+  .user-area { gap: 8px; }
+  .search-btn, .bell { width: 40px; height: 40px; }
+  .search-btn { border-radius: 12px; }
+  .hamburger { padding: 10px; }
 }
 </style>
