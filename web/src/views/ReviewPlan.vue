@@ -454,7 +454,7 @@ onMounted(load)
 .cal-count {
   width: 22px; height: 22px; border-radius: 50%; margin: 0 auto;
   background: var(--accent);
-  color: #fff; font-size: 0.72rem; font-weight: 700;
+  color: #fff; font-size: 0.75rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   font-variant-numeric: tabular-nums;
 }
@@ -506,7 +506,7 @@ onMounted(load)
 .option.disabled { cursor: default; }
 .opt-letter { font-weight: 700; color: var(--accent); flex: 0 0 auto; }
 .opt-text { flex: 1; overflow-wrap: break-word; word-break: break-word; }
-.opt-miss { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-top: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .detail-ans { margin-bottom: 0; }
@@ -558,20 +558,20 @@ onMounted(load)
   .curve-card, .cal-card, .due-card { padding: 16px 14px; }
   .curve-step { min-width: 52px; padding-top: 6px; }
   .cs-dot { width: 30px; height: 30px; font-size: 0.82rem; }
-  .cs-lbl { font-size: 0.72rem; }
-  .cs-num { font-size: 0.72rem; }
+  .cs-lbl { font-size: 0.75rem; }
+  .cs-num { font-size: 0.75rem; }
   .cal-day { flex: 0 0 52px; padding: 8px 4px; }
-  .cal-week { font-size: 0.7rem; }
+  .cal-week { font-size: 0.72rem; }
   .cal-date { font-size: 0.78rem; }
-  .cal-count { width: 24px; height: 24px; font-size: 0.7rem; }
+  .cal-count { width: 24px; height: 24px; font-size: 0.72rem; }
   .due-item { padding: 12px 14px; }
-  .due-stage { font-size: 0.7rem; padding: 2px 8px; }
+  .due-stage { font-size: 0.72rem; padding: 2px 8px; }
   .due-date { margin-left: 0; width: 100%; font-size: 0.74rem; }
   .due-stem { font-size: 0.92rem; }
   .question-card { padding: 18px 14px; }
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
   .option { padding: 11px 12px; font-size: 0.9rem; }
-  .opt-miss { font-size: 0.7rem; padding: 2px 6px; }
+  .opt-miss { font-size: 0.72rem; padding: 2px 6px; }
   .result { padding: 14px 14px; }
   .analysis { font-size: 0.86rem; }
   .q-actions .btn { flex: 1; min-height: 40px; }

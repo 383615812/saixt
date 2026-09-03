@@ -425,7 +425,7 @@ onMounted(async () => {
 .badge-progress { margin-top: 8px; }
 .bp-track { height: 5px; border-radius: 999px; background: var(--rule-soft); overflow: hidden; }
 .bp-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.6s var(--ease); }
-.bp-num { display: block; font-size: 0.7rem; color: var(--muted); margin-top: 3px; }
+.bp-num { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
 .bs-earned {
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--green);
@@ -475,8 +475,14 @@ onMounted(async () => {
 }
 .poster-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--rule); }
 .poster-head h3 { font-size: 1.05rem; }
-.poster-close { background: none; border: none; font-size: 1.2rem; color: var(--muted); padding: 4px 8px; }
-.poster-close:active { transform: scale(0.94); }
+.poster-close {
+  background: none; border: none; font-size: 1.05rem; color: var(--muted);
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.poster-close:hover { background: var(--accent-soft); color: var(--accent); }
+.poster-close:active { transform: scale(0.92); }
 .poster-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); }
 .poster-img { width: 100%; max-width: 380px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
 .poster-actions { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
@@ -496,9 +502,11 @@ onMounted(async () => {
   .badge-icon { font-size: 1.7rem; }
   .badge-name { font-size: 0.88rem; }
   .badge-desc { font-size: 0.75rem; min-height: 30px; }
-  .badge-status { font-size: 0.72rem; }
-  .bp-num { font-size: 0.72rem; }
+  .badge-status { font-size: 0.75rem; }
+  .bp-num { font-size: 0.75rem; }
   .poster-actions .btn { min-width: 100%; }
+  .poster-mask { padding: 10px; }
+  .poster-modal { border-radius: 16px; }
 }
 @media (max-width: 400px) {
   .ach-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }

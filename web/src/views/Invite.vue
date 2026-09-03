@@ -141,12 +141,19 @@ onMounted(load)
 }
 .ir-body { flex: 1; display: flex; flex-direction: column; }
 .ir-body strong { font-size: 0.88rem; }
-.ir-time { font-size: 0.72rem; color: var(--muted-2); }
+.ir-time { font-size: 0.75rem; color: var(--muted-2); }
 
 @media (max-width: 600px) {
-  .invite-hero { flex-wrap: wrap; }
+  .invite-hero { flex-wrap: wrap; padding: 20px; }
   .ih-btn { width: 100%; }
   .reward-grid { grid-template-columns: 1fr; }
   .ih-code { font-size: 1.6rem; }
+  .invite-list { padding: 4px 14px; }
+}
+@media (max-width: 400px) {
+  .invite-hero { padding: 16px; }
+  .ih-icon { width: 48px; height: 48px; border-radius: 15px; }
+  .ih-code { font-size: 1.35rem; letter-spacing: 0.12em; }
+  .reward-item { padding: 16px 10px; }
 }
 </style>

@@ -151,7 +151,7 @@ function formatTuition(v) {
 .tc-info h4 { font-size: 0.95rem; line-height: 1.4; }
 .tc-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
 .tc-code { font-size: 0.75rem; color: var(--muted); }
-.tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
 .tag-green { background: var(--green-soft); color: #047857; }
 .tag-amber { background: var(--amber-soft, #fef3c7); color: #b45309; }
 .tag-blue { background: var(--accent-soft); color: var(--accent); }
@@ -173,7 +173,7 @@ function formatTuition(v) {
 
 .tc-line { display: flex; gap: 18px; padding: 10px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .tc-line-item { display: flex; flex-direction: column; gap: 2px; }
-.tc-line-lbl { font-size: 0.72rem; color: var(--muted); }
+.tc-line-lbl { font-size: 0.75rem; color: var(--muted); }
 .tc-est-tag {
   font-style: normal; margin-left: 4px; padding: 1px 6px;
   font-size: 0.66rem; font-weight: 600; color: #fff;
@@ -186,10 +186,10 @@ function formatTuition(v) {
 .diff-pos { color: var(--green); }
 
 .tc-majors { display: flex; flex-direction: column; gap: 6px; }
-.tc-majors-lbl { font-size: 0.72rem; color: var(--muted); }
+.tc-majors-lbl { font-size: 0.75rem; color: var(--muted); }
 .tc-majors-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .major-chip {
-  font-size: 0.72rem; padding: 3px 9px; border-radius: 999px;
+  font-size: 0.75rem; padding: 3px 9px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-weight: 500;
 }
 

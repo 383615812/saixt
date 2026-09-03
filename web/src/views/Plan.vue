@@ -306,4 +306,12 @@ onMounted(async () => {
   .analysis-card { padding: 18px 16px; }
   .analysis-head .btn { width: 100%; }
 }
+@media (max-width: 400px) {
+  .plan-stats { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+  .ps-num { font-size: 1.35rem; }
+  .ps-ic { width: 32px; height: 32px; }
+  .plan-result { padding: 14px 12px; }
+  .analysis-card { padding: 14px 12px; }
+  .plan-actions .btn { flex: 1; min-width: 0; }
+}
 </style>

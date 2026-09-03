@@ -216,12 +216,13 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 }
 .search-input::placeholder { color: var(--muted-2); }
 .si-clear {
-  width: 28px; height: 28px; border-radius: 8px; border: none;
+  width: 36px; height: 36px; border-radius: 10px; border: none;
   background: var(--surface-2); color: var(--muted); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .si-clear:hover { background: var(--accent-soft); color: var(--accent); }
+.si-clear:active { transform: scale(0.92); }
 .si-clear svg { width: 14px; height: 14px; }
 .search-body { overflow-y: auto; padding: 8px 0; }
 .search-loading { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px 0; color: var(--muted); font-size: 0.88rem; }
@@ -240,7 +241,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
   color: var(--muted); letter-spacing: 0.04em;
 }
 .sg-count {
-  font-size: 0.7rem; font-weight: 600; color: var(--accent);
+  font-size: 0.75rem; font-weight: 600; color: var(--accent);
   background: var(--accent-soft); border-radius: var(--radius-full); padding: 1px 8px;
 }
 .sg-item {
@@ -251,7 +252,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 .sg-item:hover { background: var(--surface-2); }
 .sg-item:active { background: var(--accent-soft); }
 .sg-tag {
-  flex-shrink: 0; font-size: 0.7rem; font-weight: 600;
+  flex-shrink: 0; font-size: 0.72rem; font-weight: 600;
   padding: 2px 8px; border-radius: var(--radius-full);
   background: var(--surface-2); color: var(--muted);
 }

@@ -1003,6 +1003,13 @@ onUnmounted(() => {
   }
 }
 
+@media (max-width: 600px) {
+  .graph-container { min-height: 460px; }
+  .chart-canvas { height: 460px; }
+  .graph-controls { top: 12px; right: 12px; gap: 6px; }
+  .gc-btn { width: 36px; height: 36px; }
+}
+
 @media (max-width: 480px) {
   .graph-container { min-height: 420px; border-radius: 14px; }
   .chart-canvas { height: 420px; }
@@ -1015,7 +1022,7 @@ onUnmounted(() => {
     overflow-y: auto;
   }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }
-  .gc-btn { width: 32px; height: 32px; font-size: 14px; }
+  .gc-btn { width: 36px; height: 36px; font-size: 15px; }
   .gh-left h2 { font-size: 18px; }
   .gh-left p { font-size: 13px; }
 }

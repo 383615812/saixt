@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
   display: inline-block; margin-left: 6px; padding: 1px 7px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, #f59e0b, #f97316);
-  color: #fff; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em;
+  color: #fff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
   vertical-align: 2px;
 }
 .drawer-points {
@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
 .drawer-user-text strong { font-size: 1rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drawer-user-text small { font-size: 0.74rem; color: var(--muted-2); }
 .drawer-close {
-  width: 34px; height: 34px; flex-shrink: 0;
+  width: 36px; height: 36px; flex-shrink: 0;
   background: var(--surface-2); border: 1px solid var(--rule);
   border-radius: 10px; color: var(--muted);
   display: flex; align-items: center; justify-content: center;
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
 .drawer-nav { flex: 1; overflow-y: auto; padding: 8px 14px 14px; overscroll-behavior: contain; }
 .drawer-sec {
   display: flex; align-items: center; gap: 8px;
-  padding: 16px 10px 6px; font-size: 0.72rem; font-weight: 700;
+  padding: 16px 10px 6px; font-size: 0.75rem; font-weight: 700;
   color: var(--muted-2); letter-spacing: 0.08em;
 }
 .drawer-sec::before {
@@ -289,4 +289,12 @@ onBeforeUnmount(() => {
 .drawer-enter-active .drawer, .drawer-leave-active .drawer { transition: transform 0.35s var(--ease); }
 .drawer-enter-from, .drawer-leave-to { opacity: 0; }
 .drawer-enter-from .drawer, .drawer-leave-to .drawer { transform: translateX(100%); }
+
+@media (max-width: 480px) {
+  .drawer { width: 82vw; }
+  .drawer-item { padding: 13px 12px; }
+  .drawer-nav { padding: 8px 12px 14px; }
+  .drawer-head { padding: 16px 16px 14px; }
+  .drawer-foot { padding: 12px 16px calc(14px + var(--safe-bottom)); }
+}
 </style>

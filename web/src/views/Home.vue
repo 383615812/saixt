@@ -747,7 +747,7 @@ font-size: 0.95rem; color: var(--ink); }
 .countdown.passed { background: linear-gradient(135deg, #047857, #0da678); box-shadow: 0 8px 28px rgba(13, 166, 120, 0.28); }
 .cd-label { display: flex; flex-direction: column; position: relative; }
 .cd-kicker {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em;
   text-transform: uppercase; opacity: 0.75; margin-bottom: 3px;
 }
 .cd-label strong { font-size: 1.18rem; letter-spacing: 0.01em; }
@@ -762,7 +762,7 @@ font-size: 0.95rem; color: var(--ink); }
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
-.cd-u { font-size: 0.72rem; opacity: 0.8; margin-top: 2px; letter-spacing: 0.06em; }
+.cd-u { font-size: 0.75rem; opacity: 0.8; margin-top: 2px; letter-spacing: 0.06em; }
 .cd-sep { font-size: 1.4rem; font-weight: 700; opacity: 0.55; margin-bottom: 14px; }
 
 .overview { margin: 20px 0 0; padding: 24px 28px; }
@@ -816,7 +816,7 @@ font-size: 0.95rem; color: var(--ink); }
 .rq-item:last-child { border-bottom: none; }
 .rq-item:hover { background: var(--accent-soft); }
 .rq-name { flex: 1 1 auto; font-size: 0.88rem; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rq-region { font-size: 0.72rem; color: var(--muted); border: 1px solid var(--rule); background: var(--surface); padding: 1px 7px; border-radius: 999px; flex-shrink: 0; }
+.rq-region { font-size: 0.75rem; color: var(--muted); border: 1px solid var(--rule); background: var(--surface); padding: 1px 7px; border-radius: 999px; flex-shrink: 0; }
 .rq-line { font-size: 0.76rem; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
 .rq-diff { font-size: 0.74rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; min-width: 34px; text-align: center; }
 .rq-diff-up { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
@@ -831,7 +831,7 @@ font-size: 0.95rem; color: var(--ink); }
   .rq-item { padding: 9px 12px; gap: 8px; }
   .rq-line { display: none; }
   .rq-region { display: none; }
-  .rq-diff { min-width: 30px; font-size: 0.72rem; padding: 2px 6px; }
+  .rq-diff { min-width: 30px; font-size: 0.75rem; padding: 2px 6px; }
 }
 
 /* 本周学习对比 */
@@ -846,7 +846,7 @@ font-size: 0.95rem; color: var(--ink); }
 .ow-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .ow-item { min-width: 0; }
 .ow-num { font-size: 1.18rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 6px; }
-.ow-delta { font-size: 0.72rem; font-weight: 600; }
+.ow-delta { font-size: 0.75rem; font-weight: 600; }
 .ow-delta.up { color: var(--green); }
 .ow-delta.down { color: var(--red); }
 .ow-delta.flat { color: var(--muted-2); }
@@ -1014,7 +1014,7 @@ font-size: 0.95rem; color: var(--ink); }
   .bo-grid { grid-template-columns: 1fr; }
   .cd-nums { gap: 4px; }
   .cd-v { min-width: 40px; font-size: 1.15rem; padding: 6px 8px; }
-  .cd-u { font-size: 0.7rem; }
+  .cd-u { font-size: 0.72rem; }
   .cd-sep { font-size: 1.1rem; }
   .hero-actions .btn { flex: 1; }
   .cta { padding: 24px 18px; text-align: center; justify-content: center; }

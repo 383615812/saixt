@@ -203,7 +203,7 @@ onMounted(async () => {
 .msg-avatar {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.72rem; font-weight: 700;
+  font-size: 0.75rem; font-weight: 700;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 .msg-avatar.assistant { background: var(--grad-accent); color: #fff; }
@@ -258,5 +258,13 @@ onMounted(async () => {
   .cw-icon { width: 48px; height: 48px; font-size: 1.05rem; }
   .chat-welcome h3 { font-size: 1.05rem; }
   .chat-welcome p { font-size: 0.85rem; }
+}
+@media (max-width: 400px) {
+  .msg { max-width: 96%; gap: 8px; }
+  .msg-bubble { font-size: 0.92rem; padding: 9px 11px; }
+  .chat-body { padding: 10px 8px; }
+  .chat-input { padding: 8px 10px; }
+  .quick-item { padding: 11px 12px; font-size: 0.84rem; }
+  .quick-list { gap: 6px; }
 }
 </style>

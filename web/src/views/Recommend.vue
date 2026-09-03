@@ -218,6 +218,12 @@ onMounted(async () => {
   .tips-card { padding: 14px 16px; }
   .tips-list li { font-size: 0.84rem; padding-left: 16px; }
 }
+@media (max-width: 480px) {
+  .rec-form { padding: 14px 12px; }
+  .score-banner { padding: 16px 14px; gap: 12px; }
+  .tips-card { padding: 12px 14px; }
+  .tips-list li { font-size: 0.82rem; }
+}
 
 /* ===== 骨架屏 ===== */
 .sk-score-banner { display: flex; align-items: center; gap: 24px; padding: 22px 24px; }

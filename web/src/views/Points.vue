@@ -195,13 +195,22 @@ onMounted(load)
 .log-row:last-child { border-bottom: none; }
 .lr-left { display: flex; flex-direction: column; gap: 2px; }
 .lr-left strong { font-size: 0.88rem; font-weight: 600; }
-.lr-time { font-size: 0.72rem; color: var(--muted-2); }
+.lr-time { font-size: 0.75rem; color: var(--muted-2); }
 .lr-change { font-weight: 800; font-size: 1rem; }
 .lr-change.plus { color: var(--green); }
 .lr-change.minus { color: var(--muted-2); }
 
-@media (max-width: 560px) {
+@media (max-width: 600px) {
+  .points-hero { flex-direction: column; align-items: flex-start; padding: 20px; }
   .earn-grid, .exchange-grid { grid-template-columns: 1fr; }
   .ph-balance { font-size: 2rem; }
+  .log-list { padding: 4px 14px; }
+}
+@media (max-width: 400px) {
+  .points-hero { padding: 16px; }
+  .ph-icon { width: 48px; height: 48px; border-radius: 15px; }
+  .ph-balance { font-size: 1.7rem; }
+  .exchange-item, .earn-item { padding: 13px 12px; }
+  .sec-title { font-size: 0.98rem; }
 }
 </style>

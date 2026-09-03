@@ -264,14 +264,21 @@ thead th .unit { font-weight: 400; opacity: 0.72; font-size: 0.76rem; }
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #fff;
   }
-  .hs .lbl { font-size: 0.72rem; }
+  .hs .lbl { font-size: 0.75rem; }
   .plans-card { padding: 14px; }
 }
 
 @media (max-width: 480px) {
   .hero-stats { grid-template-columns: 1fr 1fr; gap: 14px 6px; }
   .hs .num { font-size: 1.05rem; }
-  .hs .lbl { font-size: 0.7rem; }
+  .hs .lbl { font-size: 0.75rem; }
+}
+@media (max-width: 400px) {
+  .hero { padding: 16px 12px; }
+  .hero-stats { gap: 12px 4px; }
+  .hs .num { font-size: 1rem; }
+  .hs .lbl { font-size: 0.75rem; }
+  .plans-card { padding: 12px 10px; }
 }
 
 /* ===== 骨架屏 ===== */

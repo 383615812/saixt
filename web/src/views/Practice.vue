@@ -793,12 +793,13 @@ onBeforeUnmount(() => clearInterval(examTimer))
 .sheet-head strong { font-size: 1.05rem; }
 .sheet-sub { margin-left: 8px; font-size: 0.8rem; color: var(--muted); font-weight: 400; }
 .sheet-close {
-  width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--rule);
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--rule);
   background: var(--surface-2); color: var(--muted);
   display: flex; align-items: center; justify-content: center;
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .sheet-close:hover { background: var(--accent-soft); color: var(--accent); }
+.sheet-close:active { transform: scale(0.92); }
 .sheet-close svg { width: 15px; height: 15px; }
 .sheet-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .sheet-cell {
@@ -870,7 +871,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
 .opt-text { flex: 1; overflow-wrap: break-word; word-break: break-word; }
-.opt-miss { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; }
 
 .subjective-box { display: flex; flex-direction: column; gap: 12px; }
@@ -939,12 +940,13 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
   .chip { padding: 8px 14px; font-size: 0.85rem; }
-  .chip-count { font-size: 0.7rem; }
+  .chip-count { font-size: 0.72rem; }
   .exam-timer { flex-wrap: wrap; gap: 6px 10px; padding: 12px 14px; }
   .timer-tip { margin-left: 0; width: 100%; }
   .sheet-btn { margin-left: auto; }
+  .sheet-mask { padding: 12px; align-items: flex-end; }
+  .sheet-panel { padding: 18px 16px; max-height: 92vh; border-radius: 18px 18px 14px 14px; }
   .sheet-grid { grid-template-columns: repeat(5, 1fr); gap: 7px; }
-  .sheet-panel { padding: 18px 16px; }
   .timer-num { font-size: 1.3rem; }
   .result-head { flex-wrap: wrap; }
   .right-ans { margin-left: 0; width: 100%; }
@@ -952,7 +954,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .opt-letter { font-size: 0.85rem; }
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
   .q-meta { gap: 6px; }
-  .q-source { font-size: 0.72rem; width: 100%; margin-left: 0; }
+  .q-source { font-size: 0.75rem; width: 100%; margin-left: 0; }
   .fav-btn { font-size: 0.75rem; padding: 4px 10px; }
   .rp-stats { gap: 20px; }
   .rp-stat .num { font-size: 1.6rem; }

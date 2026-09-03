@@ -499,7 +499,7 @@ function exportPdf() {
   .tcol { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
   .tbar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
   .tbar { width: 60%; max-width: 36px; border-radius: 6px 6px 0 0; background: #4f5ff0; display: flex; align-items: flex-start; justify-content: center; }
-  .tbar span { font-size: 0.7rem; color: #fff; font-weight: 700; padding-top: 2px; }
+  .tbar span { font-size: 0.72rem; color: #fff; font-weight: 700; padding-top: 2px; }
   .tday { font-size: 12px; color: #6b7280; }
   .row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
   .row .lbl { width: 90px; flex-shrink: 0; font-weight: 600; }
@@ -674,7 +674,7 @@ onMounted(() => {
   transition: height 0.4s var(--ease);
   box-shadow: 0 3px 8px rgba(79, 95, 240, 0.2);
 }
-.tc-val { font-size: 0.72rem; font-weight: 700; color: #fff; }
+.tc-val { font-size: 0.75rem; font-weight: 700; color: #fff; }
 .tc-day { font-size: 0.78rem; color: var(--muted); }
 
 .sub-list { display: flex; flex-direction: column; gap: 12px; }
@@ -733,7 +733,7 @@ onMounted(() => {
 .hist-stats { display: flex; gap: 14px; flex: 1; flex-wrap: wrap; }
 .hs-item { font-size: 0.82rem; color: var(--muted); }
 .hs-item b { color: var(--accent); font-size: 0.95rem; }
-.hist-ai-tag { font-size: 0.72rem; font-weight: 700; color: var(--accent-2); background: var(--accent2-soft); padding: 2px 8px; border-radius: 999px; }
+.hist-ai-tag { font-size: 0.75rem; font-weight: 700; color: var(--accent-2); background: var(--accent2-soft); padding: 2px 8px; border-radius: 999px; }
 .hist-arrow { color: var(--muted); }
 
 .hist-mask {
@@ -750,8 +750,14 @@ onMounted(() => {
 }
 .hist-modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--rule); }
 .hist-modal-head h3 { font-size: 1.1rem; margin-bottom: 2px; }
-.hist-close { background: none; border: none; font-size: 1.2rem; color: var(--muted); padding: 4px 8px; }
-.hist-close:active { transform: scale(0.94); }
+.hist-close {
+  background: none; border: none; font-size: 1.05rem; color: var(--muted);
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.hist-close:hover { background: var(--accent-soft); color: var(--accent); }
+.hist-close:active { transform: scale(0.92); }
 .hist-modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
 .hm-ov { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
 .hm-cell { text-align: center; background: var(--accent-soft); border-radius: 12px; padding: 14px 6px; }
@@ -762,7 +768,7 @@ onMounted(() => {
 .hm-trend { display: flex; align-items: flex-end; gap: 8px; height: 110px; }
 .hm-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
 .hm-bar { width: 60%; max-width: 30px; border-radius: 6px 6px 0 0; background: var(--accent); }
-.hm-day { font-size: 0.72rem; color: var(--muted); }
+.hm-day { font-size: 0.75rem; color: var(--muted); }
 .hm-sub { display: flex; flex-direction: column; gap: 10px; }
 .hm-sub-row { display: flex; align-items: center; gap: 10px; }
 .hm-sub-name { width: 76px; font-size: 0.88rem; font-weight: 600; flex-shrink: 0; }
@@ -790,8 +796,8 @@ onMounted(() => {
   .cmp-lbl { font-size: 0.78rem; }
   .trend-card, .sub-card, .weak-card, .ai-report, .hist-card { padding: 16px 14px; }
   .trend-chart { height: 130px; gap: 6px; }
-  .tc-val { font-size: 0.7rem; }
-  .tc-day { font-size: 0.72rem; }
+  .tc-val { font-size: 0.75rem; }
+  .tc-day { font-size: 0.75rem; }
   .sub-name { width: 64px; font-size: 0.82rem; }
   .sub-num { width: 38px; font-size: 0.84rem; }
   .sub-count { width: 44px; font-size: 0.75rem; }
@@ -800,17 +806,18 @@ onMounted(() => {
   .ai-h { font-size: 0.95rem; }
   .hist-item { flex-wrap: wrap; padding: 12px 14px; gap: 10px; }
   .hist-stats { width: 100%; gap: 10px; }
-  .hist-ai-tag { font-size: 0.7rem; }
-  .hist-modal { max-height: 95vh; }
+  .hist-ai-tag { font-size: 0.75rem; }
+  .hist-mask { padding: 10px; }
+  .hist-modal { max-height: 95vh; border-radius: 16px; }
   .hist-modal-head { padding: 14px 16px; }
   .hist-modal-body { padding: 14px; }
   .hm-ov { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .hm-cell { padding: 10px 4px; }
   .hm-cell b { font-size: 1.2rem; }
-  .hm-cell span { font-size: 0.72rem; }
+  .hm-cell span { font-size: 0.75rem; }
   .hm-sub-name { width: 60px; font-size: 0.82rem; }
   .hm-trend { height: 90px; }
-  .hm-day { font-size: 0.7rem; }
+  .hm-day { font-size: 0.75rem; }
 }
 @media (max-width: 400px) {
   .ov-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }

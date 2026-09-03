@@ -268,7 +268,7 @@ onMounted(() => load(0))
 .sc-stat .lbl { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
 
 .sc-foot { margin-top: auto; padding-top: 14px; text-align: center; }
-.btn-sm { padding: 8px 16px; font-size: 0.85rem; min-height: 38px; }
+.btn-sm { padding: 8px 16px; font-size: 0.85rem; min-height: 40px; }
 .sc-arrow { width: 14px; height: 14px; vertical-align: -2px; transition: transform 0.25s var(--ease); }
 .school-card:hover .sc-arrow { transform: translateX(3px); }
 
@@ -297,7 +297,7 @@ onMounted(() => load(0))
   .sc-stats { gap: 6px; padding: 8px 0; }
   .sc-stat .num { font-size: 0.95rem; }
   .sc-stat .num.tuition { font-size: 0.76rem; }
-  .sc-stat .lbl { font-size: 0.7rem; }
+  .sc-stat .lbl { font-size: 0.75rem; }
   .sc-foot { padding-top: 10px; }
   .pager { gap: 10px; flex-wrap: wrap; }
   .pager-info { font-size: 0.82rem; width: 100%; text-align: center; order: -1; }
@@ -305,8 +305,8 @@ onMounted(() => load(0))
 @media (max-width: 400px) {
   .sc-stats { grid-template-columns: repeat(3, 1fr); gap: 4px; }
   .sc-stat .num { font-size: 0.9rem; }
-  .sc-stat .num.tuition { font-size: 0.74rem; }
-  .sc-stat .lbl { font-size: 0.7rem; }
+  .sc-stat .num.tuition { font-size: 0.75rem; }
+  .sc-stat .lbl { font-size: 0.75rem; }
 }
 
 /* ===== 骨架屏 ===== */

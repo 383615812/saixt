@@ -160,7 +160,7 @@ onMounted(async () => {
 .mr-info { flex: 1; min-width: 200px; }
 .mr-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mr-title h3 { font-size: 1.12rem; }
-.mr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; padding: 2px 10px; border-radius: 999px; background: var(--amber-soft); color: #b45309; font-weight: 600; }
+.mr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: var(--amber-soft); color: #b45309; font-weight: 600; }
 .mb-ic { display: inline-flex; }
 .mb-ic svg { width: 13px; height: 13px; }
 .mr-info p { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
@@ -187,7 +187,7 @@ onMounted(async () => {
 .av-2 { background: #94a3b8; }
 .av-3 { background: #b45309; }
 .podium-name { font-size: 0.85rem; font-weight: 700; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.podium-stats { font-size: 0.72rem; color: var(--muted); margin: 2px 0 8px; }
+.podium-stats { font-size: 0.75rem; color: var(--muted); margin: 2px 0 8px; }
 .podium-block {
   width: 100%; border-radius: 12px 12px 0 0;
   display: flex; align-items: flex-start; justify-content: center; padding-top: 10px;
@@ -226,7 +226,7 @@ onMounted(async () => {
 }
 .rank-name { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 120px; }
 .rank-name strong { font-size: 0.95rem; }
-.me-tag { font-size: 0.7rem; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; }
+.me-tag { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; }
 .rank-stats { display: flex; align-items: center; gap: 18px; font-size: 0.85rem; color: var(--muted); }
 .rank-stats strong { color: var(--accent); }
 .rank-acc { display: flex; align-items: center; gap: 8px; }
@@ -255,7 +255,7 @@ onMounted(async () => {
   .rank-avatar { width: 32px; height: 32px; font-size: 0.82rem; }
   .rank-name strong { font-size: 0.88rem; }
   .rank-name { min-width: 80px; }
-  .me-tag { font-size: 0.72rem; }
+  .me-tag { font-size: 0.75rem; }
   .rank-stats { gap: 10px; font-size: 0.76rem; }
   .rank-stats span:nth-child(1) { display: none; }
   .acc-bar { width: 48px; }
@@ -265,6 +265,6 @@ onMounted(async () => {
   .rank-no { width: 28px; }
   .rank-avatar { width: 28px; height: 28px; }
   .rank-name { min-width: 60px; }
-  .rank-stats { gap: 8px; font-size: 0.72rem; }
+  .rank-stats { gap: 8px; font-size: 0.75rem; }
 }
 </style>

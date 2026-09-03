@@ -178,7 +178,7 @@ onMounted(load)
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
 .chip-sm { padding: 5px 12px; font-size: 0.8rem; }
-.chip-count { font-size: 0.72rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
+.chip-count { font-size: 0.75rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
 
 .q-list { display: flex; flex-direction: column; gap: 14px; }
 .q-item { padding: 18px 20px; transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease); }
@@ -212,6 +212,16 @@ onMounted(load)
   .q-item { padding: 16px 14px; }
   .q-foot .btn { flex: 1; }
   .q-time { width: 100%; margin-left: 0; }
+}
+@media (max-width: 480px) {
+  .q-item { padding: 14px 12px; }
+  .q-foot .btn { padding: 10px 12px; font-size: 0.82rem; }
+  .q-detail { padding: 12px 14px; }
+}
+@media (max-width: 400px) {
+  .q-foot { flex-wrap: wrap; }
+  .q-foot .btn { flex: 1 1 100%; }
+  .chip-count { font-size: 0.75rem; }
 }
 
 /* ===== 骨架屏 ===== */

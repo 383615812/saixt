@@ -313,7 +313,7 @@ router.afterEach(() => {
 .tab-icon svg { width: 23px; height: 23px; transition: transform 0.22s var(--ease); }
 .tab-item.active .tab-icon { background: var(--accent-soft); }
 .tab-item.active .tab-icon svg { transform: translateY(-1px); }
-.tab-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.01em; }
+.tab-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; }
 @media (max-width: 900px) {
   .tabbar { display: flex; }
   .main { padding-bottom: calc(96px + var(--safe-bottom)); }
@@ -344,12 +344,13 @@ router.afterEach(() => {
 .ib-text span { font-size: 0.76rem; color: var(--muted); }
 .ib-btn { flex-shrink: 0; padding: 8px 16px; min-height: 36px; }
 .ib-close {
-  width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px;
+  width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
   border: none; background: transparent; color: var(--muted-2);
   display: flex; align-items: center; justify-content: center;
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .ib-close:hover { background: var(--surface-2); color: var(--ink); }
+.ib-close:active { transform: scale(0.92); }
 .ib-close svg { width: 14px; height: 14px; }
 .install-enter-active, .install-leave-active { transition: opacity 0.3s var(--ease), transform 0.3s var(--ease); }
 .install-enter-from, .install-leave-to { opacity: 0; transform: translateX(-50%) translateY(14px); }

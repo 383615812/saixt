@@ -225,7 +225,7 @@ onMounted(load)
 .task-head { display: flex; align-items: center; gap: 8px; }
 .task-head strong { font-size: 1rem; }
 .task-status {
-  font-size: 0.72rem; font-weight: 600;
+  font-size: 0.75rem; font-weight: 600;
   padding: 2px 10px; border-radius: var(--radius-full);
   background: var(--accent-soft); color: var(--accent);
 }
@@ -263,13 +263,22 @@ onMounted(load)
   .task-item { flex-wrap: wrap; gap: 10px; padding: 14px 12px; }
   .task-icon { width: 40px; height: 40px; font-size: 1.15rem; border-radius: 11px; }
   .task-head strong { font-size: 0.92rem; }
-  .task-status { font-size: 0.72rem; }
-  .task-desc { font-size: 0.78rem; }
-  .tp-num { font-size: 0.74rem; }
+  .task-status { font-size: 0.75rem; }
+  .task-desc { font-size: 0.8rem; }
+  .tp-num { font-size: 0.75rem; }
   .task-btn { width: 100%; min-height: 40px; }
   .task-note { padding: 14px 16px; }
   .task-note strong { font-size: 0.9rem; }
   .task-note p { font-size: 0.82rem; }
+}
+@media (max-width: 480px) {
+  .task-list { padding: 6px 2px; }
+  .task-item { padding: 13px 10px; }
+  .task-icon { width: 38px; height: 38px; font-size: 1.05rem; }
+  .task-head strong { font-size: 0.9rem; }
+  .task-status { font-size: 0.75rem; }
+  .task-desc { font-size: 0.78rem; }
+  .tp-num { font-size: 0.75rem; }
 }
 @media (max-width: 400px) {
   .pc-ring { width: 52px; height: 52px; }

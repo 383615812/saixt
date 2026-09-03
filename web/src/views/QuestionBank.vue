@@ -285,7 +285,7 @@ onMounted(async () => {
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
-.chip-count { font-size: 0.72rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
+.chip-count { font-size: 0.75rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
 .chip-sm { padding: 4px 11px; font-size: 0.8rem; }
 .search { display: flex; gap: 8px; }
 .search input {
@@ -377,7 +377,7 @@ onMounted(async () => {
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 10px; font-size: 0.8rem; }
-  .chip-sm { padding: 5px 9px; font-size: 0.72rem; }
+  .chip-sm { padding: 5px 9px; font-size: 0.75rem; }
   .q-stem { font-size: 0.9rem; }
   .pager .btn { padding: 8px 12px; font-size: 0.8rem; }
 }

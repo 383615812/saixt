@@ -167,6 +167,6 @@ const labels = computed(() => {
 .legend-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .radar-legend-item strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 @media (max-width: 480px) {
-  .radar-label { font-size: 0.7rem; }
+  .radar-label { font-size: 0.72rem; }
 }
 </style>

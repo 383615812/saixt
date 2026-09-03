@@ -446,7 +446,7 @@ onMounted(load)
 }
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-bottom: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .btn { align-self: flex-start; }

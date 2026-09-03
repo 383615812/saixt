@@ -477,7 +477,7 @@ onMounted(async () => {
 .option.selected .opt-letter { background: var(--accent); color: #fff; }
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 
 .result { margin-top: 20px; padding: 16px 18px; border-radius: var(--radius-sm); animation: result-in 0.4s var(--ease-out); }
 @keyframes result-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -538,7 +538,7 @@ onMounted(async () => {
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
   .chip { padding: 8px 14px; font-size: 0.85rem; }
-  .chip-count { font-size: 0.7rem; }
+  .chip-count { font-size: 0.72rem; }
   .gen-bar { flex-direction: column; align-items: stretch; padding: 12px 14px; gap: 10px; }
   .gen-note { font-size: 0.8rem; }
   .gen-actions { width: 100%; gap: 8px; }
@@ -547,7 +547,7 @@ onMounted(async () => {
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
   .option { padding: 12px 10px; font-size: 0.9rem; }
   .opt-letter { width: 24px; height: 24px; font-size: 0.85rem; }
-  .opt-miss { font-size: 0.7rem; padding: 2px 6px; }
+  .opt-miss { font-size: 0.72rem; padding: 2px 6px; }
   .multi-hint { font-size: 0.76rem; }
   .result-head { flex-wrap: wrap; }
   .right-ans { margin-left: 0; width: 100%; }

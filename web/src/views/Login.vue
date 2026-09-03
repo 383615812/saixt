@@ -276,9 +276,9 @@ async function submit() {
 @keyframes errIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
 .pwd-toggle {
-  position: absolute; right: 8px; width: 34px; height: 34px; border: none; background: transparent;
+  position: absolute; right: 8px; width: 36px; height: 36px; border: none; background: transparent;
   color: var(--muted-2); display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; transition: color 0.2s var(--ease), background-color 0.2s var(--ease), transform 0.15s var(--ease);
+  border-radius: 10px; transition: color 0.2s var(--ease), background-color 0.2s var(--ease), transform 0.15s var(--ease);
 }
 .pwd-toggle:hover { color: var(--accent); background: var(--accent-soft); }
 .pwd-toggle:active { transform: scale(0.98); }
@@ -309,5 +309,12 @@ async function submit() {
   .lc-logo { width: 40px; height: 40px; border-radius: 12px; }
   .lc-logo-img { width: 28px; height: 28px; }
   .lc-brand-text strong { font-size: 0.98rem; }
+}
+@media (max-width: 400px) {
+  .login-page { padding: 16px 10px 32px; }
+  .login-card { padding: 20px 16px 18px; }
+  .lc-head h2 { font-size: 1.3rem; }
+  .mode-switch button { padding: 9px; font-size: 0.88rem; }
+  .field input { padding: 11px 14px 11px 40px; }
 }
 </style>

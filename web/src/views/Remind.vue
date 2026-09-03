@@ -345,7 +345,7 @@ onMounted(load)
 .set-select { min-width: 140px; background: var(--surface); cursor: pointer; }
 
 .switch {
-  width: 52px; height: 32px; border-radius: 999px; border: none;
+  width: 52px; height: 36px; border-radius: 999px; border: none;
   background: var(--rule); position: relative; transition: background 0.25s var(--ease); flex-shrink: 0;
   cursor: pointer;
 }
@@ -353,12 +353,12 @@ onMounted(load)
 .switch:active { transform: scale(0.97); }
 .switch.on:hover { background: var(--accent-deep); }
 .switch .knob {
-  position: absolute; top: 3px; left: 3px; width: 26px; height: 26px;
+  position: absolute; top: 3px; left: 3px; width: 30px; height: 30px;
   border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   transition: transform 0.25s var(--ease);
 }
 .switch.on { background: var(--accent); }
-.switch.on .knob { transform: translateX(20px); }
+.switch.on .knob { transform: translateX(16px); }
 
 .set-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
 .saved-tip { color: var(--green); font-size: 0.88rem; font-weight: 600; }

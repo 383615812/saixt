@@ -656,7 +656,7 @@ onMounted(() => {
 }
 .option.correct .opt-letter { background: var(--green, #0da678); color: #fff; }
 .option.wrong .opt-letter { background: var(--red, #e11d48); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--amber); background: var(--amber-soft, rgba(217,119,6,0.09)); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft, rgba(217,119,6,0.09)); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 
 .result { margin-top: 16px; padding: 14px 16px; border-radius: 12px; }
 .result.ok { background: var(--green-soft, rgba(13,166,120,0.09)); border: 1px solid rgba(13,166,120,0.25); }
