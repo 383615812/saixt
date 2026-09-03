@@ -20,7 +20,8 @@ const DB_PATH = args[0] || 'E:/saixt/server/data/saixt.db';
 const MIN_ID = args[1] ? Number(args[1]) : 23628;
 
 const env = {};
-const envPath = path.join(path.dirname(DB_PATH), '.env');
+let envPath = path.join(path.dirname(DB_PATH), '..', '.env');
+if (!fs.existsSync(envPath)) envPath = path.join(path.dirname(DB_PATH), '.env');
 for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
   const m = line.match(/^([A-Z_]+)=(.*)$/); if (m) env[m[1]] = m[2].trim();
 }
