@@ -12,25 +12,30 @@
           <span>预估总分（600 分制）</span>
           <input v-model.number="score" type="number" min="0" max="600" placeholder="如：450" />
         </label>
-        <label>
+        <label v-show="showAdvanced">
           <span>意向专业方向（可选）</span>
           <input v-model="keyword" placeholder="如：护理、计算机、机电" @keyup.enter="load" />
         </label>
-        <label>
+        <label v-show="showAdvanced">
           <span>学费预算（元/年，可选）</span>
           <input v-model.number="maxTuition" type="number" min="0" step="500" placeholder="如：8000" @keyup.enter="load" />
         </label>
-        <label>
+        <label v-show="showAdvanced">
           <span>浮动比例（%，可选）</span>
           <input v-model.number="tuitionTolerance" type="number" min="0" max="100" step="5" placeholder="默认 10" @keyup.enter="load" />
         </label>
-        <label>
+        <label v-show="showAdvanced">
           <span>意向地区（可选）</span>
           <select v-model="region" @change="load">
             <option value="">不限</option>
             <option v-for="r in regions" :key="r" :value="r">{{ r }}</option>
           </select>
         </label>
+        <button class="form-toggle" type="button" :aria-expanded="showAdvanced" @click="showAdvanced = !showAdvanced">
+          <template v-if="showAdvanced">收起高级选项</template>
+          <template v-else>更多筛选项（选填）</template>
+          <svg class="ft-chev" :class="{ up: showAdvanced }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
         <button class="btn btn-primary" :disabled="loading" @click="load">生成推荐方案</button>
       </div>
       <p class="form-tip">
@@ -115,6 +120,8 @@ const region = ref('')
 const autoScore = ref(null)
 const loading = ref(false)
 const result = ref(null)
+// 移动端默认折叠可选高级参数，让首屏聚焦核心「预估总分+生成」；桌面始终展开
+const showAdvanced = ref(true)
 
 const regions = ['昆明', '曲靖', '玉溪', '楚雄', '大理', '丽江', '保山', '昭通', '普洱', '临沧', '红河', '文山', '西双版纳', '德宏', '怒江', '迪庆']
 
@@ -137,6 +144,10 @@ async function load() {
 }
 
 onMounted(async () => {
+  const mq = window.matchMedia('(max-width: 600px)')
+  const apply = () => { showAdvanced.value = !mq.matches }
+  apply()
+  mq.addEventListener?.('change', apply)
   try {
     const stats = await api.get('/stats/me')
     // 优先使用后端真实总分测算（含会考折算）；未填会考成绩时回退为职业技能预测 + 文化素质中等估算
@@ -169,6 +180,18 @@ onMounted(async () => {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .form-tip { margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
+.form-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 14px; min-height: 40px; border-radius: var(--radius-sm);
+  border: 1px solid var(--rule); background: var(--surface);
+  color: var(--muted); font-size: 0.85rem; font-weight: 500; cursor: pointer;
+  transition: color 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.form-toggle:hover { color: var(--accent); border-color: rgba(79, 95, 240, 0.4); }
+.form-toggle:active { transform: scale(0.98); }
+.form-toggle .ft-chev { width: 15px; height: 15px; transition: transform 0.3s var(--ease); }
+.form-toggle .ft-chev.up { transform: rotate(180deg); }
+@media (min-width: 768px) { .form-toggle { display: none; } }
 
 .score-banner {
   position: relative; overflow: hidden;
