@@ -90,7 +90,7 @@
               >
                 <span class="dr-name">{{ r.name }}</span>
                 <span class="dr-strength">
-                  <span class="dr-bar" :style="{ width: (r.value / maxLinkValue * 100) + '%' }"></span>
+                  <span class="dr-bar"><span :style="{ width: Math.min(100, r.value / maxLinkValue * 100) + '%' }"></span></span>
                   <span class="dr-num">{{ r.value }}</span>
                 </span>
               </div>
