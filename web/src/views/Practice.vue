@@ -238,8 +238,8 @@
           <button v-else-if="!answered && qtype === 'subjective'" class="btn btn-primary" @click="showSubjectiveAnswer">查看参考答案</button>
           <template v-else>
             <button v-if="mode === 'exam' && examAnswers.length" class="btn btn-ghost" :disabled="submitting" @click="finishExam">提前交卷</button>
-            <button v-if="mode === 'practice'" class="btn btn-primary" @click="next">下一题 →</button>
-            <button v-else-if="current < questions.length - 1" class="btn btn-primary" @click="next">下一题 →</button>
+            <button v-if="current < questions.length - 1" class="btn btn-primary" @click="next">下一题 →</button>
+            <button v-else-if="mode === 'practice'" class="btn btn-primary" @click="finishPractice">完成本次练习</button>
             <button v-else class="btn btn-primary" :disabled="submitting" @click="finishExam">交卷</button>
           </template>
         </div>
@@ -552,6 +552,7 @@ async function submitOne() {
     currentQuestion.value.analysis = data.analysis
     answered.value = true
     if (mode.value === 'exam') {
+      examAnswers.value = examAnswers.value.filter(a => a.question_id !== currentQuestion.value.id)
       examAnswers.value.push({ question_id: currentQuestion.value.id, answer: userAnswer() })
       saveExamState()
     }
@@ -597,6 +598,12 @@ function next() {
   answered.value = false
   aiText.value = ''
   saveExamState()
+}
+
+// 专项练习最后一题作答完成后的收尾：结束本次练习回到设置页
+function finishPractice() {
+  reset()
+  toast('本次专项练习已完成，继续加油！', 'success')
 }
 
 async function finishExam() {
