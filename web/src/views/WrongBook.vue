@@ -101,6 +101,7 @@
                 <span class="result-icon">{{ practiceCorrect ? '✓' : '✗' }}</span>
                 <strong>{{ practiceCorrect ? '重练答对，已掌握！' : '仍未答对，再看看解析' }}</strong>
               </div>
+              <div class="detail-ans"><span class="tag tag-green">正确答案：{{ q.answer }}</span></div>
               <div class="analysis"><strong>解析：</strong>{{ q.analysis }}</div>
             </div>
             <div class="re-actions">
@@ -319,6 +320,9 @@ async function practiceSubmit(q) {
       answer: practiceUserAnswer()
     })
     practiceCorrect.value = !!res.correct
+    // 用后端权威结果回写答案/解析，确保重练后展示与题库一致
+    if (res.answer) q.answer = res.answer
+    if (res.analysis) q.analysis = res.analysis
   } catch (e) {
     practiceAnswered.value = false
     toast(e.message || '提交失败，请稍后重试', 'error')

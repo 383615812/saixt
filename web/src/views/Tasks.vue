@@ -119,12 +119,10 @@ const data = ref({ tasks: [], completed: 0, total: 5, percent: 0 })
 const loading = ref(true)
 const loadFailed = ref(false)
 
-// 进度环 = 各任务完成度的平均值，与下方任务进度条一致
+// 整体进度环 = 已完成任务数 / 任务总数（与后端 percent 口径一致），单任务进度见 taskPct
 const percent = computed(() => {
-  const tasks = data.value.tasks
-  if (!tasks.length) return 0
-  const sum = tasks.reduce((acc, t) => acc + Math.min(1, t.done / t.target), 0)
-  return Math.round((sum / tasks.length) * 100)
+  const total = data.value.total
+  return total ? Math.round((data.value.completed / total) * 100) : 0
 })
 
 function taskPct(t) {

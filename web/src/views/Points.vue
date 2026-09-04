@@ -112,7 +112,7 @@ async function load() {
   try {
     const m = await api.get('/membership/me')
     vip.value = m.vip
-  } catch (e) { /* 忽略 */ }
+  } catch (e) { vip.value = false /* 接口失败时按非VIP兜底，兑换由后端最终校验 */ }
 }
 
 async function exchange(key, ex) {
