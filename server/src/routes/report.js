@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { tryConsumeAi, refundAi } from '../commerce.js';
@@ -6,6 +9,52 @@ import { callDeepSeek, isAiConfigured } from '../aiClient.js';
 import { currentWeekRange } from '../utils.js';
 
 const router = Router();
+const __dir = path.dirname(fileURLToPath(import.meta.url));
+const KNOW_DIR = path.resolve(__dir, '../../../data');
+
+// 知识底座：subject(中文) -> chapter -> 考纲知识点文本（注入周报，让 AI 建议细化到具体考点）
+const KB = {};
+const KB_META = [
+  ['数学', 'math_knowledge.json'],
+  ['政治', 'pol_knowledge.json'],
+  ['通用技术', 'ty_knowledge.json'],
+  ['信息技术', 'xi_knowledge.json']
+];
+for (const [subj, file] of KB_META) {
+  const p = path.join(KNOW_DIR, file);
+  if (!existsSync(p)) continue;
+  try { KB[subj] = JSON.parse(readFileSync(p, 'utf-8')); } catch (e) { console.error('[report] 知识底座加载失败:', file, e.message); }
+}
+const KB_ALIAS = {
+  '通用技术': { '结构设计': '结构与设计', '流程设计': '流程与设计', '系统设计': '系统与设计', '控制设计': '控制与设计' },
+  '信息技术': { '数据与信息': '专题01 数据、信息与知识', '程序设计基础': '专题04 Python程序设计基础' }
+};
+function knowledgeHint(subject, chapter, maxLen = 700) {
+  const subjectKB = KB[subject];
+  if (!subjectKB || !chapter) return '';
+  let content = typeof subjectKB === 'string' ? subjectKB : subjectKB[chapter];
+  if (!content) { const alias = KB_ALIAS[subject]?.[chapter]; content = alias ? subjectKB[alias] : ''; }
+  if (!content) { const key = Object.keys(subjectKB).find(k => chapter && k && (chapter.includes(k) || k.includes(chapter))); content = key ? subjectKB[key] : ''; }
+  if (!content) return '';
+  content = String(content).trim();
+  return content.length > maxLen ? content.slice(0, maxLen) + '\n……（按长度截断）' : content;
+}
+// 为薄弱章节批量汇总知识要点（"科目·章节（正确率%）" -> 注入内容）
+function weeklyKnowledgeBlob(weakList, totalLen = 2400) {
+  const parts = [];
+  let used = 0;
+  for (const item of weakList) {
+    const m = /^(.+?)[·.](.+?)(（[0-9]+%）)?$/.exec(item.trim());
+    if (!m) continue;
+    const hint = knowledgeHint(m[1], m[2]);
+    if (!hint) continue;
+    const block = `【${m[1]} · ${m[2]}】\n${hint}`;
+    if (used + block.length > totalLen) break;
+    parts.push(block);
+    used += block.length;
+  }
+  return parts.join('\n\n');
+}
 
 // AI 文本清洗：剥离 HTML/脚本标签，防 AI 输出经前端渲染产生存储型 XSS
 function cleanAi(text) {
@@ -236,6 +285,8 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
   `).all(uid)
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)
     .map(m => `${m.subject}·${m.chapter}（${Math.round((m.correct / m.total) * 100)}%）`);
+  // 注入薄弱章节考纲要点，让周报建议从"章节名"细化到"具体考点"
+  const weakKnowledge = weeklyKnowledgeBlob(weak);
 
   const exams = db.prepare(`
     SELECT score FROM practice_sessions
@@ -253,6 +304,7 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
 - 每日刷题量：${trend.map(t => `${t.d}:${t.total}题`).join('、') || '无'}
 - 各科目：${bySubject.map(s => `${s.subject} ${s.total}题/${s.total ? Math.round((s.correct || 0) / s.total * 100) : 0}%`).join('、') || '无'}
 - 薄弱知识点：${weak.length ? weak.join('、') : '暂无'}
+${weakKnowledge ? `\n薄弱章节对应的考纲要点（请在建议中据此点出具体考点）：\n${weakKnowledge}\n` : ''}
 - 模拟考试：${exams.map(e => `${e.score}分`).join('、') || '暂无'}
 - 打卡 ${checkinDays} 天
 
