@@ -14,7 +14,7 @@ function estimateLine(school, medianPlans) {
       return Math.round(Math.min(600, Math.max(0, real)));
     }
   }
-  const isPublic = !String(school.name).includes('民办');
+  const isPublic = school.nature === '公办';
   const base = isPublic ? 400 : 320;
   const line = base + (medianPlans - school.plans) * 0.06;
   return Math.round(Math.min(520, Math.max(300, line)));
@@ -165,7 +165,7 @@ router.get('/', requireAuth, (req, res) => {
 
     const line = estimateLine(s, medianPlans);
     const diff = totalScore - line;
-    const isPublic = !String(s.name).includes('民办');
+    const isPublic = s.nature === '公办';
     const fit = scoreFit(diff);
     const match = majorMatch(matchMajors.length, hasKeyword);
     const tFit = tuitionFit(tuition, budget, tol);
@@ -175,6 +175,8 @@ router.get('/', requireAuth, (req, res) => {
     const item = {
       code: s.code,
       name: s.name,
+      nature: s.nature || '',
+      flagship: s.flagship || '',
       isPublic,
       region: schoolRegion(s.name),
       plans: s.plans,

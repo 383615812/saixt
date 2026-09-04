@@ -39,8 +39,15 @@
         <div class="hero-glow" aria-hidden="true"></div>
         <div class="hero-logo">{{ school.name.slice(0, 2) }}</div>
         <div class="hero-info">
-          <h2>{{ school.name }}</h2>
+          <h2>
+              {{ school.name }}
+              <span class="nature-badge" :class="school.nature === '民办' ? 'nat-private' : 'nat-public'">{{ school.nature === '民办' ? '民办' : '公办' }}</span>
+            </h2>
           <p class="hero-code">院校代码：{{ school.code }}</p>
+          <div v-if="school.flagship" class="hero-flagship">
+            <span class="fs-label">王牌专业</span>
+            <span class="fs-chip" v-for="(f, i) in school.flagship.split('、')" :key="i">{{ f }}</span>
+          </div>
         </div>
         <div class="hero-stats">
           <div class="hs">
@@ -208,7 +215,21 @@ onMounted(load)
   font-weight: 700; font-size: 1.2rem; box-shadow: 0 6px 18px rgba(79, 95, 240, 0.3);
 }
 .hero-info { flex: 1; min-width: 200px; }
-.hero-info h2 { font-size: 1.5rem; }
+.hero-info h2 { font-size: 1.5rem; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.nature-badge {
+  display: inline-block; padding: 2px 9px; font-size: 0.7rem; font-weight: 700;
+  border-radius: 999px; letter-spacing: 0.03em; vertical-align: 3px;
+}
+.nat-public { color: #0e7490; background: rgba(14, 116, 144, 0.12); border: 1px solid rgba(14, 116, 144, 0.3); }
+.nat-private { color: #b45309; background: rgba(245, 158, 11, 0.13); border: 1px solid rgba(245, 158, 11, 0.32); }
+.hero-flagship { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.fs-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+.fs-chip {
+  padding: 2px 9px; border-radius: 999px; font-size: 0.78rem;
+  background: linear-gradient(135deg, var(--accent-soft, #eef2ff), #f5f3ff);
+  color: var(--accent, #4338ca); border: 1px solid rgba(67, 56, 202, 0.16);
+  font-weight: 500; white-space: nowrap;
+}
 .hero-code { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
 .hero-stats { display: flex; gap: 28px; }
 .hs { text-align: center; }

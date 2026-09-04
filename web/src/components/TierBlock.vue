@@ -54,6 +54,14 @@
           </div>
         </div>
 
+        <!-- 王牌专业 -->
+        <div v-if="s.flagship" class="tc-majors">
+          <div class="tc-majors-lbl fs-lbl">王牌专业</div>
+          <div class="tc-majors-chips">
+            <span v-for="(f, i) in s.flagship.split('、')" :key="i" class="major-chip fs-chip">{{ f }}</span>
+          </div>
+        </div>
+
         <div class="tc-stats">
           <span>计划 {{ s.plans > 0 ? s.plans.toLocaleString() : '—' }} 人</span>
           <span>{{ s.majors > 0 ? s.majors : '—' }} 个专业</span>
@@ -191,6 +199,11 @@ function formatTuition(v) {
 .major-chip {
   font-size: 0.75rem; padding: 3px 9px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-weight: 500;
+}
+.tc-majors .fs-lbl { color: #b45309; margin-top: 8px; }
+.tc-majors .fs-chip {
+  background: rgba(245, 158, 11, 0.13); color: #b45309; font-weight: 600;
+  border: 1px solid rgba(245, 158, 11, 0.24);
 }
 
 .tc-stats { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; font-size: 0.76rem; color: var(--muted); }

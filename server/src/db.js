@@ -177,7 +177,9 @@ db.exec(`
     plans INTEGER,
     majors INTEGER,
     tuition_range TEXT,
-    estimate_score TEXT
+    estimate_score TEXT,
+    nature TEXT,
+    flagship TEXT
   );
   CREATE TABLE IF NOT EXISTS plans (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -314,6 +316,8 @@ try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_sms INTEGER DEFAULT 0
 try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_time TEXT DEFAULT "19:00"'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE users ADD COLUMN invite_code TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE schools ADD COLUMN estimate_score TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE schools ADD COLUMN nature TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE schools ADD COLUMN flagship TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec("ALTER TABLE plans ADD COLUMN lang TEXT DEFAULT '不限'"); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec("ALTER TABLE plans ADD COLUMN oral TEXT DEFAULT '否'"); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE users ADD COLUMN reg_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
@@ -342,8 +346,8 @@ seedIfEmpty('questions', 'questions.json', {
 });
 
 seedIfEmpty('schools', 'schools.json', {
-  stmt: `INSERT INTO schools (code, name, plans, majors, tuition_range) VALUES (?,?,?,?,?)`,
-  args: s => [s.code, s.name, s.plans, s.majors, s.tuition_range]
+  stmt: `INSERT INTO schools (code, name, plans, majors, tuition_range, estimate_score, nature, flagship) VALUES (?,?,?,?,?,?,?,?)`,
+  args: s => [s.code, s.name, s.plans, s.majors, s.tuition_range, s.estimate_score || '', s.nature || '', s.flagship || '']
 });
 
 seedIfEmpty('plans', 'plans.json', {

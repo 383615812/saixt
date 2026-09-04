@@ -12,8 +12,8 @@ router.get('/', (req, res) => {
   const conds = [];
   const args = [];
   if (keyword) { conds.push('(name LIKE ? OR code LIKE ?)'); args.push(`%${keyword}%`, `%${keyword}%`); }
-  if (type === '公办') conds.push("name NOT LIKE '(%民办)%' AND name NOT LIKE '民办%'");
-  else if (type === '民办') conds.push("name LIKE '(%民办)%' OR name LIKE '民办%'");
+  if (type === '公办') conds.push("nature = '公办'");
+  else if (type === '民办') conds.push("nature = '民办'");
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   const orderMap = { plans: 'plans DESC', name: 'name ASC', code: 'code ASC' };
   const order = orderMap[sort] || 'plans DESC';
@@ -25,8 +25,8 @@ router.get('/', (req, res) => {
   if (region && String(region).trim()) {
     const reg = String(region).trim();
     let all = db.prepare(`SELECT * FROM schools ${where}`).all(...args);
-    if (type === '公办') all = all.filter(s => !/^(\(民办\)|民办)/.test(s.name));
-    else if (type === '民办') all = all.filter(s => /^(\(民办\)|民办)/.test(s.name));
+    if (type === '公办') all = all.filter(s => s.nature === '公办');
+    else if (type === '民办') all = all.filter(s => s.nature === '民办');
     const filtered = all.filter(s => schoolRegion(s.name) === reg);
     const list = filtered.slice(safeOffset, safeOffset + safeLimit);
     const plansTotal = db.prepare('SELECT COUNT(*) AS c FROM plans').get().c || 0;

@@ -67,7 +67,9 @@
         <div class="sc-head">
           <div class="sc-logo">{{ s.name.slice(0, 2) }}</div>
           <div class="sc-info">
-            <h3>{{ s.name }}</h3>
+            <h3>{{ s.name }}
+              <span class="nature-badge" :class="s.nature === '民办' ? 'nat-private' : 'nat-public'">{{ s.nature === '民办' ? '民办' : '公办' }}</span>
+            </h3>
             <span class="sc-code">院校代码 {{ s.code }}</span>
             <span v-if="s.estimate_score" class="sc-est">{{ s.estimate_score }}</span>
           </div>
@@ -255,6 +257,12 @@ onMounted(() => load(0))
   overflow: hidden;
 }
 .sc-code { font-size: 0.78rem; color: var(--muted); }
+.nature-badge {
+  display: inline-block; margin-left: 6px; padding: 1px 7px; vertical-align: 2px;
+  font-size: 0.68rem; font-weight: 600; border-radius: 999px; letter-spacing: 0.02em;
+}
+.nat-public { color: #0e7490; background: rgba(14, 116, 144, 0.12); border: 1px solid rgba(14, 116, 144, 0.28); }
+.nat-private { color: #b45309; background: rgba(245, 158, 11, 0.13); border: 1px solid rgba(245, 158, 11, 0.3); }
 .sc-est {
   display: inline-block; margin-top: 6px; padding: 2px 8px;
   font-size: 0.74rem; font-weight: 600; color: #fff;
