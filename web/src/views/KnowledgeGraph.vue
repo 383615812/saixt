@@ -1022,6 +1022,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 600px) {
+  .gw-toggle { min-height: 44px; }
   .graph-container { min-height: 400px; }
   .chart-canvas { height: 400px; }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }

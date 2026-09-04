@@ -612,6 +612,7 @@ onMounted(load)
   .page-head h2 { font-size: 1.3rem; }
   .page-head { margin-bottom: 16px; }
   .view-tabs { max-width: none; }
+  .vt { min-height: 44px; padding: 9px 14px; }
   .filter-bar { padding: 12px 14px; }
   .chip { padding: 8px 14px; font-size: 0.84rem; min-height: 44px; display: inline-flex; align-items: center; }
   .chip-sm { padding: 7px 12px; font-size: 0.78rem; min-height: 40px; display: inline-flex; align-items: center; }

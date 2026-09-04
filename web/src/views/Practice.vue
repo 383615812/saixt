@@ -1070,7 +1070,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .setup { padding: 18px 14px; }
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
-  .chip { padding: 8px 14px; font-size: 0.85rem; }
+  .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; font-size: 0.85rem; }
   .chip-count { font-size: 0.78rem; }
   .exam-timer { flex-wrap: wrap; gap: 6px 10px; padding: 12px 14px; }
   .timer-tip { margin-left: 0; width: 100%; }

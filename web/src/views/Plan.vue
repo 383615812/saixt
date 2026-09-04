@@ -54,14 +54,14 @@
     </div>
 
     <div class="plan-actions">
-      <button class="btn btn-primary" :disabled="loading" @click="generate">
-        <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="M15 3h6v6"/><path d="M14 10 21 3"/><path d="M9 15l-1 1 1 1 6-6"/></svg>
-        {{ loading ? 'AI 正在制定计划…' : (plan ? '重新生成计划' : '生成我的学习计划') }}
-      </button>
-      <router-link v-if="plan && !loading" to="/practice" class="btn btn-ghost">
+      <router-link v-if="plan && !loading" to="/practice" class="btn btn-primary">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
         按计划去刷题
       </router-link>
+      <button class="btn" :class="plan ? 'btn-ghost' : 'btn-primary'" :disabled="loading" @click="generate">
+        <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="M15 3h6v6"/><path d="M14 10 21 3"/><path d="M9 15l-1 1 1 1 6-6"/></svg>
+        {{ loading ? 'AI 正在制定计划…' : (plan ? '重新生成计划' : '生成我的学习计划') }}
+      </button>
     </div>
 
     <div v-if="loading" class="card plan-loading">

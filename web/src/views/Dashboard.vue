@@ -1120,7 +1120,7 @@ onMounted(loadAll)
 .wm-item {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 13px; border-radius: 999px;
-  background: var(--surface-2); border: 1px solid var(--rule);
+  background: var(--surface-2); border: 1px solid var(--rule-strong);
   color: var(--ink-soft); font-size: 0.82rem; font-weight: 600; white-space: nowrap;
   transition: border-color 0.2s var(--ease), color 0.2s var(--ease), background-color 0.2s var(--ease), transform 0.15s var(--ease), box-shadow 0.2s var(--ease);
 }
@@ -1129,6 +1129,9 @@ onMounted(loadAll)
 .wm-item:active { transform: scale(0.96); }
 .wm-item.vip { background: linear-gradient(135deg, #fdf6ee, #fff); border-color: #e6c15a; color: #92400e; }
 .wm-item.vip:hover { border-color: #d9a066; background: #fdf6ee; box-shadow: 0 3px 8px rgba(217, 160, 102, 0.18); }
+@media (max-width: 600px) {
+  .wm-item { min-height: 44px; padding: 8px 14px; }
+}
 
 .stat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 20px; }
 .stat-card { text-align: center; padding: 18px 10px; transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease); }
@@ -1463,6 +1466,7 @@ onMounted(loadAll)
   .srow-name { width: 64px; font-size: 0.78rem; }
   .grade-opts { flex-wrap: wrap; }
   .grade-chip { min-width: 44px; min-height: 44px; width: auto; height: auto; padding: 0 12px; }
+  .hui-kao .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 5px 14px; }
   .predict { gap: 14px; }
   .predict-score { font-size: 2.2rem; }
   .predict-bars { min-width: 0; }

@@ -419,8 +419,8 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   .brand-logo-img { width: 24px; height: 24px; }
   .brand-text small { display: none; }
   .user-area { gap: 8px; }
-  .search-btn, .bell { width: 40px; height: 40px; }
+  .search-btn, .bell { width: 44px; height: 44px; }
   .search-btn { border-radius: 12px; }
-  .hamburger { padding: 10px; }
+  .hamburger { min-width: 44px; min-height: 44px; padding: 12px; }
 }
 </style>

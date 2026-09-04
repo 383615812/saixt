@@ -309,6 +309,9 @@ async function submit() {
   .lc-logo { width: 40px; height: 40px; border-radius: 12px; }
   .lc-logo-img { width: 28px; height: 28px; }
   .lc-brand-text strong { font-size: 0.98rem; }
+  .mode-switch button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .pwd-toggle { width: 44px; height: 44px; right: 2px; }
+  .field input { padding-right: 48px; }
 }
 @media (max-width: 400px) {
   .login-page { padding: 16px 10px 32px; }

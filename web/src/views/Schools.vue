@@ -293,6 +293,8 @@ onMounted(() => load(0))
   .search { width: 100%; }
   .search input { width: 100%; font-size: 1rem; }
   .sorts { width: 100%; justify-content: flex-start; overflow-x: auto; }
+  .sorts .chip, .filters .chip { min-height: 44px; display: inline-flex; align-items: center; }
+  .school-card .btn-sm { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .filters { width: 100%; padding-top: 10px; margin-top: 4px; gap: 8px 14px; }
   .f-group { flex: 1 1 auto; min-width: 0; }
   .sel { flex: 1 1 auto; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
