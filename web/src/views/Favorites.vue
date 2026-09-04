@@ -73,6 +73,7 @@
           </p>
         </div>
         <div class="q-foot">
+          <button class="btn btn-primary btn-sm" @click="practice(q)">去练习</button>
           <button class="btn btn-ghost btn-sm" @click="toggleDetail(q)">
             {{ detailId === q.id ? '收起解析' : '查看答案与解析' }}
           </button>
@@ -93,9 +94,11 @@
 
 import { toast } from '../toast'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { useImgError } from '../useImgError'
 
+const router = useRouter()
 const subject = ref('')
 const chapter = ref('')
 const chapters = ref([])
@@ -139,6 +142,10 @@ async function unfav(q) {
   } catch (e) { /* 忽略 */ }
   all.value = all.value.filter(x => x.id !== q.id)
   applyFilter()
+}
+// 从收藏直达单题练习：跳转刷题页并定位到该题（qid 直达）
+function practice(q) {
+  router.push({ path: '/practice', query: { subject: q.subject, chapter: q.chapter, qid: q.id } })
 }
 function formatTime(t) {
   if (!t) return ''
