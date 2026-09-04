@@ -21,6 +21,27 @@
       </button>
     </div>
 
+    <!-- 使用邀请码 -->
+    <div class="card redeem-card">
+      <div class="rc-head">
+        <span class="rc-title">使用邀请码</span>
+        <span class="rc-sub">被好友邀请时，输入 TA 的邀请码可绑定邀请关系并获得积分享受权益</span>
+      </div>
+      <div class="rc-form">
+        <input
+          v-model="redeemCode"
+          maxlength="6"
+          placeholder="请输入 6 位邀请码"
+          aria-label="邀请码"
+          @keyup.enter="redeem"
+        />
+        <button class="btn btn-primary" :disabled="redeeming" @click="redeem">
+          {{ redeeming ? '绑定中…' : '立即绑定' }}
+        </button>
+      </div>
+      <p v-if="boundMsg" class="rc-bound">{{ boundMsg }}</p>
+    </div>
+
     <!-- 奖励规则 -->
     <h3 class="sec-title">奖励规则</h3>
     <div class="reward-grid">
@@ -67,11 +88,47 @@ import { api } from '../api'
 import { toast } from '../toast'
 
 const data = ref({ code: '', count: 0, totalReward: 0, list: [] })
+const redeemCode = ref('')
+const redeeming = ref(false)
+const boundMsg = ref('')
 
 async function load() {
   try {
     data.value = await api.get('/invite/me')
   } catch (e) { toast.error(e.message) }
+}
+
+// 是否已绑定他人邀请码（后端返回 my_inviter_id，用于准确引导绑定流程）
+const hasBound = ref(false)
+async function loadBound() {
+  try {
+    const r = await api.get('/invite/me')
+    if (r.my_inviter_id) {
+      hasBound.value = true
+      data.value = r
+      boundMsg.value = '你已绑定邀请码，无需重复绑定'
+    }
+  } catch (e) { /* 忽略，仅作提示辅助 */ }
+}
+
+async function redeem() {
+  const code = redeemCode.value.trim().toUpperCase()
+  if (!code) return toast.error('请输入邀请码')
+  if (redeeming.value) return
+  if (hasBound.value) return toast.info('你已绑定过邀请码，无需重复绑定')
+  redeeming.value = true
+  try {
+    const data = await api.post('/invite/redeem', { code })
+    toast.success(data.message || '绑定成功')
+    redeemCode.value = ''
+    boundMsg.value = '绑定成功，邀请双方均已获得奖励'
+    hasBound.value = true
+    load()
+  } catch (e) {
+    toast.error(e.message)
+  } finally {
+    redeeming.value = false
+  }
 }
 
 async function copyCode() {
@@ -84,7 +141,7 @@ async function copyCode() {
   }
 }
 
-onMounted(load)
+onMounted(() => { load(); loadBound() })
 </script>
 
 <style scoped>
@@ -121,6 +178,21 @@ onMounted(load)
 }
 .sec-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--grad-accent); flex-shrink: 0; }
 .sec-sub { font-size: 0.8rem; color: var(--muted-2); font-weight: 500; margin-left: 8px; }
+
+/* 使用邀请码 */
+.redeem-card { padding: 18px 20px; border: 1px dashed rgba(79, 95, 240, 0.45); background: var(--accent-soft); }
+.rc-head { margin-bottom: 12px; }
+.rc-title { font-weight: 700; font-size: 0.98rem; color: var(--ink); }
+.rc-sub { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
+.rc-form { display: flex; gap: 10px; max-width: 420px; }
+.rc-form input {
+  flex: 1; padding: 11px 14px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
+  font-size: 1rem; letter-spacing: 0.2em; text-transform: uppercase; outline: none;
+  background: var(--surface); color: var(--ink);
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.rc-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79, 95, 240, 0.16); }
+.rc-bound { margin-top: 10px; font-size: 0.86rem; color: var(--green); font-weight: 500; }
 
 .reward-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .reward-item { text-align: center; padding: 20px 14px; }

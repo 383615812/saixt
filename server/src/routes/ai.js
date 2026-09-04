@@ -52,7 +52,7 @@ function notConfigured(res) {
   return res.json({
     code: 0,
     data: {
-      reply: 'AI 服务尚未配置。请在服务端 `E:\\saixt\\server\\.env` 文件中设置 `DEEPSEEK_API_KEY=你的密钥` 后重启服务即可使用。',
+      reply: 'AI 服务尚未配置。请在 server 目录的 .env 文件中设置 DEEPSEEK_API_KEY 后重启服务即可使用。',
       configured: false
     }
   });

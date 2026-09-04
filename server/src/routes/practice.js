@@ -43,7 +43,13 @@ router.post('/submit', requireAuth, submitLimiter, (req, res) => {
   if (!Number.isInteger(qid) || qid <= 0) return res.status(400).json({ code: 400, message: '无效的题目 ID' });
   const q = db.prepare('SELECT * FROM questions WHERE id = ?').get(qid);
   if (!q) return res.status(404).json({ code: 404, message: '题目不存在' });
-  const ans = String(answer ?? '').slice(0, 50);
+  const ans = String(answer ?? '').slice(0, 50).trim();
+  // 客观题未作答兜底拦截：鼓励作答，避免产生无意义的错误记录污染正确率
+  if (q.type === 'multiple' || q.type === 'single' || q.type === 'judge') {
+    if (!ans) {
+      return res.status(400).json({ code: 400, message: q.type === 'multiple' ? '多选题请至少选择一个选项' : '请先选择答案再提交' });
+    }
+  }
   const correct = gradeAnswer(q, ans, selfCorrect);
   tx(() => {
     db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct) VALUES (?,?,?,?)')

@@ -21,7 +21,9 @@ router.get('/invite/me', requireAuth, (req, res) => {
     `SELECT COALESCE(SUM(change),0) AS s FROM point_logs WHERE user_id = ? AND reason LIKE '邀请%'`
   ).get(uid).s || 0;
 
-  res.json({ code: 0, data: { code, nickname: user?.nickname || '', count: list.length, totalReward, list } });
+  const bound = db.prepare('SELECT inviter_id FROM invites WHERE invitee_id = ?').get(uid);
+
+  res.json({ code: 0, data: { code, nickname: user?.nickname || '', count: list.length, totalReward, list, my_inviter_id: bound?.inviter_id || null } });
 });
 
 // 使用邀请码（注册后绑定，双方各得积分）
