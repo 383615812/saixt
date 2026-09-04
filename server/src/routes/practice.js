@@ -172,14 +172,16 @@ router.get('/wrong/export', requireAuth, (req, res) => {
   const user = db.prepare('SELECT nickname FROM users WHERE id = ?').get(uid);
   const nickname = user?.nickname || '同学';
 
-  // 获取错题
-  let sql = `SELECT q.id, q.subject, q.chapter, q.stem, q.options, q.answer, q.analysis, q.type
+  // 获取错题，并带上用户在最近一次错答中的作答，便于对照复习
+  let sql = `SELECT q.id, q.subject, q.chapter, q.stem, q.options, q.answer, q.analysis, q.type,
+     (SELECT r2.answer FROM practice_records r2 WHERE r2.user_id = r.user_id AND r2.question_id = q.id
+       ORDER BY r2.id DESC LIMIT 1) AS my_answer
      FROM practice_records r JOIN questions q ON q.id = r.question_id
      WHERE r.user_id = ? AND r.is_correct = 0
        AND NOT EXISTS (SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = r.user_id AND wm.question_id = q.id)`;
   const params = [uid];
   if (subject) { sql += ' AND q.subject = ?'; params.push(subject); }
-  sql += ' GROUP BY q.id ORDER BY q.subject, MAX(r.id) DESC';
+  sql += ' GROUP BY q.id ORDER BY q.subject, q.chapter, q.id';
   const rows = db.prepare(sql).all(...params);
 
   // 按科目分组
@@ -268,6 +270,12 @@ router.get('/wrong/export', requireAuth, (req, res) => {
             doc.moveDown(0.2);
           }
         } catch (e) { /* 忽略 */ }
+      }
+
+      // 我的作答（对照复习）
+      if (q.my_answer !== undefined && q.my_answer !== null && q.my_answer !== '') {
+        doc.fontSize(10).fillColor('#e11d48').moveDown(0.1)
+           .text(`✕ 我的作答：${q.my_answer}`, { lineGap: 2 });
       }
 
       // 正确答案

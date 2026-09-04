@@ -185,6 +185,35 @@
           </div>
         </div>
       </div>
+
+      <!-- 第五行：章节掌握度热力图 -->
+      <div class="row row-1">
+        <div class="panel">
+          <div class="panel-corner tl"></div>
+          <div class="panel-corner tr"></div>
+          <div class="panel-corner bl"></div>
+          <div class="panel-corner br"></div>
+          <div class="panel-title"><span>章节掌握度热力图</span><span class="heat-legend"><i class="hl l0"></i>薄弱 <i class="hl l1"></i>待加强 <i class="hl l2"></i>良好 <i class="hl l3"></i>熟练</span></div>
+          <div v-if="chapterGroups.length" class="heat-content">
+            <div v-for="g in chapterGroups" :key="g.subject" class="heat-subject">
+              <div class="heat-subject-name">{{ g.subject }}</div>
+              <div class="heat-cells">
+                <div
+                  v-for="c in g.cells"
+                  :key="c.chapter"
+                  class="heat-cell"
+                  :class="c.cls"
+                  :title="`${c.chapter}：${c.total} 题，正确率 ${c.accuracy}%`"
+                >
+                  <span class="hc-name">{{ c.chapter }}</span>
+                  <span class="hc-vals">{{ c.correct }}/{{ c.total }} · {{ c.accuracy }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="no-data-tip" style="position:static; padding:28px 0; text-align:center;">登录并开始答题后展示章节级掌握度</div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -246,6 +275,21 @@ const achPercent = computed(() => {
 })
 const achCircumference = 2 * Math.PI * 50
 const achDashOffset = computed(() => achCircumference * (1 - achPercent.value / 100))
+
+// 章节掌握度热力图：按科目分组，按正确率四档上色
+const masteryCells = computed(() => data.value?.masteryHeatmap || [])
+const chapterGroups = computed(() => {
+  const cells = masteryCells.value.filter(m => m.total >= 1)
+  if (!cells.length) return []
+  const map = new Map()
+  for (const m of cells) {
+    if (!map.has(m.subject)) map.set(m.subject, [])
+    const acc = m.accuracy || 0
+    const cls = acc >= 80 ? 'l3' : acc >= 60 ? 'l2' : acc >= 40 ? 'l1' : 'l0'
+    map.get(m.subject).push({ chapter: m.chapter || '未分类', total: m.total, correct: m.correct || 0, accuracy: acc, cls })
+  }
+  return [...map.entries()].map(([subject, list]) => ({ subject, cells: list }))
+})
 
 // 本周对比
 const compareItems = computed(() => {
@@ -1008,6 +1052,36 @@ onUnmounted(() => {
 .ci-trend.up { color: var(--green-light); }
 .ci-trend.down { color: var(--red-light); }
 .ci-trend.flat { color: rgba(255,255,255,0.55); }
+
+/* 章节掌握度热力图 */
+.row-1 { grid-template-columns: 1fr; }
+.heat-legend { display: inline-flex; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.55); align-items: center; }
+.heat-legend .hl { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 3px; }
+.heat-legend .hl.l0 { background: rgba(225,29,72,.55); }
+.heat-legend .hl.l1 { background: rgba(217,119,6,.6); }
+.heat-legend .hl.l2 { background: rgba(79,95,240,.6); }
+.heat-legend .hl.l3 { background: rgba(13,166,120,.65); }
+.heat-content { display: flex; flex-direction: column; gap: 14px; }
+.heat-subject { display: flex; flex-direction: column; gap: 8px; }
+.heat-subject-name { font-size: 13px; font-weight: 600; color: #8fa9ff; }
+.heat-cells { display: flex; flex-wrap: wrap; gap: 8px; }
+.heat-cell {
+  display: flex; flex-direction: column; gap: 2px;
+  min-width: 128px; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.08); cursor: default;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+}
+.heat-cell:hover { transform: translateY(-2px); }
+.heat-cell.l0 { background: rgba(225,29,72,.2); border-color: rgba(225,29,72,.4); }
+.heat-cell.l0:hover { box-shadow: 0 6px 18px rgba(225,29,72,.25); }
+.heat-cell.l1 { background: rgba(217,119,6,.18); border-color: rgba(217,119,6,.4); }
+.heat-cell.l1:hover { box-shadow: 0 6px 18px rgba(217,119,6,.22); }
+.heat-cell.l2 { background: rgba(79,95,240,.18); border-color: rgba(79,95,240,.4); }
+.heat-cell.l2:hover { box-shadow: 0 6px 18px rgba(79,95,240,.22); }
+.heat-cell.l3 { background: rgba(13,166,120,.18); border-color: rgba(13,166,120,.4); }
+.heat-cell.l3:hover { box-shadow: 0 6px 18px rgba(13,166,120,.22); }
+.hc-name { font-size: 12.5px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-vals { font-size: 12px; color: rgba(255,255,255,.6); font-family: 'Courier New', monospace; }
 
 @media (max-width: 1024px) {
   .row-4 { grid-template-columns: repeat(2, 1fr); }

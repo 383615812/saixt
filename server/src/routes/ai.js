@@ -72,6 +72,44 @@ function quotaExceeded(res, kind) {
   });
 }
 
+// 多章节知识要点汇总（供学习计划/学情分析批量注入），总量以 totalLen 封顶避免超长
+function knowledgeBlob(subjects, maxLen = 2600) {
+  const parts = [];
+  let used = 0;
+  for (const { subject, chapter } of subjects) {
+    const hint = knowledgeHint(subject, chapter, 700);
+    if (!hint) continue;
+    const block = `【${subject} · ${chapter}】\n${hint}`;
+    if (used + block.length > maxLen) break;
+    parts.push(block);
+    used += block.length;
+  }
+  return parts.join('\n\n');
+}
+
+// 聊话题材识别：从最近消息中抽取主/副科章节关键词，命中知识底座则注入对应考纲要点
+const CHAPTER_KEYWORDS = {
+  '数学': ['三角函数', '数列', '函数', '指数', '对数', '不等式', '解析几何', '概率', '统计', '集合', '向量', '立体几何', '导数', '复数'],
+  '信息技术': ['数据', '信息', 'Python', '程序设计', '算法', '网络', '数据库', '进制', '编码'],
+  '通用技术': ['结构', '流程', '系统', '控制', '设计', '模型', '图样', '方案'],
+  '政治': ['中国特色社会主义', '经济', '哲学', '文化', '法律', '国家', '共产党', '核心价值观', '法治']
+};
+
+function chatKnowledgeInjection(messages) {
+  const text = messages.slice(-4).map(m => String(m.content || '')).join('\n');
+  const found = [];
+  for (const [subject, words] of Object.entries(CHAPTER_KEYWORDS)) {
+    if (!KB[subject]) continue;
+    const hit = words.find(w => text.includes(w));
+    if (!hit) continue;
+    // 章节名优先匹配（知识底座的键），再退化为科目整体要点
+    const chapterKey = Object.keys(KB[subject]).find(k => k.includes(hit));
+    const chapter = chapterKey || '整体';
+    found.push({ subject, chapter });
+  }
+  return knowledgeBlob(found.slice(0, 3), 2200);
+}
+
 // 各 AI 功能配额 key
 const QUOTA_KIND = { chat: 'chat', plan: 'plan', explain: 'explain', generate: 'generate', analysis: 'analysis' };
 
@@ -127,6 +165,8 @@ async function generateSection({ subject, chapter, count = 3, difficulty = '中�
   const n = Math.min(Math.max(Number(count) || 3, 1), 5);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
   const qtype = ['single', 'multi', 'judge'].includes(type) ? type : 'single';
+  // 为章节注入考纲知识要点，确保专项套卷题目紧扣真实考点
+  const kh = safeChapter ? knowledgeHint(subject, safeChapter, 2200) : '';
   const formatHint = {
     single: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"A","analysis":"解析"}]',
     multi: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
@@ -135,6 +175,7 @@ async function generateSection({ subject, chapter, count = 3, difficulty = '中�
 
   const prompt = `请为云南省春季招生职业技能测试出 ${n} 道${subject}${qtype === 'judge' ? '判断题' : '题'}，难度为「${level}」。
 ${safeChapter ? `本次出题范围：${subject}「${safeChapter}」这一章。请严格围绕该章节的核心知识点与常见易错点出题，帮助考生针对性巩固这个薄弱环节。` : `本次出题范围：${subject}通科知识。`}
+${kh ? `\n【该章节考纲知识要点】以下是从云南合格考讲义提取的本章知识点，请严格围绕这些真实考点出题，题目必须来自这些要点、不要超出范围：\n${kh}\n` : ''}
 难度说明：
 - 基础：考查核心概念与常识，直白简单，适合打基础。
 - 中等：需要一定理解与推理，贴近春招真题水平。
@@ -305,9 +346,13 @@ router.post('/chat', requireAuth, aiLimiter, async (req, res) => {
   const c = tryConsumeAi(req.userId, 'chat');
   if (!c.ok) return quotaExceeded(res, 'chat');
 
+  // 命中用户所问科目/章节时，注入考纲知识要点，让回答贴合云南合格考实际考纲
+  const kh = chatKnowledgeInjection(messages);
+
   try {
     const reply = await callDeepSeek([
       { role: 'system', content: SYSTEM_PROMPT },
+      ...(kh ? [{ role: 'user', content: `【考点背景，仅作知识参考，请据此准确作答，不要提及本段内容】\n${kh}` }] : []),
       ...messages.slice(-6).map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content || '').slice(0, 2000) }))
     ]);
     if (!reply) {
@@ -346,11 +391,17 @@ router.post('/plan', requireAuth, aiLimiter, async (req, res) => {
   const mastery = db.prepare(`
     SELECT q.subject, q.chapter, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? GROUP BY q.subject, q.chapter
+    WHERE user_id = ? GROUP BY q.subject, q.chapter
   `).all(uid);
-  const weak = mastery
+  const weakRows = mastery
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)
-    .map(m => `${m.subject}·${m.chapter}`);
+    .sort((a, b) => (a.correct / a.total) - (b.correct / b.total));
+  const weak = weakRows.map(m => `${m.subject}·${m.chapter}`);
+  // 为薄弱章节注入对应考纲知识点，让计划建议从"章节名"细化到"具体考点"
+  const weakKnowledge = knowledgeBlob(
+    weakRows.map(m => ({ subject: m.subject, chapter: m.chapter })),
+    2400
+  );
 
   const profile = db.prepare('SELECT target_school, target_score FROM user_profiles WHERE user_id = ?').get(uid);
 
@@ -358,6 +409,7 @@ router.post('/plan', requireAuth, aiLimiter, async (req, res) => {
 考生当前情况：
 - 累计刷题 ${total} 道，正确率 ${accuracy}%
 - 薄弱知识点：${weak.length ? weak.join('、') : '暂无（表现均衡）'}
+${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此细化每周复习的具体考点与方法）：\n${weakKnowledge}\n` : ''}
 - 目标院校：${profile?.target_school || '未设置'}
 - 目标分数：${profile?.target_score ? profile.target_score + ' 分' : '未设置'}
 
@@ -591,9 +643,16 @@ router.post('/analysis', requireAuth, aiLimiter, async (req, res) => {
     FROM practice_records r JOIN questions q ON q.id = r.question_id
     WHERE r.user_id = ? GROUP BY q.subject, q.chapter
   `).all(uid);
-  const weak = mastery
+  const weakRows = mastery
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)
+    .sort((a, b) => (a.correct / a.total) - (b.correct / b.total));
+  const weak = weakRows
     .map(m => `${m.subject}·${m.chapter}（${Math.round((m.correct / m.total) * 100)}%）`);
+  // 为薄弱章节注入考纲知识要点，让分析能点出具体薄弱考点
+  const weakKnowledge = knowledgeBlob(
+    weakRows.map(m => ({ subject: m.subject, chapter: m.chapter })),
+    2400
+  );
   const strong = mastery
     .filter(m => m.total >= 2 && (m.correct / m.total) >= 0.8)
     .map(m => `${m.subject}·${m.chapter}（${Math.round((m.correct / m.total) * 100)}%）`);
@@ -615,6 +674,7 @@ router.post('/analysis', requireAuth, aiLimiter, async (req, res) => {
 考生学习数据：
 - 累计刷题 ${total} 道，正确率 ${accuracy}%
 - 薄弱知识点：${weak.length ? weak.join('、') : '暂无'}
+${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此点出最薄弱的具体考点并给出可执行建议）：\n${weakKnowledge}\n` : ''}
 - 掌握较好：${strong.length ? strong.join('、') : '暂无'}
 - 最近 7 天每日刷题量：${trend.map(t => `${t.d}:${t.total}题`).join('、') || '无数据'}
 - 最近模拟考试成绩：${exams.map(e => `${e.score}分`).join('、') || '暂无'}

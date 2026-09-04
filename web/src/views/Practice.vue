@@ -568,6 +568,10 @@ async function submitOne() {
 function showSubjectiveAnswer() {
   isCorrect.value = false
   answered.value = true
+  // 主观题作答也入库沉淀：不自动判分，交由错题本/复习队列跟踪，逐遍自评直至掌握
+  const ans = (subjectiveAnswer.value || '').trim().slice(0, 2000)
+  api.post('/practice/submit', { question_id: currentQuestion.value.id, answer: ans, selfCorrect: false })
+    .catch(e => { /* 作答沉淀失败不阻断查看参考答案 */ })
 }
 
 // AI 错题讲解：回答错误时提供深度讲解

@@ -83,13 +83,12 @@ export function gradeAnswer(q, answer, selfCorrect) {
   if (q.type === 'subjective') {
     return selfCorrect === true || selfCorrect === 1 || selfCorrect === 'true' || selfCorrect === '1';
   }
-  const ans = String(answer ?? '').trim().toUpperCase();
-  const right = String(q.answer ?? '').trim().toUpperCase();
-  if (q.type === 'multiple') {
-    if (!ans) return false;
-    return ans.split('').sort().join('') === right.split('').sort().join('');
-  }
-  return ans === right;
+  // 客观题答案规范化：只保留字母，去空白/标点/数字，避免 "ABC"、"A、B"、"a1" 等脏输入产生误判
+  const norm = s => String(s ?? '').toUpperCase().replace(/[^A-Z]/g, '');
+  const ans = norm(answer);
+  const right = norm(q.answer);
+  if (q.type === 'multiple') return ans.length > 0 && ans.split('').sort().join('') === right.split('').sort().join('');
+  return ans.length > 0 && ans === right;
 }
 
 // ---------- 院校地区推断：从校名提取所在的云南地州 ----------
