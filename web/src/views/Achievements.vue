@@ -421,11 +421,11 @@ onMounted(async () => {
 .badge.gold .badge-icon { background: linear-gradient(135deg, #fdf9e6, #f9eec2); color: #d97706; }
 .badge-name { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
 .badge-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; min-height: 34px; }
-.badge-status { margin-top: 8px; font-size: 0.75rem; font-weight: 600; }
+.badge-status { margin-top: 8px; font-size: 0.78rem; font-weight: 600; }
 .badge-progress { margin-top: 8px; }
 .bp-track { height: 5px; border-radius: 999px; background: var(--rule-soft); overflow: hidden; }
 .bp-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.6s var(--ease); }
-.bp-num { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
+.bp-num { display: block; font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
 .bs-earned {
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--green);
@@ -477,7 +477,7 @@ onMounted(async () => {
 .poster-head h3 { font-size: 1.05rem; }
 .poster-close {
   background: none; border: none; font-size: 1.05rem; color: var(--muted);
-  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   transition: background-color 0.2s var(--ease), color 0.2s var(--ease), transform 0.15s var(--ease);
 }
@@ -497,13 +497,13 @@ onMounted(async () => {
   .ap-info h3 { font-size: 1.05rem; }
   .ap-info p { font-size: 0.84rem; }
   .share-btn { width: 100%; }
-  .ach-grid { padding: 14px; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-  .badge { padding: 14px 10px; }
+  .ach-grid { padding: 14px; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .badge { padding: 14px 10px; min-height: 118px; }
   .badge-icon { font-size: 1.7rem; }
-  .badge-name { font-size: 0.88rem; }
-  .badge-desc { font-size: 0.75rem; min-height: 30px; }
-  .badge-status { font-size: 0.75rem; }
-  .bp-num { font-size: 0.75rem; }
+  .badge-name { font-size: 0.9rem; }
+  .badge-desc { font-size: 0.78rem; min-height: 30px; }
+  .badge-status { font-size: 0.78rem; }
+  .bp-num { font-size: 0.78rem; }
   .poster-actions .btn { min-width: 100%; }
   .poster-mask { padding: 10px; }
   .poster-modal { border-radius: 16px; }

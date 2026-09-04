@@ -97,6 +97,7 @@
             </div>
           </div>
           <div class="dp-actions">
+            <button v-if="selectedMastery && selectedMastery.weak" class="btn btn-ghost dp-btn" @click="goAiPractice">AI 专项补强 →</button>
             <button class="btn btn-primary dp-btn" @click="goPractice">去刷题 →</button>
           </div>
         </div>
@@ -294,7 +295,7 @@ function renderChart() {
     const sizeRange = isMobile ? 28 : 40
     const size = baseSize + sizeRatio * sizeRange
     const labelShow = isMobile ? size > 28 : size > 34
-    const labelFontSize = isMobile ? 11 : 11
+    const labelFontSize = isMobile ? 13 : 13
     const labelWidth = isMobile ? 78 : 88
     const m = nodeMastery(n)
     // 掌握度描边：薄弱=红、已掌握(≥60%且≥2题)=绿，否则恢复默认浅边
@@ -319,7 +320,7 @@ function renderChart() {
         color: '#e2e8f0',
         width: labelWidth,
         overflow: 'break',
-        lineHeight: isMobile ? 12 : 13,
+        lineHeight: 13,
         distance: isMobile ? 6 : 10,
         backgroundColor: 'rgba(5, 10, 24, 0.72)',
         borderRadius: 4,
@@ -380,7 +381,7 @@ function renderChart() {
     },
     legend: isMobile ? [] : [{
       data: categories.map(c => c.name),
-      textStyle: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+      textStyle: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
       top: 64,
       left: 16,
       orient: 'vertical'
@@ -468,6 +469,18 @@ function goPractice() {
   if (!selectedNode.value) return
   router.push({
     path: '/practice',
+    query: {
+      subject: selectedNode.value.subject,
+      chapter: selectedNode.value.chapter
+    }
+  })
+}
+
+// 薄弱节点直达 AI 专项补强
+function goAiPractice() {
+  if (!selectedNode.value) return
+  router.push({
+    path: '/ai-practice',
     query: {
       subject: selectedNode.value.subject,
       chapter: selectedNode.value.chapter
@@ -678,7 +691,7 @@ onUnmounted(() => {
   border: 1px solid rgba(79, 95, 240, 0.2);
   border-radius: 20px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  font-size: 13px;
   backdrop-filter: blur(8px);
   z-index: 6;
 }
@@ -761,7 +774,8 @@ onUnmounted(() => {
   border: none;
   color: rgba(255,255,255,0.5);
   font-size: 18px;
-  cursor: pointer; padding: 4px 8px; border-radius: 4px;
+  cursor: pointer; min-width: 44px; min-height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
   transition: color 0.2s var(--ease), background-color 0.2s var(--ease), transform 0.2s var(--ease);
 }
 .dp-close:hover {
@@ -797,7 +811,7 @@ onUnmounted(() => {
   margin-left: 4px;
   color: rgba(255,255,255,0.5);
   font-weight: 400;
-  font-size: 12px;
+  font-size: 13px;
 }
 .badge-weak {
   color: #f43f5e;
@@ -840,7 +854,7 @@ onUnmounted(() => {
   background: rgba(79, 95, 240, 0.15);
 }
 .dr-name {
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255,255,255,0.85);
   flex-shrink: 0;
   max-width: 120px;
@@ -868,7 +882,7 @@ onUnmounted(() => {
   border-radius: 2px;
 }
 .dr-num {
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255,255,255,0.5);
   width: 16px;
   text-align: right;
@@ -877,6 +891,9 @@ onUnmounted(() => {
 }
 .dp-actions {
   margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .dp-btn {
   width: 100%;
@@ -905,7 +922,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255,255,255,0.7);
   padding: 3px 0;
 }
@@ -958,7 +975,7 @@ onUnmounted(() => {
 }
 .lp-tip {
   color: rgba(255,255,255,0.55);
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1005,15 +1022,15 @@ onUnmounted(() => {
 }
 
 @media (max-width: 600px) {
-  .graph-container { min-height: 460px; }
-  .chart-canvas { height: 460px; }
+  .graph-container { min-height: 400px; }
+  .chart-canvas { height: 400px; }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }
-  .gc-btn { width: 36px; height: 36px; }
+  .gc-btn { width: 40px; height: 40px; }
 }
 
 @media (max-width: 480px) {
-  .graph-container { min-height: 420px; border-radius: 14px; }
-  .chart-canvas { height: 420px; }
+  .graph-container { min-height: 350px; border-radius: 14px; }
+  .chart-canvas { height: 350px; }
   .detail-panel {
     width: calc(100% - 24px);
     right: 12px;
@@ -1024,7 +1041,7 @@ onUnmounted(() => {
     overscroll-behavior: contain;
   }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }
-  .gc-btn { width: 36px; height: 36px; font-size: 15px; }
+  .gc-btn { width: 40px; height: 40px; font-size: 15px; }
   .gh-left h2 { font-size: 18px; }
   .gh-left p { font-size: 13px; }
 }

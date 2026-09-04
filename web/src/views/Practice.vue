@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container practice-page">
     <div class="pp-head">
       <h2>{{ dailyMode ? '每日一练' : '在线刷题' }}</h2>
@@ -239,7 +239,7 @@
           <template v-else>
             <button v-if="mode === 'exam' && examAnswers.length" class="btn btn-ghost" :disabled="submitting" @click="finishExam">提前交卷</button>
             <button v-if="current < questions.length - 1" class="btn btn-primary" @click="next">下一题 →</button>
-            <button v-else-if="mode === 'practice'" class="btn btn-primary" @click="finishPractice">完成本次练习</button>
+            <button v-else-if="mode === 'practice' || mode === 'redo'" class="btn btn-primary" @click="finishSession">{{ mode === 'redo' ? '完成重练' : '完成本次练习' }}</button>
             <button v-else class="btn btn-primary" :disabled="submitting" @click="finishExam">交卷</button>
           </template>
         </div>
@@ -258,6 +258,45 @@
       <div class="rp-actions">
         <button class="btn btn-ghost" @click="reset">再来一套</button>
         <router-link to="/dashboard" class="btn btn-primary">查看学习报告</router-link>
+      </div>
+    </div>
+
+    <!-- 练习/重练完成小结 -->
+    <div v-if="practiceResult && !started" class="card result-panel">
+      <div class="rp-badge" :class="{ good: practiceResult.correct === practiceResult.total }">{{ practiceResult.correct === practiceResult.total ? '🏆' : '📊' }}</div>
+      <h3>{{ mode === 'redo' ? '错题重练完成' : '本次练习小结' }}</h3>
+      <p class="rp-sub">
+        <template v-if="mode === 'redo'">答对的错题已从错题本移除，仍有把握的错题会继续纳入遗忘曲线复习</template>
+        <template v-else>每一题都已即时回写对应章节的掌握度，用于薄弱点排名与复习推荐</template>
+      </p>
+      <div class="rp-stats">
+        <div class="rp-stat"><div class="num">{{ practiceResult.correct }}</div><div class="lbl">答对</div></div>
+        <div class="rp-stat"><div class="num">{{ practiceResult.total }}</div><div class="lbl">练习题数</div></div>
+        <div class="rp-stat"><div class="num">{{ practiceResult.total ? Math.round(practiceResult.correct / practiceResult.total * 100) : 0 }}%</div><div class="lbl">正确率</div></div>
+      </div>
+
+      <!-- 本场错题回顾：与复习计划/错题本联动，形成「答错→复习」闭环 -->
+      <div v-if="wrongItems.length" class="rp-wrong">
+        <div class="rp-wrong-head">本场错题回顾 · {{ wrongItems.length }} 道</div>
+        <div v-for="(q, qi) in wrongItems" :key="q.id || qi" class="rp-wrong-item">
+          <div class="rp-wq-meta">
+            <span class="tag tag-blue">{{ q.subject }}</span>
+            <span class="tag tag-purple">{{ q.chapter }}</span>
+            <span class="tag" :class="typeTagClassOf(q.type)">{{ typeLabelOf(q.type) }}</span>
+          </div>
+          <div class="rp-wq-stem">{{ stripHtml(q.stem) }}</div>
+          <div class="rp-wq-ans">
+            <span class="rp-wq-your">你的作答：{{ q.userAnswer || '未作答' }}</span>
+            <span class="rp-wq-right">正确答案：{{ q.answer || '—' }}</span>
+          </div>
+          <div v-if="q.analysis" class="rp-wq-analysis">{{ q.analysis }}</div>
+        </div>
+      </div>
+
+      <div class="rp-actions">
+        <button class="btn btn-ghost" @click="restartAgain">再来一组</button>
+        <router-link v-if="wrongItems.length" to="/review" class="btn btn-primary">去复习错题 →</router-link>
+        <router-link v-else to="/bank" class="btn btn-primary">继续刷题 →</router-link>
       </div>
     </div>
   </div>
@@ -313,6 +352,10 @@ const examTimeLeft = ref(EXAM_MINUTES * 60)
 let examTimer = null
 const EXAM_KEY = 'saixt_exam_state'
 const submitting = ref(false)
+const sessionTotal = ref(0)
+const sessionCorrect = ref(0)
+const wrongItems = ref([])
+const practiceResult = ref(null)
 
 const currentQuestion = computed(() => questions.value[current.value] || {})
 const qtype = computed(() => currentQuestion.value.type || 'single')
@@ -508,6 +551,10 @@ async function start() {
     answered.value = false
     aiText.value = ''
     examAnswers.value = []
+    sessionTotal.value = 0
+    sessionCorrect.value = 0
+    wrongItems.value = []
+    practiceResult.value = null
     started.value = true
     if (mode.value === 'exam') {
       examTimeLeft.value = EXAM_MINUTES * 60
@@ -555,6 +602,11 @@ async function submitOne() {
       examAnswers.value = examAnswers.value.filter(a => a.question_id !== currentQuestion.value.id)
       examAnswers.value.push({ question_id: currentQuestion.value.id, answer: userAnswer() })
       saveExamState()
+    } else {
+      // 非考试模式下累计本次练习成绩，用于完成后小结与错题回顾
+      sessionTotal.value++
+      if (data.correct) sessionCorrect.value++
+      else if (!wrongItems.value.some(x => x.id === currentQuestion.value.id)) wrongItems.value.push(questionSnapshot())
     }
     if (mode.value === 'redo' && data.correct) {
       try { await api.post('/practice/mastered', { question_id: currentQuestion.value.id }) } catch (e) { toast('标记掌握失败，请稍后重试', 'error') }
@@ -600,10 +652,47 @@ function next() {
   saveExamState()
 }
 
-// 专项练习最后一题作答完成后的收尾：结束本次练习回到设置页
-function finishPractice() {
+// 专项练习/错题重练最后一题作答完成后的收尾：快照成绩并回到设置页展示小结
+function finishSession() {
+  practiceResult.value = { total: sessionTotal.value, correct: sessionCorrect.value }
   reset()
-  toast('本次专项练习已完成，继续加油！', 'success')
+  toast(mode.value === 'redo' ? '错题重练完成，继续保持！' : '本次专项练习已完成，继续加油！', 'success')
+}
+
+// 小结面板「再来一组」：清空小结，回到设置页重新开始
+function restartAgain() {
+  practiceResult.value = null
+  wrongItems.value = []
+  sessionTotal.value = 0
+  sessionCorrect.value = 0
+  reset()
+}
+
+// 小结/错题回顾辅助函数
+function typeLabelOf(t) { return typeLabelMap[t] || '单选题' }
+function typeTagClassOf(t) {
+  if (t === 'multiple') return 'tag-amber'
+  if (t === 'judge') return 'tag-green'
+  if (t === 'subjective') return 'tag-purple'
+  return 'tag-blue'
+}
+// 题干/解析去 HTML 标签，仅作展示净化，不改变数据
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+}
+// 快照当前作答题目（客观题，供错题回顾），answer/analysis 已由提交结果回填
+function questionSnapshot() {
+  const q = currentQuestion.value
+  return {
+    id: q.id,
+    subject: q.subject || subject.value,
+    chapter: q.chapter,
+    type: q.type,
+    stem: q.stem,
+    answer: q.answer || '',
+    analysis: q.analysis || '',
+    userAnswer: userAnswer()
+  }
 }
 
 async function finishExam() {
@@ -642,6 +731,17 @@ async function toggleFavorite() {
   }
 }
 
+// 装载时以后端收藏为真值重建本地缓存，避免跨页/跨端收藏状态不同步
+async function syncFavsFromServer() {
+  try {
+    const list = await api.get('/favorites')
+    const map = {}
+    ;(list || []).forEach(x => { if (x && x.id) map[x.id] = true })
+    localStorage.setItem('saixt_favs', JSON.stringify(map))
+    if (currentQuestion.value?.id) favorited.value = !!map[currentQuestion.value.id]
+  } catch (e) { /* 拉取失败保留本地缓存，不作为空态展示 */ }
+}
+
 function reset() {
   clearInterval(examTimer)
   examTimer = null
@@ -660,6 +760,7 @@ watch(currentQuestion, (q) => {
 watch([subject, chapter, type, mode], debouncedFetchCount)
 
 onMounted(async () => {
+  syncFavsFromServer()
   try {
     const meta = await api.get('/questions/meta')
     subjects.value = meta.subjects
@@ -731,7 +832,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
-.chip-count { font-size: 0.75rem; opacity: 0.7; margin-left: 5px; }
+.chip-count { font-size: 0.78rem; opacity: 0.7; margin-left: 5px; }
 .mode-tip { color: var(--muted); font-size: 0.85rem; margin-top: 10px; }
 
 .filter-summary {
@@ -740,7 +841,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   background: var(--surface-2); border: 1px solid var(--rule);
 }
 .fs-info { display: flex; flex-direction: column; gap: 2px; }
-.fs-label { font-size: 0.75rem; color: var(--muted); }
+.fs-label { font-size: 0.78rem; color: var(--muted); }
 .fs-value { font-size: 0.92rem; font-weight: 600; }
 .fs-count { display: flex; align-items: baseline; gap: 3px; font-size: 0.85rem; color: var(--muted); }
 .fs-count strong { font-size: 1.6rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -882,7 +983,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
 .opt-text { flex: 1; overflow-wrap: break-word; word-break: break-word; }
-.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; }
 
 .subjective-box { display: flex; flex-direction: column; gap: 12px; }
@@ -935,6 +1036,25 @@ onBeforeUnmount(() => clearInterval(examTimer))
 .rp-stat .lbl { color: var(--muted); font-size: 0.85rem; }
 .rp-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; }
 
+/* 练习/重练小结 */
+.rp-badge {
+  width: 68px; height: 68px; margin: 0 auto 12px; border-radius: 22px;
+  display: flex; align-items: center; justify-content: center; font-size: 2rem;
+  background: var(--grad-accent-soft); border: 1px solid rgba(79, 95, 240, 0.18);
+  box-shadow: 0 4px 16px rgba(79, 95, 240, 0.14); position: relative;
+}
+.rp-badge.good { background: var(--green-soft); border-color: rgba(13,166,120,0.25); box-shadow: 0 4px 16px rgba(13,166,120,0.16); }
+.rp-sub { color: var(--muted); font-size: 0.85rem; max-width: 480px; margin: 0 auto; line-height: 1.7; position: relative; }
+.rp-wrong { width: 100%; max-width: 680px; margin: 8px auto 0; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.rp-wrong-head { font-size: 0.95rem; font-weight: 800; color: var(--ink); padding-bottom: 4px; border-bottom: 1px dashed var(--rule); }
+.rp-wrong-item { border: 1px solid var(--rule); border-left: 3px solid var(--red); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.rp-wq-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rp-wq-stem { font-size: 0.9rem; font-weight: 600; color: var(--ink); line-height: 1.7; overflow-wrap: break-word; word-break: break-word; }
+.rp-wq-ans { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; }
+.rp-wq-your { color: var(--red); font-weight: 700; background: var(--red-soft); padding: 3px 10px; border-radius: 999px; }
+.rp-wq-right { color: var(--green); font-weight: 700; background: var(--green-soft); padding: 3px 10px; border-radius: 999px; }
+.rp-wq-analysis { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.75; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
+
 @media (max-width: 768px) {
   .setup { padding: 22px 18px; }
   .chip { padding: 10px 18px; }
@@ -951,7 +1071,7 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
   .chip { padding: 8px 14px; font-size: 0.85rem; }
-  .chip-count { font-size: 0.72rem; }
+  .chip-count { font-size: 0.78rem; }
   .exam-timer { flex-wrap: wrap; gap: 6px 10px; padding: 12px 14px; }
   .timer-tip { margin-left: 0; width: 100%; }
   .sheet-btn { margin-left: auto; }
@@ -961,12 +1081,12 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .timer-num { font-size: 1.3rem; }
   .result-head { flex-wrap: wrap; }
   .right-ans { margin-left: 0; width: 100%; }
-  .option { padding: 12px 10px; font-size: 0.9rem; }
-  .opt-letter { font-size: 0.85rem; }
+  .option { padding: 13px 10px; font-size: 0.9rem; min-height: 48px; align-items: center; }
+  .opt-letter { font-size: 0.85rem; width: 32px; height: 32px; flex: 0 0 32px; }
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
   .q-meta { gap: 6px; }
-  .q-source { font-size: 0.75rem; width: 100%; margin-left: 0; }
-  .fav-btn { font-size: 0.75rem; padding: 4px 10px; }
+  .q-source { font-size: 0.78rem; width: 100%; margin-left: 0; }
+  .fav-btn { font-size: 0.78rem; padding: 8px 12px; min-height: 40px; }
   .rp-stats { gap: 20px; }
   .rp-stat .num { font-size: 1.6rem; }
   .rp-stat .lbl { font-size: 0.78rem; }
@@ -974,13 +1094,13 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .subjective-box .btn { width: 100%; }
   .subjective-box textarea { font-size: 1rem; padding: 12px; }
   .analysis { font-size: 0.86rem; }
-  .multi-hint { font-size: 0.76rem; }
+  .multi-hint { font-size: 0.78rem; }
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 11px; font-size: 0.8rem; }
   .option { padding: 10px 8px; }
   .q-stem { font-size: 0.92rem; }
-  .progress-text { font-size: 0.75rem; }
+  .progress-text { font-size: 0.78rem; }
   .rp-stats { gap: 14px; }
   .rp-stat .num { font-size: 1.4rem; }
 }

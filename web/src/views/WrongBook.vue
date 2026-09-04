@@ -1,8 +1,20 @@
-﻿<template>
+<template>
   <div class="container wrong-page">
     <div class="page-head">
       <h2>错题本</h2>
       <p>集中复习做错的题目，重练答对后自动移出，直到真正掌握</p>
+    </div>
+
+    <!-- 视图切换：未掌握错题 / 已掌握归档 -->
+    <div class="card view-tabs">
+      <button class="vt" :class="{ on: view === 'active' }" @click="switchView('active')">
+        待巩固错题
+        <span class="vt-count">{{ activeTotal }}</span>
+      </button>
+      <button class="vt" :class="{ on: view === 'mastered' }" @click="switchView('mastered')">
+        已掌握归档
+        <span class="vt-count" :class="{ zero: masteredTotal === 0 }">{{ masteredTotal }}</span>
+      </button>
     </div>
 
     <!-- 筛选区 -->
@@ -23,7 +35,7 @@
             >{{ s.subject }}<span class="chip-count">{{ s.count }}</span></button>
           </template>
         </div>
-        <button class="btn btn-ghost export-btn" :disabled="!list.length || exporting" @click="exportPDF">
+        <button v-if="view === 'active'" class="btn btn-ghost export-btn" :disabled="!list.length || exporting" @click="exportPDF">
           <span v-if="exporting">导出中...</span>
           <template v-else><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>导出 PDF</template>
         </button>
@@ -54,15 +66,16 @@
     </div>
     <div v-else-if="!list.length" class="card empty">
       <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg></div>
-      <p>太棒了，当前筛选条件下没有错题</p>
-      <p class="empty-sub">继续保持，把每道题都真正掌握</p>
+      <p>{{ view === 'mastered' ? '还没有已掌握的题目' : '太棒了，当前筛选条件下没有错题' }}</p>
+      <p class="empty-sub">{{ view === 'mastered' ? '重练答对并在「已掌握」确认的错题，会收录到这里作为学习成果' : '继续保持，把每道题都真正掌握' }}</p>
     </div>
     <div v-else class="q-list">
       <div v-for="q in list" :key="q.id" class="card q-item">
         <div class="q-top">
           <span class="tag tag-blue">{{ q.subject }}</span>
           <span class="tag tag-purple">{{ q.chapter }}</span>
-          <span class="q-wrong-tag">答错</span>
+          <span v-if="view === 'active'" class="q-wrong-tag">答错</span>
+          <span v-else class="q-mastered-tag">已掌握 · {{ masterDate(q.mastered_at) }}</span>
         </div>
         <p class="q-stem">{{ q.stem }}</p>
         <div v-if="q.images && q.images.length" class="q-image">
@@ -128,7 +141,7 @@
             </p>
           </div>
           <div class="q-foot">
-            <button class="btn btn-primary btn-sm" @click="startPractice(q)">重练</button>
+            <button v-if="view === 'active'" class="btn btn-primary btn-sm" @click="startPractice(q)">重练</button>
             <button class="btn btn-ghost btn-sm" @click="showAnalysis(q)">
               {{ analysisId === q.id ? '收起解析' : '查看解析' }}
             </button>
@@ -136,7 +149,7 @@
               <svg class="ai-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 4.24 7.5A5 5 0 0 1 17 19h-2A7 7 0 0 0 12 6"/><path d="M12 2v4"/><path d="M12 6a7 7 0 0 0-3 13.5A5 5 0 0 1 7 19h2"/></svg>
               {{ aiExplainId === q.id && aiLoading ? '讲解中…' : 'AI 讲解' }}
             </button>
-            <button class="btn btn-sm master-btn" @click="mastered(q)">
+            <button v-if="view === 'active'" class="btn btn-sm master-btn" @click="mastered(q)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M20 6 9 17l-5-5"/></svg>
               已掌握
             </button>
@@ -174,6 +187,9 @@ const subject = ref('')
 const chapter = ref('')
 const chapters = ref([])
 const all = ref([])
+const masteredAll = ref([])
+const view = ref('active')
+const masteredLoading = ref(false)
 const list = ref([])
 const loading = ref(false)
 
@@ -215,54 +231,51 @@ async function aiExplain(q) {
   }
 }
 
-// 导出 PDF
-function exportPDF() {
+// 导出 PDF：统一走 api.download，复用 BASE/token/超时与统一错误提示
+async function exportPDF() {
   if (exporting.value) return
   exporting.value = true
-  const token = localStorage.getItem('saixt_token')
-  const params = new URLSearchParams()
-  if (subject.value) params.set('subject', subject.value)
-  const url = `/api/practice/wrong/export${params.toString() ? '?' + params.toString() : ''}`
-  
-  fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-    .then(res => {
-      if (!res.ok) throw new Error('导出失败')
-      return res.blob()
-    })
-    .then(blob => {
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      // 从响应头提取文件名
-      a.download = `错题本_${new Date().toISOString().slice(0,10)}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(a.href)
-    })
-    .catch(e => {
-      toast('导出失败：' + e.message, 'error')
-    })
-    .finally(() => {
-      exporting.value = false
-    })
+  try {
+    const params = new URLSearchParams()
+    if (subject.value) params.set('subject', subject.value)
+    const path = `/practice/wrong/export${params.toString() ? '?' + params.toString() : ''}`
+    const res = await api.download(path)
+    const blob = await res.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `错题本_${new Date().toISOString().slice(0, 10)}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
+  } catch (e) {
+    toast('导出失败：' + e.message, 'error')
+  } finally {
+    exporting.value = false
+  }
 }
+
+// 当前视图的数据源：待巩固错题 / 已掌握归档
+const src = computed(() => view.value === 'mastered' ? masteredAll.value : all.value)
 
 const subjects = computed(() => {
   const map = new Map()
-  for (const q of all.value) {
+  for (const q of src.value) {
     if (!map.has(q.subject)) map.set(q.subject, 0)
     map.set(q.subject, map.get(q.subject) + 1)
   }
   return [...map.entries()].map(([subject, count]) => ({ subject, count })).sort((a, b) => b.count - a.count)
 })
 
-const allCount = computed(() => all.value.length)
-function subjectCount(s) { return all.value.filter(q => q.subject === s).length }
+const allCount = computed(() => src.value.length)
+const activeTotal = computed(() => all.value.length)
+const masteredTotal = computed(() => masteredAll.value.length)
+function subjectCount(s) { return src.value.filter(q => q.subject === s).length }
 
 function selectSubject(s) {
   subject.value = s
   chapter.value = ''
-  chapters.value = s ? [...new Set(all.value.filter(q => q.subject === s).map(q => q.chapter))] : []
+  chapters.value = s ? [...new Set(src.value.filter(q => q.subject === s).map(q => q.chapter))] : []
   applyFilter()
 }
 function selectChapter(c) {
@@ -270,10 +283,37 @@ function selectChapter(c) {
   applyFilter()
 }
 function applyFilter() {
-  list.value = all.value.filter(q =>
+  list.value = src.value.filter(q =>
     (!subject.value || q.subject === subject.value) &&
     (!chapter.value || q.chapter === chapter.value)
   )
+}
+
+// 切换「待巩固 / 已掌握归档」，首次进入归档时拉取数据
+async function switchView(v) {
+  if (view.value === v) return
+  view.value = v
+  subject.value = ''
+  chapter.value = ''
+  chapters.value = []
+  if (v === 'mastered' && !masteredAll.value.length && !masteredLoading.value) {
+    masteredLoading.value = true
+    try {
+      masteredAll.value = await api.get('/practice/wrong/mastered')
+    } catch (e) {
+      toast(e.message || '已掌握数据加载失败', 'error')
+    } finally {
+      masteredLoading.value = false
+    }
+  }
+  applyFilter()
+}
+
+// 掌握时间展示：YYYY-MM-DD HH:mm:ss -> MM-DD
+function masterDate(s) {
+  if (!s) return ''
+  const m = String(s).match(/(\d{4})-(\d{2})-(\d{2})/)
+  return m ? `${m[2]}-${m[3]}` : String(s).slice(5, 10)
 }
 
 function qtypeOf(q) { return q.type || 'single' }
@@ -346,6 +386,7 @@ function cancelPractice() {
 // 主观题自评"会了"：先记录答对（满足掌握前置条件），再从错题本/复习队列移除
 async function subjectiveMaster(q) {
   if (subjecting.value) return
+  if (!confirm('确定已掌握此题并移出错题本吗？')) return
   subjecting.value = true
   try {
     await api.post('/practice/submit', { question_id: q.id, answer: '主观题自评：会了', selfCorrect: true })
@@ -354,6 +395,7 @@ async function subjectiveMaster(q) {
     all.value = all.value.filter(x => x.id !== q.id)
     applyFilter()
     cancelPractice()
+    if (masteredAll.value.length) refreshMastered()
   } catch (e) {
     toast.error(e.message || '操作失败，请稍后重试')
   } finally {
@@ -379,12 +421,26 @@ function showAnalysis(q) {
   practiceId.value = 0
 }
 async function mastered(q) {
+  // 防止误触：主动标记已掌握会将其从待巩固错题中永久移出
+  if (!confirm('确定将此题标记为已掌握并移出错题本吗？')) return
   try {
     await api.post('/practice/mastered', { question_id: q.id })
-  } catch (e) { /* 忽略 */ }
+  } catch (e) {
+    toast(e.message || '操作失败，请稍后重试', 'error')
+    return
+  }
   all.value = all.value.filter(x => x.id !== q.id)
   applyFilter()
   if (practiceId.value === q.id) cancelPractice()
+  // 归档若已加载则同步刷新，保持已掌握列表实时
+  if (masteredAll.value.length) refreshMastered()
+}
+
+// 已掌握归档已加载时，增删后同步刷新，保持页面一致
+async function refreshMastered() {
+  try {
+    masteredAll.value = await api.get('/practice/wrong/mastered')
+  } catch (e) { /* 忽略归档刷新失败 */ }
 }
 
 async function load() {
@@ -405,8 +461,22 @@ onMounted(load)
 
 <style scoped>
 .page-head { margin-bottom: 22px; }
-.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .page-head p { color: var(--muted); margin-top: 4px; font-size: 0.92rem; }
+
+/* 视图切换 */
+.view-tabs { display: flex; gap: 6px; padding: 6px; margin-bottom: 16px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 14px; max-width: 360px; }
+.vt {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 12px; border: none; background: transparent; border-radius: 10px;
+  font-size: 0.92rem; font-weight: 600; color: var(--muted); cursor: pointer;
+  transition: background-color 0.25s var(--ease), color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.vt:hover { color: var(--ink); }
+.vt.on { background: #fff; color: var(--accent); box-shadow: 0 2px 10px rgba(79, 95, 240, 0.14); }
+.vt-count { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; }
+.vt-count.zero { background: var(--rule); color: var(--muted); }
+.q-mastered-tag { font-size: 0.78rem; font-weight: 700; color: var(--green); background: var(--green-soft); padding: 3px 10px; border-radius: var(--radius-full); }
 
 .filter-bar { margin-bottom: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
 .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -420,7 +490,7 @@ onMounted(load)
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
 .chip-sm { padding: 5px 12px; font-size: 0.82rem; }
-.chip-count { font-size: 0.75rem; opacity: 0.7; margin-left: 4px; }
+.chip-count { font-size: 0.78rem; opacity: 0.7; margin-left: 4px; }
 
 .q-list { display: flex; flex-direction: column; gap: 14px; }
 .q-item {
@@ -489,7 +559,7 @@ onMounted(load)
 }
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-bottom: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .btn { align-self: flex-start; }
@@ -540,24 +610,26 @@ onMounted(load)
 
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
+  .page-head { margin-bottom: 16px; }
+  .view-tabs { max-width: none; }
   .filter-bar { padding: 12px 14px; }
-  .chip { padding: 8px 13px; font-size: 0.84rem; }
-  .chip-sm { padding: 7px 12px; font-size: 0.78rem; min-height: 36px; }
+  .chip { padding: 8px 14px; font-size: 0.84rem; min-height: 44px; display: inline-flex; align-items: center; }
+  .chip-sm { padding: 7px 12px; font-size: 0.78rem; min-height: 40px; display: inline-flex; align-items: center; }
   .q-item { padding: 14px 12px; }
   .q-stem { font-size: 0.95rem; }
   .q-opt { font-size: 0.88rem; }
-  .opt-letter { width: 20px; height: 20px; line-height: 20px; font-size: 0.75rem; }
+  .opt-letter { width: 26px; height: 26px; line-height: 26px; font-size: 0.8rem; }
   .q-foot { gap: 6px; }
-  .q-foot .btn { flex: 1; min-height: 40px; }
+  .q-foot .btn { flex: 1; min-height: 44px; }
   .btn-sm { padding: 8px 12px; font-size: 0.82rem; }
-  .option { padding: 12px 10px; font-size: 0.9rem; }
-  .option .opt-letter { width: 24px; height: 24px; font-size: 0.8rem; }
+  .option { padding: 13px 10px; font-size: 0.9rem; min-height: 48px; align-items: center; }
+  .option .opt-letter { width: 30px; height: 30px; flex: 0 0 30px; font-size: 0.85rem; }
   .detail-analysis { font-size: 0.86rem; }
   .q-image img { max-height: 200px; }
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 10px; font-size: 0.8rem; }
-  .chip-sm { padding: 6px 10px; font-size: 0.74rem; }
+  .chip-sm { padding: 6px 10px; font-size: 0.78rem; }
   .q-foot { flex-direction: column; }
   .q-foot .btn { width: 100%; }
 }

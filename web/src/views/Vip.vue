@@ -5,7 +5,37 @@
       <p>解锁无限 AI 答疑与专属权益，让备考更高效</p>
     </div>
 
+    <!-- 加载骨架屏 -->
+    <template v-if="loading">
+      <div class="card vip-status sk-status">
+        <div class="skeleton sk-vs-badge"></div>
+        <div class="sk-vs-text">
+          <div class="skeleton sk-vs-title"></div>
+          <div class="skeleton sk-vs-sub"></div>
+        </div>
+      </div>
+      <h3 class="sec-title">会员权益</h3>
+      <div class="benefit-grid">
+        <div v-for="i in 3" :key="i" class="card benefit">
+          <div class="skeleton sk-bf-icon"></div>
+          <div class="sk-bf-body">
+            <div class="skeleton sk-bf-name"></div>
+            <div class="skeleton sk-bf-desc"></div>
+          </div>
+        </div>
+      </div>
+      <h3 class="sec-title">开通方案</h3>
+      <div class="plan-grid">
+        <div v-for="i in 3" :key="i" class="card">
+          <div class="skeleton sk-plan-name"></div>
+          <div class="skeleton sk-plan-price"></div>
+        </div>
+      </div>
+      <div class="skeleton sk-buy"></div>
+    </template>
+
     <!-- 会员状态卡 -->
+    <template v-else>
     <div class="card vip-status" :class="{ active: data.vip }">
       <div class="vs-left">
         <div class="vs-badge">
@@ -157,6 +187,7 @@
         </template>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -168,6 +199,7 @@ import { api } from '../api'
 import { toast } from '../toast'
 
 const route = useRoute()
+const loading = ref(true)
 const data = ref({ vip: false, membership: null, products: [] })
 const orders = ref([])
 const selected = ref('vip_quarter')
@@ -207,14 +239,14 @@ function statusText(s) {
 }
 
 async function load() {
+  loading.value = true
   try {
     const d = await api.get('/membership/me')
     data.value = d
     if (d.products?.length && !d.products.some(p => p.code === selected.value)) selected.value = d.products[0].code
-  } catch (e) { toast.error(e.message) }
-  try {
-    orders.value = await api.get('/membership/orders')
-  } catch (e) { /* 忽略 */ }
+  } catch (e) { toast(e.message || '套餐信息加载失败，请稍后重试', 'error') }
+  try { orders.value = await api.get('/membership/orders') } catch (e) { toast('订单记录加载失败，请稍后重试', 'error') }
+  loading.value = false
 }
 
 async function createOrder() {
@@ -356,6 +388,20 @@ onBeforeUnmount(() => {
 <style scoped>
 .vip-page { max-width: 960px; }
 
+/* 骨架屏 */
+.sk-status { background: var(--surface); }
+.sk-vs-badge { width: 52px; height: 52px; border-radius: 16px; flex-shrink: 0; }
+.sk-vs-text { flex: 1; }
+.sk-vs-title { width: 55%; height: 20px; border-radius: 6px; margin-bottom: 10px; }
+.sk-vs-sub { width: 38%; height: 14px; border-radius: 6px; }
+.sk-bf-icon { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; }
+.sk-bf-body { flex: 1; }
+.sk-bf-name { width: 55%; height: 14px; border-radius: 5px; margin-bottom: 8px; }
+.sk-bf-desc { width: 90%; height: 11px; border-radius: 5px; }
+.sk-plan-name { width: 50%; height: 14px; border-radius: 5px; margin: 4px auto 18px; }
+.sk-plan-price { width: 45%; height: 26px; border-radius: 6px; margin: 0 auto; }
+.sk-buy { width: 100%; height: 50px; border-radius: var(--radius-md); margin-top: 18px; }
+
 .vip-status {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   background: linear-gradient(135deg, #1e2547 0%, #2b2f63 55%, #3a356f 100%);
@@ -393,7 +439,7 @@ onBeforeUnmount(() => {
 .bf-body { flex: 1; min-width: 0; }
 .bf-body strong { font-size: 0.9rem; display: block; }
 .bf-body p { font-size: 0.78rem; color: var(--muted); margin-top: 3px; line-height: 1.6; }
-.bf-free { font-size: 0.75rem; color: var(--muted-2); white-space: nowrap; }
+.bf-free { font-size: 0.78rem; color: var(--muted-2); white-space: nowrap; }
 .bf-free.off { color: var(--green); font-weight: 700; }
 
 .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -405,13 +451,13 @@ onBeforeUnmount(() => {
 .plan-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .plan-hot {
   position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-  background: var(--grad-accent); color: #fff; font-size: 0.72rem; font-weight: 700;
+  background: var(--grad-accent); color: #fff; font-size: 0.78rem; font-weight: 700;
   padding: 3px 12px; border-radius: var(--radius-full); white-space: nowrap;
 }
 .pc-name { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
 .pc-price { font-size: 2rem; font-weight: 800; color: var(--ink); margin: 8px 0 2px; letter-spacing: -0.02em; }
 .pc-yen { font-size: 1rem; font-weight: 700; vertical-align: 8px; color: var(--accent); }
-.pc-unit { font-size: 0.74rem; color: var(--muted-2); }
+.pc-unit { font-size: 0.78rem; color: var(--muted-2); }
 .pc-check {
   position: absolute; top: 12px; right: 12px;
   width: 22px; height: 22px; border-radius: 50%;
@@ -422,8 +468,8 @@ onBeforeUnmount(() => {
 .plan-card.selected .pc-check { background: var(--accent); border-color: var(--accent); }
 
 .buy-btn { width: 100%; padding: 14px; font-size: 1rem; margin-top: 18px; }
-.buy-note { text-align: center; color: var(--muted-2); font-size: 0.76rem; margin-top: 10px; }
-.pay-channel { text-align: center; color: var(--muted-2); font-size: 0.74rem; margin-top: 6px; }
+.buy-note { text-align: center; color: var(--muted-2); font-size: 0.78rem; margin-top: 10px; }
+.pay-channel { text-align: center; color: var(--muted-2); font-size: 0.78rem; margin-top: 6px; }
 .pay-warn { color: var(--red); font-weight: 600; }
 
 .order-list { padding: 6px 18px; }
@@ -434,10 +480,10 @@ onBeforeUnmount(() => {
 .order-row:last-child { border-bottom: none; }
 .or-left { display: flex; flex-direction: column; gap: 2px; }
 .or-left strong { font-size: 0.9rem; }
-.or-no { font-size: 0.75rem; color: var(--muted-2); }
+.or-no { font-size: 0.78rem; color: var(--muted-2); }
 .or-right { display: flex; align-items: center; gap: 10px; }
 .or-amount { font-weight: 700; font-size: 0.95rem; }
-.or-time { font-size: 0.74rem; color: var(--muted-2); }
+.or-time { font-size: 0.78rem; color: var(--muted-2); }
 
 .pay-mask {
   position: fixed; inset: 0; z-index: 300;
@@ -474,7 +520,7 @@ onBeforeUnmount(() => {
 .pm-method svg { width: 18px; height: 18px; }
 .pm-method.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .pm-btn { width: 100%; }
-.pm-note { text-align: center; color: var(--muted-2); font-size: 0.75rem; margin-top: 10px; }
+.pm-note { text-align: center; color: var(--muted-2); font-size: 0.78rem; margin-top: 10px; }
 
 .pm-qr { display: flex; flex-direction: column; align-items: center; margin: 14px 0 4px; }
 .pm-qr img {
@@ -483,7 +529,7 @@ onBeforeUnmount(() => {
 }
 .pm-qr-loading { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px 0; color: var(--muted); font-size: 0.84rem; }
 .pm-qr-tip { text-align: center; font-weight: 600; font-size: 0.9rem; margin-top: 10px; }
-.pm-qr-status { text-align: center; color: var(--muted-2); font-size: 0.74rem; margin: 6px 0 12px; }
+.pm-qr-status { text-align: center; color: var(--muted-2); font-size: 0.78rem; margin: 6px 0 12px; }
 .pm-qr .pm-btn { margin-top: 4px; }
 
 .pm-alipay-icon {

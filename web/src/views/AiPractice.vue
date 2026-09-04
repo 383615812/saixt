@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container aip-page">
     <div class="pp-head">
       <h2>AI 智能练习</h2>
@@ -163,6 +163,30 @@
         <div class="fp-stat"><div class="num">{{ questions.length }}</div><div class="lbl">总题数</div></div>
         <div class="fp-stat"><div class="num">{{ accuracy }}%</div><div class="lbl">正确率</div></div>
       </div>
+
+      <!-- 本批错题回顾：与复习计划/错题本联动，形成「答错→复习」闭环 -->
+      <div v-if="wrongItems.length" class="fp-wrong">
+        <div class="fp-wrong-head">本批错题回顾 · {{ wrongItems.length }} 道</div>
+        <div v-for="(q, qi) in wrongItems" :key="q.id || qi" class="fp-wrong-item">
+          <div class="fp-wq-meta">
+            <span class="tag tag-blue">{{ subject }}</span>
+            <span v-if="chapter" class="tag tag-purple">{{ chapter }}</span>
+            <span class="tag" :class="wrongTypeClass(q.type)">{{ wrongTypeLabel(q.type) }}</span>
+          </div>
+          <div class="fp-wq-stem">{{ stripHtml(q.stem) }}</div>
+          <div class="fp-wq-ans">
+            <span class="fp-wq-your">你的作答：{{ q.userAnswer || '未作答' }}</span>
+            <span class="fp-wq-right">正确答案：{{ q.answer || '—' }}</span>
+          </div>
+          <div v-if="q.analysis" class="fp-wq-analysis">{{ q.analysis }}</div>
+        </div>
+        <p class="fp-wrong-note">错题已自动纳入掌握度统计与复习计划，及时巩固会更快提升</p>
+      </div>
+
+      <div v-if="wrongItems.length" class="fp-actions fp-actions-review">
+        <router-link to="/review" class="btn btn-ghost">去复习错题</router-link>
+        <router-link to="/wrong-book" class="btn btn-primary">查看错题本 →</router-link>
+      </div>
       <div class="fp-actions">
         <button class="btn btn-ghost" @click="reset">换知识点再练</button>
         <button class="btn btn-primary" @click="generate">再来一组</button>
@@ -208,6 +232,7 @@ const isCorrect = ref(false)
 const correctCount = ref(0)
 const finished = ref(false)
 const submitting = ref(false)
+const wrongItems = ref([])
 
 // 薄弱知识点
 const weakPoints = ref([])
@@ -317,6 +342,17 @@ async function submit() {
       currentQuestion.value.analysis = data.analysis
       typeAnalysis(data.analysis)
     }
+    // 答错时快照本题，供完成后回顾；同一题仅记一次
+    if (!data.correct && !wrongItems.value.some(x => x.id === currentQuestion.value.id)) {
+      wrongItems.value.push({
+        id: currentQuestion.value.id,
+        type: currentQuestion.value.type || type.value,
+        stem: currentQuestion.value.stem,
+        answer: currentQuestion.value.answer || '',
+        analysis: currentQuestion.value.analysis || '',
+        userAnswer: userAns
+      })
+    }
   } catch (e) {
     isCorrect.value = userAns === String(currentQuestion.value.answer || '')
     if (isCorrect.value) correctCount.value++
@@ -346,6 +382,16 @@ async function finish() {
 
 const accuracy = computed(() => questions.value.length ? Math.round((correctCount.value / questions.value.length) * 100) : 0)
 
+function stripHtml(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+}
+function wrongTypeLabel(t) {
+  return ({ single: '单选题', multi: '多选题', judge: '判断题' })[t] || '单选题'
+}
+function wrongTypeClass(t) {
+  return t === 'judge' ? 'tag-amber' : t === 'multi' ? 'tag-purple' : 'tag-blue'
+}
+
 const totalQuestions = computed(() => (subjects.value || []).reduce((s, x) => s + (x.count || 0), 0))
 
 const difficultyClass = computed(() =>
@@ -355,6 +401,7 @@ const difficultyClass = computed(() =>
 async function generate() {
   generating.value = true
   finished.value = false
+  wrongItems.value = []
   try {
     const data = await api.post('/ai/generate', {
       subject: subject.value,
@@ -381,6 +428,7 @@ function reset() {
   finished.value = false
   current.value = 0
   correctCount.value = 0
+  wrongItems.value = []
 }
 
 onMounted(async () => {
@@ -420,7 +468,7 @@ onMounted(async () => {
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
-.chip-count { font-size: 0.75rem; opacity: 0.7; margin-left: 5px; }
+.chip-count { font-size: 0.78rem; opacity: 0.7; margin-left: 5px; }
 .type-tip { color: var(--muted); font-size: 0.85rem; margin-top: 10px; }
 .setup .btn-primary { align-self: flex-start; margin-top: 4px; }
 
@@ -478,7 +526,7 @@ onMounted(async () => {
 .option.selected .opt-letter { background: var(--accent); color: #fff; }
 .option.correct .opt-letter { background: var(--green); color: #fff; }
 .option.wrong .opt-letter { background: var(--red); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 
 .result { margin-top: 20px; padding: 16px 18px; border-radius: var(--radius-sm); animation: result-in 0.4s var(--ease-out); }
 @keyframes result-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -524,6 +572,17 @@ onMounted(async () => {
 .fp-stat .num { font-size: 2.2rem; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; background: var(--grad-accent); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
 .fp-stat .lbl { color: var(--muted); font-size: 0.85rem; }
 .fp-actions { display: flex; justify-content: center; gap: 12px; position: relative; }
+.fp-actions-review { margin-top: 2px; }
+.fp-wrong { width: 100%; max-width: 680px; text-align: left; display: flex; flex-direction: column; gap: 10px; margin-top: 6px; position: relative; }
+.fp-wrong-head { font-size: 0.95rem; font-weight: 800; color: var(--ink); padding-bottom: 4px; border-bottom: 1px dashed var(--rule); }
+.fp-wrong-item { border: 1px solid var(--rule); border-left: 3px solid var(--red); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.fp-wq-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fp-wq-stem { font-size: 0.9rem; font-weight: 600; color: var(--ink); line-height: 1.7; overflow-wrap: break-word; word-break: break-word; }
+.fp-wq-ans { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; }
+.fp-wq-your { color: var(--red); font-weight: 700; background: var(--red-soft); padding: 3px 10px; border-radius: 999px; }
+.fp-wq-right { color: var(--green); font-weight: 700; background: var(--green-soft); padding: 3px 10px; border-radius: 999px; }
+.fp-wq-analysis { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.75; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
+.fp-wrong-note { font-size: 0.8rem; color: var(--muted); text-align: center; }
 
 @media (max-width: 768px) {
   .setup { padding: 22px 18px; }
@@ -538,29 +597,29 @@ onMounted(async () => {
   .setup { padding: 18px 14px; gap: 14px; }
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
-  .chip { padding: 8px 14px; font-size: 0.85rem; }
-  .chip-count { font-size: 0.72rem; }
+  .chip { padding: 8px 14px; font-size: 0.85rem; min-height: 44px; display: inline-flex; align-items: center; }
+  .chip-count { font-size: 0.78rem; }
   .gen-bar { flex-direction: column; align-items: stretch; padding: 12px 14px; gap: 10px; }
   .gen-note { font-size: 0.8rem; }
   .gen-actions { width: 100%; gap: 8px; }
-  .gen-actions .btn { flex: 1; min-height: 40px; font-size: 0.85rem; }
+  .gen-actions .btn { flex: 1; min-height: 44px; font-size: 0.85rem; }
   .question-card { padding: 16px 14px; }
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
-  .option { padding: 12px 10px; font-size: 0.9rem; }
-  .opt-letter { width: 24px; height: 24px; font-size: 0.85rem; }
-  .opt-miss { font-size: 0.72rem; padding: 2px 6px; }
-  .multi-hint { font-size: 0.76rem; }
+  .option { padding: 13px 10px; font-size: 0.9rem; min-height: 48px; align-items: center; }
+  .opt-letter { width: 32px; height: 32px; flex: 0 0 32px; font-size: 0.85rem; }
+  .opt-miss { font-size: 0.78rem; padding: 2px 6px; }
+  .multi-hint { font-size: 0.78rem; }
   .result-head { flex-wrap: wrap; }
   .right-ans { margin-left: 0; width: 100%; }
   .result { padding: 12px 14px; }
   .analysis { font-size: 0.86rem; }
-  .fp-stats { gap: 20px; }
+  .fp-stats { gap: 20px; flex-wrap: wrap; }
   .fp-stat .num { font-size: 1.6rem; }
   .fp-stat .lbl { font-size: 0.78rem; }
   .finish-panel { padding: 22px 14px; }
   .finish-panel h3 { font-size: 1.15rem; }
   .fp-actions { flex-wrap: wrap; }
-  .fp-actions .btn { flex: 1; min-width: 120px; }
+  .fp-actions .btn { flex: 1; min-width: 120px; min-height: 44px; }
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 11px; font-size: 0.8rem; }

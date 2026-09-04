@@ -158,14 +158,14 @@ function formatTuition(v) {
 .tier-card:hover .tc-logo { transform: scale(1.05) rotate(-3deg); box-shadow: 0 5px 14px rgba(79, 95, 240, 0.28); }
 .tc-info h4 { font-size: 0.95rem; line-height: 1.4; }
 .tc-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
-.tc-code { font-size: 0.75rem; color: var(--muted); }
-.tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.tc-code { font-size: 0.78rem; color: var(--muted); }
+.tag { font-size: 0.78rem; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
 .tag-green { background: var(--green-soft); color: #047857; }
 .tag-amber { background: var(--amber-soft, #fef3c7); color: #b45309; }
 .tag-blue { background: var(--accent-soft); color: var(--accent); }
 
 .tc-reason {
-  font-size: 0.76rem; line-height: 1.55; color: var(--muted);
+  font-size: 0.78rem; line-height: 1.55; color: var(--muted);
   padding: 8px 10px; border-radius: 8px; background: var(--bg, #f6f8fb);
 }
 
@@ -181,10 +181,10 @@ function formatTuition(v) {
 
 .tc-line { display: flex; gap: 18px; padding: 10px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
 .tc-line-item { display: flex; flex-direction: column; gap: 2px; }
-.tc-line-lbl { font-size: 0.75rem; color: var(--muted); }
+.tc-line-lbl { font-size: 0.78rem; color: var(--muted); }
 .tc-est-tag {
   font-style: normal; margin-left: 4px; padding: 1px 6px;
-  font-size: 0.66rem; font-weight: 600; color: #fff;
+  font-size: 0.78rem; font-weight: 600; color: #fff;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-radius: 5px; vertical-align: 1px;
 }
@@ -194,10 +194,10 @@ function formatTuition(v) {
 .diff-pos { color: var(--green); }
 
 .tc-majors { display: flex; flex-direction: column; gap: 6px; }
-.tc-majors-lbl { font-size: 0.75rem; color: var(--muted); }
+.tc-majors-lbl { font-size: 0.78rem; color: var(--muted); }
 .tc-majors-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .major-chip {
-  font-size: 0.75rem; padding: 3px 9px; border-radius: 999px;
+  font-size: 0.78rem; padding: 3px 9px; border-radius: 999px;
   background: var(--accent-soft); color: var(--accent); font-weight: 500;
 }
 .tc-majors .fs-lbl { color: #b45309; margin-top: 8px; }
@@ -206,7 +206,7 @@ function formatTuition(v) {
   border: 1px solid rgba(245, 158, 11, 0.24);
 }
 
-.tc-stats { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; font-size: 0.76rem; color: var(--muted); }
+.tc-stats { display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap; font-size: 0.78rem; color: var(--muted); }
 .tc-tuition { display: inline-flex; align-items: center; gap: 5px; }
 
 @media (max-width: 900px) {

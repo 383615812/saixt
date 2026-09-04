@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container detail-page">
     <div v-if="loading" class="detail-skeleton">
       <!-- 院校概览骨架 -->
@@ -217,7 +217,7 @@ onMounted(load)
 .hero-info { flex: 1; min-width: 200px; }
 .hero-info h2 { font-size: 1.5rem; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .nature-badge {
-  display: inline-block; padding: 2px 9px; font-size: 0.7rem; font-weight: 700;
+  display: inline-block; padding: 2px 9px; font-size: 0.78rem; font-weight: 700;
   border-radius: 999px; letter-spacing: 0.03em; vertical-align: 3px;
 }
 .nat-public { color: #0e7490; background: rgba(14, 116, 144, 0.12); border: 1px solid rgba(14, 116, 144, 0.3); }
@@ -241,7 +241,7 @@ onMounted(load)
   font-size: 1.1rem; color: #fff;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
-.hs .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+.hs .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 
 .plans-card { margin-bottom: 20px; }
 .plans-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -269,7 +269,7 @@ td.col-lang { white-space: nowrap; color: var(--muted); }
   font-size: 0.78rem; font-weight: 500; background: var(--surface-2); color: var(--muted);
 }
 .oral-tag.on { background: var(--amber-soft); color: #b45309; font-weight: 600; }
-thead th .unit { font-weight: 400; opacity: 0.72; font-size: 0.76rem; }
+thead th .unit { font-weight: 400; opacity: 0.72; font-size: 0.78rem; }
 .mono { font-family: Consolas, monospace; color: var(--muted); white-space: nowrap; }
 .major-name { font-weight: 500; }
 .plan-num {
@@ -295,20 +295,20 @@ thead th .unit { font-weight: 400; opacity: 0.72; font-size: 0.76rem; }
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     color: #fff;
   }
-  .hs .lbl { font-size: 0.75rem; }
+  .hs .lbl { font-size: 0.78rem; }
   .plans-card { padding: 14px; }
 }
 
 @media (max-width: 480px) {
   .hero-stats { grid-template-columns: 1fr 1fr; gap: 14px 6px; }
   .hs .num { font-size: 1.05rem; }
-  .hs .lbl { font-size: 0.75rem; }
+  .hs .lbl { font-size: 0.78rem; }
 }
 @media (max-width: 400px) {
   .hero { padding: 16px 12px; }
   .hero-stats { gap: 12px 4px; }
   .hs .num { font-size: 1rem; }
-  .hs .lbl { font-size: 0.75rem; }
+  .hs .lbl { font-size: 0.78rem; }
   .plans-card { padding: 12px 10px; }
 }
 

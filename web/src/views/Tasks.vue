@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container task-page">
     <div class="page-head">
       <h2>任务中心</h2>
@@ -112,7 +112,7 @@
 <script setup>
 
 import { toast } from '../toast'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { api } from '../api'
 
 const data = ref({ tasks: [], completed: 0, total: 5, percent: 0 })
@@ -142,14 +142,20 @@ async function load() {
   }
 }
 const retry = load
-onMounted(load)
+onMounted(() => {
+  load()
+  // 在其它页面完成任务后切回本页时静默刷新，保持进度真实
+  window.addEventListener('focus', onFocus)
+})
+onUnmounted(() => window.removeEventListener('focus', onFocus))
+function onFocus() { if (!loading.value) load() }
 </script>
 
 <style scoped>
 .task-page { max-width: 760px; }
 .task-load-err { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 20px; color: var(--muted-2); font-size: 0.92rem; }
 .page-head { text-align: center; margin-bottom: 26px; }
-.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .page-head p { color: var(--muted); margin-top: 4px; font-size: 0.92rem; }
 
 .progress-card { padding: 24px 26px; margin-bottom: 16px; }
@@ -223,7 +229,7 @@ onMounted(load)
 .task-head { display: flex; align-items: center; gap: 8px; }
 .task-head strong { font-size: 1rem; }
 .task-status {
-  font-size: 0.75rem; font-weight: 600;
+  font-size: 0.78rem; font-weight: 600;
   padding: 2px 10px; border-radius: var(--radius-full);
   background: var(--accent-soft); color: var(--accent);
 }
@@ -261,9 +267,9 @@ onMounted(load)
   .task-item { flex-wrap: wrap; gap: 10px; padding: 14px 12px; }
   .task-icon { width: 40px; height: 40px; font-size: 1.15rem; border-radius: 11px; }
   .task-head strong { font-size: 0.92rem; }
-  .task-status { font-size: 0.75rem; }
+  .task-status { font-size: 0.78rem; }
   .task-desc { font-size: 0.8rem; }
-  .tp-num { font-size: 0.75rem; }
+  .tp-num { font-size: 0.78rem; }
   .task-btn { width: 100%; min-height: 40px; }
   .task-note { padding: 14px 16px; }
   .task-note strong { font-size: 0.9rem; }
@@ -274,9 +280,9 @@ onMounted(load)
   .task-item { padding: 13px 10px; }
   .task-icon { width: 38px; height: 38px; font-size: 1.05rem; }
   .task-head strong { font-size: 0.9rem; }
-  .task-status { font-size: 0.75rem; }
+  .task-status { font-size: 0.78rem; }
   .task-desc { font-size: 0.78rem; }
-  .tp-num { font-size: 0.75rem; }
+  .tp-num { font-size: 0.78rem; }
 }
 @media (max-width: 400px) {
   .pc-ring { width: 52px; height: 52px; }

@@ -237,11 +237,11 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 .search-group { padding: 6px 0; }
 .sg-head {
   display: flex; align-items: center; gap: 8px;
-  padding: 8px 18px 6px; font-size: 0.76rem; font-weight: 700;
+  padding: 8px 18px 6px; font-size: 0.78rem; font-weight: 700;
   color: var(--muted); letter-spacing: 0.04em;
 }
 .sg-count {
-  font-size: 0.75rem; font-weight: 600; color: var(--accent);
+  font-size: 0.78rem; font-weight: 600; color: var(--accent);
   background: var(--accent-soft); border-radius: var(--radius-full); padding: 1px 8px;
 }
 .sg-item {
@@ -252,7 +252,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
 .sg-item:hover { background: var(--surface-2); }
 .sg-item:active { background: var(--accent-soft); }
 .sg-tag {
-  flex-shrink: 0; font-size: 0.72rem; font-weight: 600;
+  flex-shrink: 0; font-size: 0.78rem; font-weight: 600;
   padding: 2px 8px; border-radius: var(--radius-full);
   background: var(--surface-2); color: var(--muted);
 }
@@ -263,7 +263,7 @@ onBeforeUnmount(() => clearTimeout(searchTimer))
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sg-text mark { background: #fff3bf; color: inherit; border-radius: 2px; padding: 0 1px; }
-.sg-type, .sg-meta { flex-shrink: 0; font-size: 0.74rem; color: var(--muted-2); }
+.sg-type, .sg-meta { flex-shrink: 0; font-size: 0.78rem; color: var(--muted-2); }
 .search-hint { padding: 12px 18px 18px; }
 .sh-title { font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 10px; letter-spacing: 0.04em; }
 .sh-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }

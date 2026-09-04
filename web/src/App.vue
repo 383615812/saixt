@@ -315,7 +315,7 @@ router.afterEach(() => {
 .tab-icon svg { width: 23px; height: 23px; transition: transform 0.22s var(--ease); }
 .tab-item.active .tab-icon { background: var(--accent-soft); }
 .tab-item.active .tab-icon svg { transform: translateY(-1px) scale(1.06); }
-.tab-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; }
+.tab-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.01em; }
 @media (max-width: 900px) {
   .tabbar { display: flex; }
   .main { padding-bottom: calc(96px + var(--safe-bottom)); }
@@ -343,7 +343,7 @@ router.afterEach(() => {
 .ib-icon svg { width: 20px; height: 20px; }
 .ib-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
 .ib-text strong { font-size: 0.9rem; color: var(--ink); }
-.ib-text span { font-size: 0.76rem; color: var(--muted); }
+.ib-text span { font-size: 0.78rem; color: var(--muted); }
 .ib-btn { flex-shrink: 0; padding: 8px 16px; min-height: 36px; }
 .ib-close {
   width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
@@ -365,7 +365,7 @@ router.afterEach(() => {
   .ib-icon { width: 34px; height: 34px; border-radius: 10px; }
   .ib-icon svg { width: 18px; height: 18px; }
   .ib-text strong { font-size: 0.85rem; }
-  .ib-text span { font-size: 0.72rem; }
+  .ib-text span { font-size: 0.78rem; }
   .ib-btn { padding: 7px 14px; min-height: 36px; }
 }
 

@@ -143,7 +143,11 @@
           <span class="at-sec">{{ curSectionLabel }}</span>
           <span class="at-progress">第 {{ current + 1 }} / {{ paper.total }} 题</span>
         </div>
-        <div class="at-right">
+        <div class="at-right at-right-col">
+          <span class="at-timer" :class="{ low: remaining > 0 && remaining <= 60 }">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/></svg>
+            {{ timerText }} 后自动交卷
+          </span>
           <span class="at-result-badge" :class="{ ok: results.length && lastCorrectRef }">答对 {{ results.filter(r => r).length }} 题</span>
         </div>
       </div>
@@ -246,6 +250,32 @@
           <span class="fp-sec-status">{{ sectionResultText(i) }}</span>
         </div>
       </div>
+
+      <!-- 考后错题回顾：与错题本/复习计划联动，形成「答错→复习」闭环 -->
+      <div v-if="wrongQ.length" class="fp-wrong">
+        <div class="fp-wrong-head">
+          <span>本卷错题回顾 · {{ wrongQ.length }} 道</span>
+          <span class="fp-wrong-sub">错题已自动纳入掌握度统计与复习计划</span>
+        </div>
+        <div v-for="(q, qi) in wrongQ" :key="q.id || qi" class="fp-wrong-item">
+          <div class="fp-wq-meta">
+            <span class="tag tag-blue">{{ q.subject }}</span>
+            <span class="tag tag-purple">{{ q.chapter }}</span>
+            <span class="tag" :class="typeTagClass(q.type)">{{ typeLabel(q.type) }}</span>
+          </div>
+          <div class="fp-wq-stem">{{ plain(q.stem) }}</div>
+          <div class="fp-wq-ans">
+            <span class="fp-wq-your">你的作答：{{ q.userAnswer || '未作答' }}</span>
+            <span class="fp-wq-right">正确答案：{{ q.answer || '—' }}</span>
+          </div>
+          <div v-if="q.analysis" class="fp-wq-analysis">{{ q.analysis }}</div>
+        </div>
+      </div>
+
+      <div v-if="wrongQ.length" class="fp-actions">
+        <router-link to="/review" class="btn btn-primary">去复习计划，巩固错题 →</router-link>
+        <router-link to="/wrong-book" class="btn btn-ghost">查看错题本</router-link>
+      </div>
       <div class="fp-actions">
         <button class="btn btn-ghost" @click="backToSetup">返回上一页</button>
         <button class="btn btn-primary" @click="generateAgain">换一套薄弱专项卷</button>
@@ -292,6 +322,9 @@ const lastCorrectRef = ref(false)
 const correctCount = ref(0)
 const finished = ref(false)
 const resetTick = ref(0)
+const remaining = ref(0)
+const wrongQ = ref([])
+let timerTimer = null
 let analysisTimer = null
 
 const curQ = computed(() => {
@@ -322,6 +355,10 @@ const answeredCount = computed(() => results.value.filter(r => r !== undefined &
 const windowDone = computed(() => answeredCount.value === paper.value?.total)
 const isAllCorrect = computed(() => results.value.length > 0 && results.value.filter(r => r).length === results.value.length)
 const accuracy = computed(() => results.value.length ? Math.round((correctCount.value / results.value.length) * 100) : 0)
+const timerText = computed(() => {
+  const r = Math.max(remaining.value, 0)
+  return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}`
+})
 
 function typeLabel(t) {
   return ({ single: '单选题', multiple: '多选题', multi: '多选题', judge: '判断题' })[t] || '单选题'
@@ -332,6 +369,47 @@ function typeTagClass(t) {
 function optText(opt) {
   // 选项形如 "A. 文本"，剥离字母前缀
   return String(opt).replace(/^[A-H]\s*[.、．]?\s*/, '')
+}
+
+// 题干/解析去 HTML 标签，仅作展示净化，不改变数据
+function plain(s) {
+  return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+}
+
+// 套卷计时：按约 90 秒/题估算总时长（下限 3 分钟），倒计时结束自动交卷，训练真实考场时间掌控
+function startTimer() {
+  stopTimer()
+  const total = paper.value?.total || 0
+  remaining.value = Math.max(total * 90, 180)
+  timerTimer = setInterval(() => {
+    remaining.value--
+    if (remaining.value <= 0) timeUp()
+  }, 1000)
+}
+function stopTimer() {
+  if (timerTimer) { clearInterval(timerTimer); timerTimer = null }
+}
+function timeUp() {
+  stopTimer()
+  // 若恰逢逐题提交进行中，稍后重试，避免打断判分回写
+  if (submitting.value) { setTimeout(timeUp, 400); return }
+  toast('作答时间已到，系统已自动交卷', 'warning')
+  finish()
+}
+
+// 答错时快照本题，供交卷后回顾；误同一题仅记一次
+function trackWrong(q, userAns) {
+  if (!q || !q.id || wrongQ.value.some(x => x.id === q.id)) return
+  wrongQ.value.push({
+    id: q.id,
+    subject: q.subject,
+    chapter: q.chapter,
+    type: q.type,
+    stem: q.stem,
+    answer: q.answer || '',
+    analysis: q.analysis || '',
+    userAnswer: userAns
+  })
 }
 
 async function loadWeak() {
@@ -401,6 +479,9 @@ async function generatePaper() {
 }
 
 function backToSetup() {
+  stopTimer()
+  remaining.value = 0
+  wrongQ.value = []
   paper.value = null
   answering.value = false
   finished.value = false
@@ -414,6 +495,7 @@ function startAnswer() {
   current.value = 0
   selected.value = curQ.value.type === 'multi' ? [] : ''
   answered.value = false
+  startTimer()
 }
 
 function isSelected(letter) {
@@ -452,6 +534,7 @@ async function submit() {
       answer: userAns
     })
     lastCorrect.value = !!data.correct
+    if (!lastCorrect.value) trackWrong(curQ.value, userAns)
     if (data.correct) correctCount.value++
     if (data.answer) curQ.value.answer = data.answer
     if (data.analysis) {
@@ -487,9 +570,11 @@ function confirmExit() {
   if (answeredCount.value > 0) {
     if (!confirm('当前作答进度将丢失，确定返回卷面吗？')) return
   }
+  stopTimer()
   answering.value = false
 }
 function finish() {
+  stopTimer()
   finished.value = true
   answering.value = false
   // 记录一次 AI 练习会话，计入任务与历史
@@ -608,13 +693,13 @@ onMounted(() => {
 .ov-section:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); border-color: rgba(79, 95, 240, 0.2); }
 .ov-section:hover::before { transform: scaleX(1); }
 .ov-sec-head { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
-.ov-sec-no { font-size: 0.75rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 2px 8px; border-radius: 999px; }
+.ov-sec-no { font-size: 0.78rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 2px 8px; border-radius: 999px; }
 .ov-sec-body { display: flex; align-items: center; gap: 8px; }
-.ov-sec-label { font-size: 0.75rem; color: var(--muted); }
+.ov-sec-label { font-size: 0.78rem; color: var(--muted); }
 .ov-sec-bar { flex: 1; height: 7px; background: var(--rule-soft); border-radius: 999px; overflow: hidden; }
 .ov-sec-fill { height: 100%; background: var(--ov-bar); border-radius: 999px; transition: width 0.5s var(--ease); }
 .ov-sec-acc { font-weight: 800; font-size: 0.82rem; min-width: 36px; text-align: right; }
-.ov-sec-type { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
+.ov-sec-type { font-size: 0.78rem; color: var(--muted); margin-left: auto; }
 .ov-note { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.7; background: var(--surface-2); padding: 10px 12px; border-radius: var(--radius-sm); border-left: 3px solid var(--accent); }
 .ov-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: var(--accent); }
 .ov-actions { display: flex; justify-content: flex-end; gap: 10px; }
@@ -623,9 +708,22 @@ onMounted(() => {
 .answer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; margin-bottom: 14px; }
 .at-center { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .at-sec { font-size: 0.85rem; font-weight: 700; color: var(--ink); }
-.at-progress { font-size: 0.75rem; color: var(--muted); }
+.at-progress { font-size: 0.78rem; color: var(--muted); }
 .at-right {}
-.at-result-badge { font-size: 0.8rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 4px 10px; border-radius: 999px; }
+.at-right-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.at-timer {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; font-weight: 700; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  padding: 5px 12px; border-radius: 999px;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.at-timer svg { width: 15px; height: 15px; color: var(--accent); }
+.at-timer.low { color: var(--red, #e11d48); border-color: rgba(225,29,72,0.3); background: var(--red-soft, rgba(225,29,72,0.09)); animation: at-pulse 1s ease-in-out infinite; }
+.at-timer.low svg { color: var(--red, #e11d48); }
+@keyframes at-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.at-result-badge { font-size: 0.8rem; font-weight: 700; color: var(--muted); background: var(--surface-2); border: 1px solid var(--rule); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .at-result-badge.ok { color: var(--green, #0da678); border-color: rgba(13,166,120,0.3); background: var(--green-soft, rgba(13,166,120,0.09)); }
 
 .question-card { margin-bottom: 16px; position: relative; overflow: hidden; }
@@ -656,7 +754,7 @@ onMounted(() => {
 }
 .option.correct .opt-letter { background: var(--green, #0da678); color: #fff; }
 .option.wrong .opt-letter { background: var(--red, #e11d48); color: #fff; }
-.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft, rgba(217,119,6,0.09)); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft, rgba(217,119,6,0.09)); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 
 .result { margin-top: 16px; padding: 14px 16px; border-radius: 12px; }
 .result.ok { background: var(--green-soft, rgba(13,166,120,0.09)); border: 1px solid rgba(13,166,120,0.25); }
@@ -689,7 +787,7 @@ onMounted(() => {
 .as-cell.ok { background: var(--green-soft, rgba(13,166,120,0.09)); border-color: var(--green, #0da678); color: var(--green, #0da678); }
 .as-cell.no { background: var(--red-soft, rgba(225,29,72,0.09)); border-color: var(--red, #e11d48); color: var(--red, #e11d48); }
 .as-cell.now { border-color: var(--accent); background: var(--accent); color: #fff; }
-.as-legend { display: flex; gap: 14px; margin-top: 12px; font-size: 0.75rem; color: var(--muted); flex-wrap: wrap; }
+.as-legend { display: flex; gap: 14px; margin-top: 12px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
 .dot-green { background: var(--green, #0da678); }
 .dot-red { background: var(--red, #e11d48); }
@@ -719,6 +817,18 @@ onMounted(() => {
 .fp-section { display: flex; align-items: center; gap: 8px; border: 1px solid var(--rule); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.82rem; background: var(--surface-2); }
 .fp-sec-name { font-weight: 600; }
 .fp-sec-status { color: var(--accent); font-weight: 700; }
+
+/* 考后错题回顾 */
+.fp-wrong { width: 100%; max-width: 700px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.fp-wrong-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 0.95rem; font-weight: 800; color: var(--ink); padding-bottom: 4px; border-bottom: 1px dashed var(--rule); }
+.fp-wrong-sub { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+.fp-wrong-item { border: 1px solid var(--rule); border-left: 3px solid var(--red, #e11d48); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.fp-wq-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fp-wq-stem { font-size: 0.9rem; font-weight: 600; color: var(--ink); line-height: 1.7; overflow-wrap: break-word; word-break: break-word; }
+.fp-wq-ans { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; }
+.fp-wq-your { color: var(--red, #e11d48); font-weight: 700; background: var(--red-soft, rgba(225,29,72,0.09)); padding: 3px 10px; border-radius: 999px; }
+.fp-wq-right { color: var(--green, #0da678); font-weight: 700; background: var(--green-soft, rgba(13,166,120,0.09)); padding: 3px 10px; border-radius: 999px; }
+.fp-wq-analysis { font-size: 0.82rem; color: var(--ink-soft); line-height: 1.75; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
 .fp-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
 
 @media (max-width: 768px) {
@@ -740,19 +850,20 @@ onMounted(() => {
   .ov-sections { grid-template-columns: 1fr; }
   .question-card { padding: 16px 14px; }
   .q-stem { font-size: 0.95rem; line-height: 1.65; }
-  .option { padding: 11px 10px; font-size: 0.9rem; }
-  .opt-letter { width: 24px; height: 24px; font-size: 0.8rem; }
+  .option { padding: 13px 10px; font-size: 0.9rem; min-height: 48px; align-items: center; }
+  .opt-letter { width: 32px; height: 32px; flex: 0 0 32px; font-size: 0.85rem; }
   .result-head { gap: 6px; }
   .right-ans { margin-left: 0; width: 100%; }
   .analysis { font-size: 0.85rem; }
-  .answer-top { padding: 10px 12px; }
+  .answer-top { padding: 10px 12px; position: sticky; top: 64px; z-index: 20; background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow); }
   .fp-stats { gap: 20px; }
   .fp-stat .num { font-size: 1.6rem; }
   .fp-stat .lbl { font-size: 0.8rem; }
   .finish-panel { padding: 22px 14px; }
   .finish-panel h3 { font-size: 1.15rem; }
-  .fp-actions .btn { flex: 1; min-width: 140px; }
+  .fp-actions .btn { flex: 1; min-width: 130px; min-height: 44px; }
   .q-btn { margin-top: 4px; }
+  .as-grid { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; }
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 11px; font-size: 0.8rem; }

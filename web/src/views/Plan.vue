@@ -40,7 +40,13 @@
     <div v-if="weak.length" class="card weak-card">
       <span class="wc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>
       <strong>薄弱知识点：</strong>
-      <span v-for="w in weak" :key="w.chapter" class="tag tag-red">{{ w.subject }} · {{ w.chapter }}</span>
+      <router-link
+        v-for="w in weak"
+        :key="w.chapter"
+        class="tag tag-red weak-link"
+        :to="{ path: '/ai-practice', query: { subject: w.subject, chapter: w.chapter } }"
+        :title="`进入该章节 AI 智能出题补强：${w.subject}·${w.chapter}`"
+      >{{ w.subject }} · {{ w.chapter }}<span class="wl-arrow">补强 →</span></router-link>
     </div>
     <div v-else-if="stats.total" class="card weak-card ok">
       <span class="wc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
@@ -255,6 +261,9 @@ onMounted(async () => {
 .wc-ic { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--red-soft); color: var(--red); }
 .weak-card.ok .wc-ic { background: var(--green-soft); color: var(--green); }
 .wc-ic svg { width: 15px; height: 15px; }
+.weak-link { text-decoration: none; transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease); }
+.weak-link:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); background: var(--accent-soft); color: var(--accent); }
+.wl-arrow { margin-left: 5px; font-size: 0.78rem; font-weight: 700; opacity: 0.85; }
 
 .plan-actions { display: flex; gap: 12px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
 .plan-actions .btn svg { width: 16px; height: 16px; }

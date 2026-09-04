@@ -167,6 +167,24 @@
             <div v-if="currentQuestion.analysis" class="qr-analysis">
               <strong>解析：</strong>{{ currentQuestion.analysis }}
             </div>
+            <div class="qr-ai-row">
+              <button class="btn btn-sm ai-btn" :disabled="aiLoading" @click="explainThis">
+                <svg class="ai-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 4.24 7.5A5 5 0 0 1 17 19h-2A7 7 0 0 0 12 6"/><path d="M12 2v4"/><path d="M12 6a7 7 0 0 0-3 13.5A5 5 0 0 1 7 19h2"/></svg>
+                {{ aiTyping ? '讲解中…' : (aiExplain ? '收起 AI 讲解' : 'AI 讲解') }}
+              </button>
+              <router-link v-if="!isCorrect" to="/wrong-book" class="wr-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 19V4h13l1 1v16l-2-2-2 2-2-2-2 2-2-2-2 2z"/><path d="M8 8h6"/>
+                </svg>
+                已加入错题本，去复习
+              </router-link>
+            </div>
+            <div v-if="aiExplain" class="ai-explain">
+              <div class="ai-explain-head">
+                <span class="ai-badge">AI</span>
+                <strong>智能讲解</strong>
+              </div>
+              <div class="ai-explain-body">{{ aiTyping ? aiText : aiExplain }}<span v-if="aiTyping" class="tw-caret"></span></div>
+            </div>
             <button class="btn btn-primary qr-next" @click="nextBox">
               继续开盒 →
             </button>
@@ -205,8 +223,10 @@ import { toast } from '../toast'
 import { ref, computed, onMounted } from 'vue'
 import { api, getUser } from '../api.js'
 import { useImgError } from '../useImgError'
+import { useTypewriter } from '../useTypewriter'
 
 const { onImgError } = useImgError()
+const { text: aiText, typing: aiTyping, type: typeAi } = useTypewriter()
 
 const phase = ref('select') // select | game
 const subjectList = ref([])
@@ -225,6 +245,25 @@ const isDrawing = ref(false)
 const isOpening = ref(false)
 const questionShown = ref(false)
 const collection = ref({})
+
+// AI 智能讲解：复用 /ai/explain，答完可追问本道错题，成功即刷新全局 AI 配额
+const aiExplain = ref('')
+const aiLoading = ref(false)
+async function explainThis() {
+  if (!currentQuestion.value) return
+  if (aiExplain.value) { aiExplain.value = ''; return }
+  aiLoading.value = true
+  try {
+    const data = await api.post('/ai/explain', { question_id: currentQuestion.value.id })
+    aiExplain.value = data.reply
+    typeAi(data.reply)
+    window.dispatchEvent(new Event('ai-quota-refresh'))
+  } catch (e) {
+    toast('AI 讲解失败：' + e.message, 'error')
+  } finally {
+    aiLoading.value = false
+  }
+}
 
 const ICONS = {
   star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
@@ -276,6 +315,8 @@ function startGame(subject) {
   totalScore.value = 0
   boxesOpened.value = 0
   collection.value = {}
+  aiExplain.value = ''
+  aiLoading.value = false
 }
 
 function backToSelect() {
@@ -300,6 +341,8 @@ async function drawBox() {
     answered.value = false
     isCorrect.value = false
     boxesOpened.value++
+    aiExplain.value = ''
+    aiLoading.value = false
 
     // 记录收集
     const lvl = data.rarity.level
@@ -360,6 +403,8 @@ function nextBox() {
   questionShown.value = false
   answered.value = false
   selectedAnswer.value = ''
+  aiExplain.value = ''
+  aiLoading.value = false
 }
 
 onMounted(() => {
@@ -425,7 +470,7 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 .stat-lbl {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .stat-item.combo.fire .stat-val {
@@ -478,7 +523,7 @@ onMounted(() => {
 }
 .rl-star { font-weight: bold; }
 .rl-name { color: var(--ink); }
-.rl-score { color: var(--muted); font-size: 12px; }
+.rl-score { color: var(--muted); font-size: 13px; }
 
 .subject-grid {
   display: grid;
@@ -503,7 +548,7 @@ onMounted(() => {
 }
 .subject-btn:active { transform: translateY(0) scale(0.985); }
 .sb-name { font-weight: 600; font-size: 14px; }
-.sb-count { font-size: 12px; color: var(--muted); }
+.sb-count { font-size: 13px; color: var(--muted); }
 .subject-btn.sk { cursor: default; }
 .subject-btn.sk:hover { border-color: var(--rule); transform: none; box-shadow: none; }
 .sk-sb-name { width: 60%; height: 14px; margin: 0 auto; }
@@ -717,7 +762,7 @@ onMounted(() => {
 .tag {
   display: inline-block;
   padding: 3px 10px;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 6px;
   background: var(--surface);
   color: var(--accent);
@@ -846,7 +891,7 @@ onMounted(() => {
   color: #fff;
   padding: 2px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -854,7 +899,39 @@ onMounted(() => {
 .qr-answer strong { color: var(--green); font-size: 16px; }
 .qr-analysis { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; overflow-wrap: break-word; word-break: break-word; }
 .qr-analysis strong { color: var(--ink); }
-.qr-next { width: 100%; justify-content: center; }
+.qr-ai-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.ai-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #4f5ff0, #6b58e8); color: #fff; border: none;
+  box-shadow: 0 4px 12px rgba(79, 95, 240, 0.28);
+}
+.ai-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79, 95, 240, 0.34); }
+.ai-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+.ai-ico { width: 15px; height: 15px; flex: 0 0 auto; }
+.wr-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--accent); font-size: 13px; font-weight: 500;
+  text-decoration: none; transition: opacity 0.2s var(--ease);
+}
+.wr-link:hover { opacity: 0.8; text-decoration: underline; }
+.ai-explain {
+  padding: 14px 16px; border-radius: 12px; margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--surface) 100%);
+  border: 1px solid rgba(79, 95, 240, 0.2); border-left: 3px solid var(--accent);
+}
+.ai-explain-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ai-explain-head strong { font-size: 0.9rem; }
+.ai-badge {
+  font-size: 0.78rem; font-weight: 800; color: #fff; padding: 2px 8px;
+  border-radius: 6px; background: var(--grad-accent); letter-spacing: 0.02em;
+}
+.ai-explain-body { font-size: 0.92rem; line-height: 1.9; color: var(--ink); white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
+.tw-caret {
+  display: inline-block; width: 8px; height: 1.1em; margin-left: 2px;
+  vertical-align: text-bottom; background: var(--accent); animation: caret-blink 0.8s steps(2) infinite;
+}
+@keyframes caret-blink { 50% { opacity: 0; } }
+.qr-next { width: 100%; justify-content: center; margin-top: 4px; }
 
 .result-enter-active, .result-leave-active {
   transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
@@ -917,7 +994,7 @@ onMounted(() => {
 }
 @media (max-width: 400px) {
   .stat-val { font-size: 17px; }
-  .stat-lbl { font-size: 11px; }
+  .stat-lbl { font-size: 13px; }
   .select-card { padding: 18px 14px; }
   .select-card h3 { font-size: 19px; }
   .subject-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }

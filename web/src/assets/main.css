@@ -73,7 +73,7 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   line-height: 1.7;
-  font-size: 15px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -125,7 +125,7 @@ h3, h4 { font-weight: 700; letter-spacing: -0.014em; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border: none; border-radius: var(--radius-sm); padding: 10px 22px;
-  font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em;
+  font-size: 0.95rem; font-weight: 600; letter-spacing: 0.01em;
   transition: transform 0.18s var(--ease), box-shadow 0.22s var(--ease), background-color 0.22s var(--ease), border-color 0.22s var(--ease), color 0.22s var(--ease);
   min-height: 44px;
   user-select: none; white-space: nowrap;
@@ -158,7 +158,7 @@ h3, h4 { font-weight: 700; letter-spacing: -0.014em; }
 }
 .btn-success:active { transform: translateY(0) scale(0.98); background: #0b926b; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
-.btn-sm { padding: 8px 16px; font-size: 0.84rem; min-height: 40px; border-radius: var(--radius-sm); }
+.btn-sm { padding: 8px 16px; font-size: 0.88rem; min-height: 40px; border-radius: var(--radius-sm); }
 
 /* 全局按压反馈（chip / 题目选项） */
 .chip:active { transform: translateY(0) scale(0.97); }
@@ -231,7 +231,7 @@ select {
 .page-head p { color: var(--muted); margin-top: 5px; font-size: 0.92rem; }
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
-  .page-head p { font-size: 0.84rem; }
+  .page-head p { font-size: 0.86rem; }
 }
 
 .card {
@@ -257,7 +257,7 @@ select {
 }
 
 .tag {
-  display: inline-block; font-size: 0.75rem; padding: 3px 11px;
+  display: inline-block; font-size: 0.78rem; padding: 3px 11px;
   border-radius: var(--radius-full); font-weight: 600; letter-spacing: 0.02em;
 }
 .tag-blue { background: var(--accent-soft); color: var(--accent); }
@@ -366,12 +366,12 @@ select {
 input, select, textarea { font-size: 16px; }
 
 @media (max-width: 768px) {
-  body { font-size: 14px; }
+  body { font-size: 15px; }
   .container { padding: 0 16px; }
   .btn { padding: 11px 18px; }
   .card { padding: 18px; border-radius: 16px; }
   .card-glass { border-radius: 16px; }
-  .tag { font-size: 0.72rem; padding: 2px 9px; }
+  .tag { font-size: 0.78rem; padding: 2px 9px; }
   .toast-container { top: 66px; max-width: 92vw; }
   .toast { padding: 10px 16px 10px 12px; font-size: 0.86rem; border-radius: 10px; }
   .toast-ic { width: 16px; height: 16px; }
@@ -388,7 +388,7 @@ input, select, textarea { font-size: 16px; }
   .container { padding: 0 10px; }
   .card { padding: 14px 12px; }
   .btn { padding: 11px 14px; }
-  .btn-sm { padding: 7px 12px; font-size: 0.78rem; }
+  .btn-sm { padding: 7px 12px; font-size: 0.8rem; }
   .page-head h2 { font-size: 1.2rem; }
-  .page-head p { font-size: 0.8rem; }
+  .page-head p { font-size: 0.82rem; }
 }

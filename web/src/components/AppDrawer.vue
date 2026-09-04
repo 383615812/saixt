@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
   display: inline-block; margin-left: 6px; padding: 1px 7px;
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, #f59e0b, #f97316);
-  color: #fff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em;
+  color: #fff; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em;
   vertical-align: 2px;
 }
 .drawer-points {
@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
 }
 .drawer-user-text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .drawer-user-text strong { font-size: 1rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer-user-text small { font-size: 0.74rem; color: var(--muted-2); }
+.drawer-user-text small { font-size: 0.78rem; color: var(--muted-2); }
 .drawer-close {
   width: 36px; height: 36px; flex-shrink: 0;
   background: var(--surface-2); border: 1px solid var(--rule);
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
 .drawer-nav { flex: 1; overflow-y: auto; padding: 8px 14px 14px; overscroll-behavior: contain; }
 .drawer-sec {
   display: flex; align-items: center; gap: 8px;
-  padding: 16px 10px 6px; font-size: 0.75rem; font-weight: 700;
+  padding: 16px 10px 6px; font-size: 0.78rem; font-weight: 700;
   color: var(--muted-2); letter-spacing: 0.08em;
 }
 .drawer-sec::before {

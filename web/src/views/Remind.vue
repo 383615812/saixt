@@ -387,7 +387,7 @@ onMounted(load)
 }
 .log-item:hover { border-color: var(--accent-2); background: var(--surface-2); }
 .log-content { flex: 1; min-width: 140px; font-size: 0.88rem; line-height: 1.7; }
-.log-time { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.log-time { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
 
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }

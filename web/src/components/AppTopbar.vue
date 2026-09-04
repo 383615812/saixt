@@ -211,7 +211,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 @keyframes logoShine { to { transform: rotate(360deg); } }
 .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
 .brand-text strong { font-size: 1.05rem; color: var(--ink); letter-spacing: 0.02em; }
-.brand-text small { font-size: 0.75rem; color: var(--muted-2); }
+.brand-text small { font-size: 0.78rem; color: var(--muted-2); }
 
 .nav { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
 
@@ -282,7 +282,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 }
 .more-group { display: flex; flex-direction: column; }
 .more-group-title {
-  font-size: 0.72rem; font-weight: 700; color: var(--muted-2);
+  font-size: 0.78rem; font-weight: 700; color: var(--muted-2);
   letter-spacing: 0.1em; padding: 6px 12px 4px;
   text-transform: uppercase;
 }
@@ -304,7 +304,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 .more-panel a.active strong { color: var(--accent); }
 .mp-text { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .mp-text strong { font-size: 0.9rem; font-weight: 600; color: var(--ink-soft); }
-.mp-text small { font-size: 0.75rem; color: var(--muted-2); }
+.mp-text small { font-size: 0.78rem; color: var(--muted-2); }
 
 .more-enter-active, .more-leave-active { transition: opacity 0.25s var(--ease), transform 0.25s var(--ease); transform-origin: top right; }
 .more-enter-from, .more-leave-to { opacity: 0; transform: translateY(-8px) scale(0.96); }
@@ -324,7 +324,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 .bell-badge {
   position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px;
   border-radius: var(--radius-full); background: var(--red); color: #fff;
-  font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4);
 }
 .user-chip {
@@ -412,9 +412,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
 }
 @media (max-width: 600px) {
   .topbar-inner { height: 56px; gap: 10px; padding-top: var(--safe-top); }
+  .brand { min-width: 0; flex-shrink: 0; }
+  .brand-text { min-width: 0; }
+  .brand-text strong { font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .brand-logo { width: 34px; height: 34px; border-radius: 10px; }
   .brand-logo-img { width: 24px; height: 24px; }
-  .brand-text strong { font-size: 0.98rem; }
   .brand-text small { display: none; }
   .user-area { gap: 8px; }
   .search-btn, .bell { width: 40px; height: 40px; }

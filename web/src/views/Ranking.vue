@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container rank-page">
     <div class="page-head">
       <h2>学习排行榜</h2>
@@ -61,7 +61,16 @@
         </div>
       </div>
 
-      <div v-if="!list.length" class="card empty">
+      <div v-if="loadFailed" class="card empty">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        </div>
+        <p>排行榜加载失败</p>
+        <span class="empty-sub">请检查网络后重试</span>
+        <button class="btn btn-primary empty-btn" @click="retry">重新加载</button>
+      </div>
+
+      <div v-else-if="!list.length" class="card empty">
         <div class="empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3z"/>
@@ -115,6 +124,7 @@ const ICONS = {
 const list = ref([])
 const mine = ref(null)
 const loading = ref(true)
+const loadFailed = ref(false)
 const curRange = ref('all')
 const totalUsers = ref(0)
 
@@ -122,6 +132,7 @@ const podium = computed(() => list.value.slice(0, 3))
 
 async function load() {
   loading.value = true
+  loadFailed.value = false
   try {
     const data = await api.get(`/ranking?limit=50&range=${curRange.value}`)
     list.value = data.list || []
@@ -129,10 +140,12 @@ async function load() {
     totalUsers.value = data.total_users || 0
   } catch (e) {
     toast(e.message || '排行榜加载失败，请稍后重试', 'error')
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
 }
+const retry = load
 
 function setRange(r) {
   if (r === curRange.value) return
@@ -193,7 +206,7 @@ onMounted(load)
 .mr-info { flex: 1; min-width: 200px; }
 .mr-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mr-title h3 { font-size: 1.12rem; }
-.mr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: var(--amber-soft); color: #b45309; font-weight: 600; }
+.mr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 2px 10px; border-radius: 999px; background: var(--amber-soft); color: #b45309; font-weight: 600; }
 .mb-ic { display: inline-flex; }
 .mb-ic svg { width: 13px; height: 13px; }
 .mr-info p { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
@@ -220,7 +233,7 @@ onMounted(load)
 .av-2 { background: #94a3b8; }
 .av-3 { background: #b45309; }
 .podium-name { font-size: 0.85rem; font-weight: 700; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.podium-stats { font-size: 0.75rem; color: var(--muted); margin: 2px 0 8px; }
+.podium-stats { font-size: 0.78rem; color: var(--muted); margin: 2px 0 8px; }
 .podium-block {
   width: 100%; border-radius: 12px 12px 0 0;
   display: flex; align-items: flex-start; justify-content: center; padding-top: 10px;
@@ -259,7 +272,7 @@ onMounted(load)
 }
 .rank-name { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 120px; }
 .rank-name strong { font-size: 0.95rem; }
-.me-tag { font-size: 0.72rem; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; }
+.me-tag { font-size: 0.78rem; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; }
 .rank-stats { display: flex; align-items: center; gap: 18px; font-size: 0.85rem; color: var(--muted); }
 .rank-stats strong { color: var(--accent); }
 .rank-acc { display: flex; align-items: center; gap: 8px; }
@@ -288,8 +301,8 @@ onMounted(load)
   .rank-avatar { width: 32px; height: 32px; font-size: 0.82rem; }
   .rank-name strong { font-size: 0.88rem; }
   .rank-name { min-width: 80px; }
-  .me-tag { font-size: 0.75rem; }
-  .rank-stats { gap: 10px; font-size: 0.76rem; }
+  .me-tag { font-size: 0.78rem; }
+  .rank-stats { gap: 10px; font-size: 0.78rem; }
   .rank-stats span:nth-child(1) { display: none; }
   .acc-bar { width: 48px; }
 }
@@ -298,6 +311,6 @@ onMounted(load)
   .rank-no { width: 28px; }
   .rank-avatar { width: 28px; height: 28px; }
   .rank-name { min-width: 60px; }
-  .rank-stats { gap: 8px; font-size: 0.75rem; }
+  .rank-stats { gap: 8px; font-size: 0.78rem; }
 }
 </style>

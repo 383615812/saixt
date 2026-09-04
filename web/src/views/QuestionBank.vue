@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container bank-page">
     <div class="page-head">
       <h2>题库中心</h2>
@@ -41,6 +41,10 @@
           :class="{ on: chapter === c.chapter }"
           @click="selectChapter(c.chapter)"
         >{{ c.chapter }}<span class="chip-count">{{ c.count }}</span></button>
+        <button v-if="subject && chapter" class="btn btn-primary btn-sm chapter-practice" @click="practiceChapter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          练习本章
+        </button>
       </div>
       <div class="filter-row types">
         <button
@@ -118,6 +122,19 @@
             <div class="detail-analysis">
               <strong>解题讲解：</strong>{{ detail.analysis }}
             </div>
+            <div class="detail-ai-row">
+              <button class="btn btn-sm ai-btn" :disabled="aiLoading && aiExplainFor === q.id" @click="explainDetail(q)">
+                <svg class="ai-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 4.24 7.5A5 5 0 0 1 17 19h-2A7 7 0 0 0 12 6"/><path d="M12 2v4"/><path d="M12 6a7 7 0 0 0-3 13.5A5 5 0 0 1 7 19h2"/></svg>
+                {{ aiLoading && aiExplainFor === q.id ? '讲解中…' : (aiExplainFor === q.id && aiExplain ? '收起 AI 讲解' : 'AI 讲解') }}
+              </button>
+            </div>
+            <div v-if="aiExplainFor === q.id && aiExplain" class="ai-explain">
+              <div class="ai-explain-head">
+                <span class="ai-badge">AI</span>
+                <strong>智能讲解</strong>
+              </div>
+              <div class="ai-explain-body">{{ aiTyping ? aiText : aiExplain }}<span v-if="aiTyping" class="tw-caret"></span></div>
+            </div>
           </template>
         </div>
       </div>
@@ -139,8 +156,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { useImgError } from '../useImgError'
+import { useTypewriter } from '../useTypewriter'
 
 const router = useRouter()
+const { text: aiText, typing: aiTyping, type: typeAi } = useTypewriter()
 
 const subjects = ref([])
 const chapters = ref([])
@@ -193,6 +212,17 @@ const favs = ref({})
 
 function readFavs() {
   favs.value = JSON.parse(localStorage.getItem('saixt_favs') || '{}')
+}
+
+// 装载时以后端收藏为真值重建本地缓存，杜绝跨页/跨端收藏状态不同步
+async function syncFavsCache() {
+  try {
+    const list = await api.get('/favorites')
+    const map = {}
+    ;(list || []).forEach(x => { if (x && x.id) map[x.id] = true })
+    localStorage.setItem('saixt_favs', JSON.stringify(map))
+  } catch (e) { /* 拉取失败保留本地缓存，不作为空态展示 */ }
+  readFavs()
 }
 
 const typeLabelMap = { single: '单选题', multiple: '多选题', judge: '判断题', subjective: '主观题' }
@@ -254,6 +284,9 @@ async function load(off) {
   loading.value = true
   detailId.value = null
   detail.value = null
+  aiExplain.value = ''
+  aiExplainFor.value = null
+  aiLoading.value = false
   const params = new URLSearchParams({ limit, offset: off })
   if (subject.value) params.set('subject', subject.value)
   if (chapter.value) params.set('chapter', chapter.value)
@@ -279,6 +312,9 @@ async function toggleDetail(q) {
   }
   detailId.value = q.id
   detail.value = null
+  aiExplainFor.value = null
+  aiExplain.value = ''
+  aiLoading.value = false
   detailLoading.value = true
   try {
     detail.value = await api.get(`/questions/${q.id}`)
@@ -293,8 +329,34 @@ function practice(q) {
   router.push({ path: '/practice', query: { subject: q.subject, chapter: q.chapter, qid: q.id } })
 }
 
+// 选定章节后一键练习本章全部题目
+function practiceChapter() {
+  if (!subject.value || !chapter.value) return
+  router.push({ path: '/practice', query: { subject: subject.value, chapter: chapter.value } })
+}
+
+// AI 智能讲解：复用 /ai/explain，消费 AI 配额后刷新全局剩余次数
+const aiExplain = ref('')
+const aiExplainFor = ref(null)
+const aiLoading = ref(false)
+async function explainDetail(q) {
+  if (aiExplainFor.value === q.id && aiExplain.value) { aiExplain.value = ''; return }
+  aiExplainFor.value = q.id
+  aiLoading.value = true
+  try {
+    const data = await api.post('/ai/explain', { question_id: q.id })
+    aiExplain.value = data.reply
+    typeAi(data.reply)
+    window.dispatchEvent(new Event('ai-quota-refresh'))
+  } catch (e) {
+    toast(e.message || 'AI 讲解失败，请稍后重试', 'error')
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 onMounted(async () => {
-  readFavs()
+  await syncFavsCache()
   const mqSmall = window.matchMedia('(max-width: 600px)')
   const applyCollapse = () => { collapseLimit.value = mqSmall.matches ? 5 : 8 }
   applyCollapse()
@@ -306,13 +368,15 @@ onMounted(async () => {
 
 <style scoped>
 .page-head { margin-bottom: 22px; }
-.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .page-head p { color: var(--muted); margin-top: 4px; font-size: 0.92rem; }
 
 .filter-bar { margin-bottom: 20px; }
 .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .filter-row + .filter-row { margin-top: 14px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+.chapter-practice { margin-left: auto; flex-shrink: 0; }
+.chapter-practice svg { flex: 0 0 auto; }
 .filter-lbl {
   flex-shrink: 0; align-self: center; font-size: 0.78rem; font-weight: 600;
   color: var(--muted); letter-spacing: 0.05em;
@@ -325,7 +389,7 @@ onMounted(async () => {
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
-.chip-count { font-size: 0.75rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
+.chip-count { font-size: 0.78rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
 .chip-sm { padding: 4px 11px; font-size: 0.8rem; }
 .chip-toggle {
   color: var(--accent); border-color: rgba(79, 95, 240, 0.4);
@@ -383,6 +447,27 @@ onMounted(async () => {
 }
 .detail-ans { margin-bottom: 8px; }
 .detail-analysis { font-size: 0.92rem; color: var(--ink); line-height: 1.9; overflow-wrap: break-word; word-break: break-word; }
+.detail-ai-row { margin-top: 12px; }
+.ai-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, #4f5ff0, #6b58e8); color: #fff;
+  border: none; box-shadow: 0 4px 12px rgba(79, 95, 240, 0.28);
+}
+.ai-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(79, 95, 240, 0.34); }
+.ai-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+.ai-ico { width: 15px; height: 15px; flex: 0 0 auto; }
+.ai-explain {
+  margin-top: 12px; padding: 14px 16px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, var(--surface-2) 100%);
+  border: 1px solid rgba(79, 95, 240, 0.2); border-left: 3px solid var(--accent);
+}
+.ai-explain-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ai-explain-head strong { font-size: 0.9rem; }
+.ai-badge {
+  font-size: 0.78rem; font-weight: 800; color: #fff; padding: 2px 8px;
+  border-radius: 6px; background: var(--grad-accent); letter-spacing: 0.02em;
+}
+.ai-explain-body { font-size: 0.92rem; line-height: 1.9; color: var(--ink); white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; }
 .spinner-sm { margin: 10px auto; width: 20px; height: 20px; }
 
 /* 骨架屏 */
@@ -406,13 +491,13 @@ onMounted(async () => {
   .filter-row { gap: 8px; }
   .filter-row + .filter-row { margin-top: 10px; }
   .chip { padding: 8px 12px; font-size: 0.84rem; min-height: 40px; }
-  .chip-sm { padding: 6px 11px; font-size: 0.76rem; min-height: 36px; }
+  .chip-sm { padding: 6px 11px; font-size: 0.78rem; min-height: 36px; }
   .search input { padding: 10px 12px; font-size: 1rem; }
   .search .btn { padding: 10px 14px; font-size: 0.85rem; }
   .q-item { padding: 14px 12px; }
   .q-stem { font-size: 0.95rem; line-height: 1.65; overflow-wrap: break-word; }
   .q-opt { font-size: 0.88rem; overflow-wrap: break-word; }
-  .opt-letter { width: 20px; height: 20px; line-height: 20px; font-size: 0.75rem; margin-right: 6px; }
+  .opt-letter { width: 20px; height: 20px; line-height: 20px; font-size: 0.78rem; margin-right: 6px; }
   .q-foot { flex-wrap: wrap; gap: 6px; }
   .q-foot .btn { flex: 1; justify-content: center; min-height: 40px; }
   .btn-sm { padding: 8px 14px; font-size: 0.82rem; }
@@ -424,7 +509,7 @@ onMounted(async () => {
 }
 @media (max-width: 400px) {
   .chip { padding: 7px 10px; font-size: 0.8rem; }
-  .chip-sm { padding: 5px 9px; font-size: 0.75rem; }
+  .chip-sm { padding: 5px 9px; font-size: 0.78rem; }
   .q-stem { font-size: 0.9rem; }
   .pager .btn { padding: 8px 12px; font-size: 0.8rem; }
 }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container review-page">
     <div class="page-head">
       <h2>遗忘曲线复习</h2>
@@ -36,6 +36,24 @@
       </div>
     </template>
     <template v-else>
+      <!-- 本轮复习小结 -->
+      <div v-if="sessionDone" class="card session-done">
+        <div class="sd-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+        </div>
+        <div class="sd-body">
+          <h3>本轮复习完成</h3>
+          <p class="sd-stats">
+            共复习 {{ sessionReviewed }} 题<template v-if="sessionMastered"> · 新掌握 {{ sessionMastered }} 题</template><template v-if="sessionRetry"> · {{ sessionRetry }} 题仍需巩固</template>
+          </p>
+          <p class="sd-tip">答错的题已自动重新从第一轮安排，明天再来巩固，掌握得更牢</p>
+        </div>
+        <div class="sd-actions">
+          <button v-if="sessionRetry" class="btn btn-ghost btn-sm" @click="goWrongBook">去错题本巩固</button>
+          <button class="btn btn-primary btn-sm" @click="sessionDone = false">知道了</button>
+        </div>
+      </div>
+
       <!-- 概览统计 -->
       <div class="ov-grid">
         <div class="card ov-item hot">
@@ -136,6 +154,7 @@
           </div>
           <span class="q-count">{{ reviewIndex + 1 }} / {{ reviewList.length }}</span>
         </div>
+        <div class="review-progress"><div class="rp-fill" :style="{ width: (reviewIndex / reviewList.length * 100) + '%' }"></div></div>
         <h3 class="q-stem">{{ currentQuestion.stem }}</h3>
 
         <div v-if="currentQuestion.images && currentQuestion.images.length" class="q-image">
@@ -218,6 +237,7 @@
         </div>
 
         <div class="q-actions">
+          <button class="btn btn-ghost btn-exit" @click="exitReview">退出复习</button>
           <button v-if="!answered && qtype !== 'subjective'" class="btn btn-primary" :disabled="!canSubmit" @click="submitAnswer">提交答案</button>
           <button v-else-if="reviewIndex < reviewList.length - 1" class="btn btn-primary" @click="nextQuestion">下一题 →</button>
           <button v-else class="btn btn-primary" @click="finishReview">完成复习</button>
@@ -231,6 +251,7 @@
 
 import { toast } from '../toast'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { useImgError } from '../useImgError'
 import { numToCn } from '../utils/num'
@@ -247,6 +268,11 @@ const answered = ref(false)
 const lastResult = ref({})
 const explaining = ref(false)
 const explainText = ref('')
+const sessionDone = ref(false)
+const sessionReviewed = ref(0)
+const sessionMastered = ref(0)
+const sessionRetry = ref(0)
+const router = useRouter()
 
 const currentQuestion = computed(() => reviewList.value[reviewIndex.value] || {})
 const qtype = computed(() => currentQuestion.value.type || 'single')
@@ -293,6 +319,7 @@ async function load() {
 function startReview() {
   reviewList.value = [...data.value.due]
   reviewIndex.value = 0
+  sessionReset()
   resetQuestion()
   reviewing.value = true
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -302,9 +329,18 @@ function startAt(q) {
   const idx = data.value.due.findIndex(x => x.id === q.id)
   reviewList.value = [...data.value.due]
   reviewIndex.value = idx >= 0 ? idx : 0
+  sessionReset()
   resetQuestion()
   reviewing.value = true
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 每次进入新一轮复习时重置会话统计与小结
+function sessionReset() {
+  sessionDone.value = false
+  sessionReviewed.value = 0
+  sessionMastered.value = 0
+  sessionRetry.value = 0
 }
 
 function resetQuestion() {
@@ -342,6 +378,9 @@ async function submitAnswer() {
     })
     lastResult.value = r
     answered.value = true
+    sessionReviewed.value++
+    if (r.mastered) sessionMastered.value++
+    else if (!r.correct) sessionRetry.value++
   } catch (e) {
     toast(e.message || '提交失败，请稍后重试', 'error')
   }
@@ -357,6 +396,9 @@ async function submitSubjective(correct) {
     })
     lastResult.value = r
     answered.value = true
+    sessionReviewed.value++
+    if (r.mastered) sessionMastered.value++
+    else if (!correct) sessionRetry.value++
   } catch (e) {
     toast(e.message || '提交失败，请稍后重试', 'error')
   }
@@ -384,7 +426,20 @@ async function nextQuestion() {
 async function finishReview() {
   reviewing.value = false
   await load()
-  toast('本轮复习完成，继续保持！', 'success')
+  sessionDone.value = true
+  // 刷新后仍在数据列表之上展示本轮小结，形成复习闭环反馈
+  setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }, 0)
+}
+
+// 中途退出复习：已作答结果均在服务端落库，返回待复习列表，不丢失数据
+async function exitReview() {
+  reviewing.value = false
+  await load()
+  toast('已退出复习，作答进度已保存', 'success')
+}
+
+function goWrongBook() {
+  router.push('/wrong-book')
 }
 
 onMounted(load)
@@ -393,10 +448,19 @@ onMounted(load)
 <style scoped>
 .review-page { max-width: 860px; }
 .page-head { text-align: center; margin-bottom: 26px; }
-.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.page-head h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 .page-head p { color: var(--muted); margin-top: 4px; font-size: 0.92rem; }
 .remind-link { margin-top: 12px; display: inline-flex; align-items: center; gap: 7px; }
 .remind-link svg { width: 15px; height: 15px; }
+
+/* 本轮复习小结 */
+.session-done { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 22px; margin-bottom: 18px; border: 1px solid rgba(13,166,120,0.25); background: linear-gradient(135deg, var(--green-soft) 0%, transparent 70%); }
+.sd-icon { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--green); background: #fff; box-shadow: 0 3px 12px rgba(13,166,120,0.16); }
+.sd-body { flex: 1; min-width: 200px; }
+.sd-body h3 { font-size: 1.12rem; font-weight: 800; }
+.sd-stats { margin-top: 4px; font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+.sd-tip { margin-top: 4px; font-size: 0.8rem; color: var(--muted); line-height: 1.7; }
+.sd-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .ov-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
 .ov-item { text-align: center; padding: 18px 8px; transition: background-color 0.25s var(--ease); }
@@ -457,13 +521,13 @@ onMounted(load)
 .cal-day.today { border-color: var(--accent); background: var(--accent-soft); }
 .cal-day.today:hover { box-shadow: 0 4px 12px rgba(79, 95, 240, 0.25); }
 .cal-day.has { border-color: var(--accent-2); }
-.cal-week { font-size: 0.75rem; color: var(--muted); }
+.cal-week { font-size: 0.78rem; color: var(--muted); }
 .cal-date { font-size: 0.82rem; font-weight: 600; margin: 4px 0; }
 .cal-day.today .cal-date { color: var(--accent); font-weight: 800; }
 .cal-count {
   width: 22px; height: 22px; border-radius: 50%; margin: 0 auto;
   background: var(--accent);
-  color: #fff; font-size: 0.75rem; font-weight: 700;
+  color: #fff; font-size: 0.78rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   font-variant-numeric: tabular-nums;
 }
@@ -475,7 +539,7 @@ onMounted(load)
 .due-list { display: flex; flex-direction: column; gap: 12px; }
 .due-item { padding: 14px 16px; border: 1px solid var(--rule); border-radius: 12px; }
 .due-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.due-stage { font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.due-stage { font-size: 0.78rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
 .due-stage.s0 { background: var(--red-soft); color: #be123c; }
 .due-stage.s1 { background: var(--amber-soft); color: #b45309; }
 .due-stage.s2, .due-stage.s3, .due-stage.s4, .due-stage.s5 { background: var(--accent-soft); color: var(--accent); }
@@ -500,6 +564,9 @@ onMounted(load)
 .q-top-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .q-round { font-size: 0.82rem; font-weight: 700; color: var(--accent); }
 .q-count { font-size: 0.85rem; color: var(--muted); }
+.review-progress { height: 4px; border-radius: 999px; background: var(--rule); margin: -2px 0 18px; overflow: hidden; }
+.rp-fill { height: 100%; border-radius: 999px; background: var(--grad-accent); transition: width 0.35s var(--ease); }
+.btn-exit { margin-right: auto; }
 .q-stem { font-size: 1.08rem; line-height: 1.8; margin-bottom: 20px; overflow-wrap: break-word; word-break: break-word; }
 
 .options { display: flex; flex-direction: column; gap: 10px; }
@@ -515,7 +582,7 @@ onMounted(load)
 .option.disabled { cursor: default; }
 .opt-letter { font-weight: 700; color: var(--accent); flex: 0 0 auto; }
 .opt-text { flex: 1; overflow-wrap: break-word; word-break: break-word; }
-.opt-miss { margin-left: auto; font-size: 0.75rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-top: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .detail-ans { margin-bottom: 0; }
@@ -566,24 +633,24 @@ onMounted(load)
   .ov-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .ov-item { padding: 14px 6px; }
   .ov-num { font-size: 1.45rem; }
-  .ov-lbl { font-size: 0.76rem; }
+  .ov-lbl { font-size: 0.78rem; }
   .curve-card, .cal-card, .due-card { padding: 16px 14px; }
   .curve-step { min-width: 52px; padding-top: 6px; }
   .cs-dot { width: 30px; height: 30px; font-size: 0.82rem; }
-  .cs-lbl { font-size: 0.75rem; }
-  .cs-num { font-size: 0.75rem; }
+  .cs-lbl { font-size: 0.78rem; }
+  .cs-num { font-size: 0.78rem; }
   .cal-day { flex: 0 0 52px; padding: 8px 4px; }
-  .cal-week { font-size: 0.72rem; }
+  .cal-week { font-size: 0.78rem; }
   .cal-date { font-size: 0.78rem; }
-  .cal-count { width: 24px; height: 24px; font-size: 0.72rem; }
+  .cal-count { width: 24px; height: 24px; font-size: 0.78rem; }
   .due-item { padding: 12px 14px; }
-  .due-stage { font-size: 0.72rem; padding: 2px 8px; }
-  .due-date { margin-left: 0; width: 100%; font-size: 0.74rem; }
+  .due-stage { font-size: 0.78rem; padding: 2px 8px; }
+  .due-date { margin-left: 0; width: 100%; font-size: 0.78rem; }
   .due-stem { font-size: 0.92rem; }
   .question-card { padding: 18px 14px; }
   .q-stem { font-size: 0.98rem; line-height: 1.7; }
   .option { padding: 11px 12px; font-size: 0.9rem; }
-  .opt-miss { font-size: 0.72rem; padding: 2px 6px; }
+  .opt-miss { font-size: 0.78rem; padding: 2px 6px; }
   .result { padding: 14px 14px; }
   .analysis { font-size: 0.86rem; }
   .q-actions .btn { flex: 1; min-height: 40px; }

@@ -40,3 +40,9 @@ function dismiss(id) {
 }
 
 export const notify = toast
+
+// 兼容既有调用：toast.success/error/warn/info(...) 等价于 toast(msg, type)
+toast.success = m => toast(m, 'success')
+toast.error = m => toast(m, 'error')
+toast.warn = m => toast(m, 'warn')
+toast.info = m => toast(m, 'info')

@@ -165,7 +165,7 @@ onMounted(load)
 .ex-icon svg { width: 19px; height: 19px; }
 .ex-body { flex: 1; min-width: 0; }
 .ex-body strong { font-size: 0.88rem; display: block; }
-.ex-body p { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+.ex-body p { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 .ex-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .ex-cost { font-size: 0.78rem; color: var(--amber); font-weight: 700; }
 .exchange-note { color: var(--muted-2); font-size: 0.78rem; margin-top: 10px; }
@@ -184,7 +184,7 @@ onMounted(load)
 .t-amber { background: var(--amber-soft); color: var(--amber); }
 .ei-body { flex: 1; min-width: 0; }
 .ei-body strong { font-size: 0.88rem; display: block; }
-.ei-body p { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+.ei-body p { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 .ei-points { font-weight: 800; color: var(--accent); font-size: 0.95rem; }
 
 .log-list { padding: 6px 18px; }
@@ -195,7 +195,7 @@ onMounted(load)
 .log-row:last-child { border-bottom: none; }
 .lr-left { display: flex; flex-direction: column; gap: 2px; }
 .lr-left strong { font-size: 0.88rem; font-weight: 600; }
-.lr-time { font-size: 0.75rem; color: var(--muted-2); }
+.lr-time { font-size: 0.78rem; color: var(--muted-2); }
 .lr-change { font-weight: 800; font-size: 1rem; }
 .lr-change.plus { color: var(--green); }
 .lr-change.minus { color: var(--muted-2); }

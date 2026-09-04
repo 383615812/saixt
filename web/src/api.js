@@ -45,6 +45,29 @@ async function request(path, options = {}) {
   return data.data
 }
 
+// 二进制下载：复用 BASE/token/超时/统一错误，但不做 JSON 解析，返回原始 Response 供取 blob
+async function download(path) {
+  const token = localStorage.getItem('saixt_token')
+  const headers = token ? { Authorization: `Bearer ${token}` } : {}
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  let res
+  try {
+    res = await fetch(BASE + path, { headers, signal: controller.signal })
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('下载请求超时，请重试')
+    throw new Error('网络连接失败，请检查网络后重试')
+  } finally {
+    clearTimeout(timer)
+  }
+  if (!res.ok) {
+    let msg = '下载失败，请稍后重试'
+    try { const d = await res.json(); if (d?.message) msg = d.message } catch { /* 非 JSON 响应保持默认提示 */ }
+    throw new Error(msg)
+  }
+  return res
+}
+
 export const api = {
   get: (path, params) => {
     const qs = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''
@@ -53,7 +76,8 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) }),
   put: (path, body) => request(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  del: path => request(path, { method: 'DELETE' })
+  del: path => request(path, { method: 'DELETE' }),
+  download
 }
 
 export function getUser() {

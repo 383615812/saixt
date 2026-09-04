@@ -158,7 +158,7 @@ onMounted(load)
   font-size: 2rem; font-weight: 800; letter-spacing: 0.18em;
   margin: 4px 0 2px; cursor: pointer; user-select: all;
 }
-.ih-hint { font-size: 0.74rem; color: rgba(255, 255, 255, 0.65); }
+.ih-hint { font-size: 0.78rem; color: rgba(255, 255, 255, 0.65); }
 .ih-btn {
   background: #fff; color: var(--accent);
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
@@ -192,7 +192,7 @@ onMounted(load)
 .reward-item { text-align: center; padding: 20px 14px; }
 .ri-num { font-size: 1.6rem; font-weight: 800; color: var(--accent); letter-spacing: -0.02em; }
 .reward-item strong { display: block; font-size: 0.9rem; margin-top: 4px; }
-.reward-item p { font-size: 0.76rem; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+.reward-item p { font-size: 0.78rem; color: var(--muted); margin-top: 4px; line-height: 1.6; }
 
 .invite-list { padding: 6px 18px; }
 .invite-row {
@@ -207,7 +207,7 @@ onMounted(load)
 }
 .ir-body { flex: 1; display: flex; flex-direction: column; }
 .ir-body strong { font-size: 0.88rem; }
-.ir-time { font-size: 0.75rem; color: var(--muted-2); }
+.ir-time { font-size: 0.78rem; color: var(--muted-2); }
 
 @media (max-width: 600px) {
   .invite-hero { flex-wrap: wrap; padding: 20px; }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container fav-page">
     <div class="page-head">
       <h2>我的收藏</h2>
@@ -77,6 +77,9 @@
           <button class="btn btn-ghost btn-sm" @click="toggleDetail(q)">
             {{ detailId === q.id ? '收起解析' : '查看答案与解析' }}
           </button>
+          <button class="btn btn-ghost btn-sm" :disabled="aiExplain.loading && aiExplain.id !== q.id" @click="explain(q)">
+            {{ aiExplain.id === q.id && aiExplain.loading ? 'AI 讲解中…' : (aiExplain.id === q.id && !aiExplain.loading ? '收起 AI 讲解' : 'AI 讲解') }}
+          </button>
           <button class="btn btn-ghost btn-sm fav-btn" @click="unfav(q)">
             <span class="fav-star">★</span> 取消收藏
           </button>
@@ -84,6 +87,10 @@
         <div v-if="detailId === q.id" class="q-detail">
           <div class="detail-ans"><span class="tag tag-green">正确答案：{{ q.answer }}</span></div>
           <div class="detail-analysis"><strong>解析：</strong>{{ q.analysis }}</div>
+        </div>
+        <div v-if="aiExplain.id === q.id" class="q-ai">
+          <div class="q-ai-head"><span class="q-ai-ic">AI</span><strong>AI 讲解</strong></div>
+          <p class="q-ai-text">{{ aiText }}<span v-if="aiTyping" class="tw-caret"></span></p>
         </div>
       </div>
     </div>
@@ -97,6 +104,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { useImgError } from '../useImgError'
+import { useTypewriter } from '../useTypewriter'
 
 const router = useRouter()
 const subject = ref('')
@@ -106,6 +114,10 @@ const all = ref([])
 const list = ref([])
 const loading = ref(false)
 const detailId = ref(0)
+
+// 单题 AI 讲解：复用打字机，一次只展开一题
+const { text: aiText, typing: aiTyping, type: typeAi, stop: stopAi } = useTypewriter()
+const aiExplain = ref({ id: 0, loading: false })
 
 const subjects = computed(() => {
   const map = new Map()
@@ -139,7 +151,12 @@ const { onImgError } = useImgError()
 async function unfav(q) {
   try {
     await api.post('/favorites/toggle', { question_id: q.id })
-  } catch (e) { /* 忽略 */ }
+  } catch (e) {
+    // 失败时不从列表移除，避免界面与后端收藏状态不一致
+    toast('取消收藏失败，请重试', 'error')
+    return
+  }
+  if (aiExplain.value.id === q.id) closeAi()
   all.value = all.value.filter(x => x.id !== q.id)
   applyFilter()
 }
@@ -151,6 +168,28 @@ function formatTime(t) {
   if (!t) return ''
   const d = new Date(t)
   return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+function closeAi() {
+  stopAi()
+  aiExplain.value = { id: 0, loading: false }
+}
+async function explain(q) {
+  if (aiExplain.value.loading) return
+  // 再次点击同一题 = 收起
+  if (aiExplain.value.id === q.id) { closeAi(); return }
+  aiExplain.value = { id: q.id, loading: true }
+  stopAi()
+  try {
+    const d = await api.post('/ai/explain', { question_id: q.id })
+    typeAi(d.reply || '本题暂无 AI 讲解')
+    window.dispatchEvent(new Event('ai-quota-refresh'))
+  } catch (e) {
+    toast(e.message || 'AI 讲解失败，请稍后重试', 'error')
+    closeAi()
+  } finally {
+    aiExplain.value.loading = false
+  }
 }
 
 async function load() {
@@ -185,7 +224,7 @@ onMounted(load)
 .chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .chip.on { background: var(--accent); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(79, 95, 240, 0.25); }
 .chip-sm { padding: 5px 12px; font-size: 0.8rem; }
-.chip-count { font-size: 0.75rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
+.chip-count { font-size: 0.78rem; opacity: 0.68; margin-left: 5px; font-weight: 500; }
 
 .q-list { display: flex; flex-direction: column; gap: 14px; }
 .q-item { padding: 18px 20px; transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease); }
@@ -214,6 +253,11 @@ onMounted(load)
 .q-detail { margin-top: 12px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 12px; }
 .detail-ans { margin-bottom: 8px; }
 .detail-analysis { font-size: 0.92rem; line-height: 1.9; overflow-wrap: break-word; word-break: break-word; }
+.q-ai { margin-top: 12px; padding: 14px 16px; background: linear-gradient(135deg, var(--accent-soft), var(--surface)); border: 1px solid rgba(79, 95, 240, 0.18); border-radius: 12px; }
+.q-ai-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.q-ai-head strong { font-size: 0.9rem; }
+.q-ai-ic { width: 24px; height: 24px; border-radius: 8px; background: var(--grad-accent); color: #fff; font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.q-ai-text { font-size: 0.93rem; line-height: 1.9; color: var(--ink); overflow-wrap: break-word; word-break: break-word; }
 
 @media (max-width: 600px) {
   .q-item { padding: 16px 14px; }
@@ -228,7 +272,7 @@ onMounted(load)
 @media (max-width: 400px) {
   .q-foot { flex-wrap: wrap; }
   .q-foot .btn { flex: 1 1 100%; }
-  .chip-count { font-size: 0.75rem; }
+  .chip-count { font-size: 0.78rem; }
 }
 
 /* ===== 骨架屏 ===== */

@@ -156,7 +156,7 @@ const labels = computed(() => {
 .radar-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .radar-svg { width: 100%; max-width: 440px; height: auto; }
 .radar-poly { filter: drop-shadow(0 2px 6px rgba(79, 95, 240, 0.18)); }
-.radar-label { font-size: 12px; fill: var(--muted); font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; cursor: pointer; pointer-events: all; transition: fill 0.2s var(--ease); }
+.radar-label { font-size: 13px; fill: var(--muted); font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; cursor: pointer; pointer-events: all; transition: fill 0.2s var(--ease); }
 .radar-label:hover { fill: var(--accent); }
 .radar-dot { cursor: pointer; transition: fill 0.15s var(--ease), r 0.15s var(--ease); }
 .radar-dot:hover { fill: var(--accent-2); }
@@ -167,6 +167,6 @@ const labels = computed(() => {
 .legend-label { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .radar-legend-item strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 @media (max-width: 480px) {
-  .radar-label { font-size: 0.72rem; }
+  .radar-label { font-size: 0.78rem; }
 }
 </style>

@@ -259,13 +259,13 @@ onMounted(() => load(0))
 .sc-code { font-size: 0.78rem; color: var(--muted); }
 .nature-badge {
   display: inline-block; margin-left: 6px; padding: 1px 7px; vertical-align: 2px;
-  font-size: 0.68rem; font-weight: 600; border-radius: 999px; letter-spacing: 0.02em;
+  font-size: 0.78rem; font-weight: 600; border-radius: 999px; letter-spacing: 0.02em;
 }
 .nat-public { color: #0e7490; background: rgba(14, 116, 144, 0.12); border: 1px solid rgba(14, 116, 144, 0.28); }
 .nat-private { color: #b45309; background: rgba(245, 158, 11, 0.13); border: 1px solid rgba(245, 158, 11, 0.3); }
 .sc-est {
   display: inline-block; margin-top: 6px; padding: 2px 8px;
-  font-size: 0.74rem; font-weight: 600; color: #fff;
+  font-size: 0.78rem; font-weight: 600; color: #fff;
   border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2));
 }
 
@@ -273,7 +273,7 @@ onMounted(() => load(0))
 .sc-stat { text-align: center; }
 .sc-stat .num { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
 .sc-stat .num.tuition { font-size: 0.82rem; color: var(--accent-2); }
-.sc-stat .lbl { font-size: 0.76rem; color: var(--muted); margin-top: 2px; }
+.sc-stat .lbl { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 
 .sc-foot { margin-top: auto; padding-top: 14px; text-align: center; }
 .btn-sm { padding: 8px 16px; font-size: 0.85rem; min-height: 40px; }
@@ -301,11 +301,11 @@ onMounted(() => load(0))
   .sc-head { gap: 10px; margin-bottom: 8px; }
   .sc-logo { width: 40px; height: 40px; font-size: 0.88rem; }
   .sc-info h3 { font-size: 0.95rem; }
-  .sc-code { font-size: 0.75rem; }
+  .sc-code { font-size: 0.78rem; }
   .sc-stats { gap: 6px; padding: 8px 0; }
   .sc-stat .num { font-size: 0.95rem; }
-  .sc-stat .num.tuition { font-size: 0.76rem; }
-  .sc-stat .lbl { font-size: 0.75rem; }
+  .sc-stat .num.tuition { font-size: 0.78rem; }
+  .sc-stat .lbl { font-size: 0.78rem; }
   .sc-foot { padding-top: 10px; }
   .pager { gap: 10px; flex-wrap: wrap; }
   .pager-info { font-size: 0.82rem; width: 100%; text-align: center; order: -1; }
@@ -313,8 +313,8 @@ onMounted(() => load(0))
 @media (max-width: 400px) {
   .sc-stats { grid-template-columns: repeat(3, 1fr); gap: 4px; }
   .sc-stat .num { font-size: 0.9rem; }
-  .sc-stat .num.tuition { font-size: 0.75rem; }
-  .sc-stat .lbl { font-size: 0.75rem; }
+  .sc-stat .num.tuition { font-size: 0.78rem; }
+  .sc-stat .lbl { font-size: 0.78rem; }
 }
 
 /* ===== 骨架屏 ===== */

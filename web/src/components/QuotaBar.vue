@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
 
 .qb-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .qb-body strong { font-size: 0.88rem; color: var(--ink); }
-.qb-body span { font-size: 0.76rem; color: var(--muted); margin-top: 1px; }
+.qb-body span { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
 
 .qb-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .qb-link { font-size: 0.8rem; color: var(--accent); font-weight: 600; }

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container admin-page">
     <div class="page-head">
       <h2>运营数据看板</h2>
@@ -713,7 +713,7 @@ onMounted(load)
 .kpi-num.kpi-pay { font-size: 1.3rem; }
 .kpi-num.kpi-pay.ok { color: var(--green); }
 .kpi-num.kpi-pay.warn { color: var(--amber); }
-.kpi-sub { font-size: 0.74rem; color: var(--muted-2); }
+.kpi-sub { font-size: 0.78rem; color: var(--muted-2); }
 
 .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 28px 0 0; }
 .sec-head .sec-title { margin: 0 0 14px; }
@@ -752,15 +752,15 @@ onMounted(load)
   width: 100%; max-width: 30px; border-radius: 6px 6px 2px 2px;
   background: var(--grad-accent); transition: height 0.5s var(--ease-out); min-height: 2px;
 }
-.tbar-label { font-size: 0.75rem; color: var(--muted-2); white-space: nowrap; }
+.tbar-label { font-size: 0.78rem; color: var(--muted-2); white-space: nowrap; }
 
 .user-table-wrap { padding: 6px 8px; overflow-x: auto; max-width: 100%; }
 .user-table.user-table-sm { min-width: 520px; }
-.admin-hint { margin: 8px 10px 4px; font-size: 0.76rem; color: var(--muted-2); }
+.admin-hint { margin: 8px 10px 4px; font-size: 0.78rem; color: var(--muted-2); }
 .user-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 640px; }
 .user-table th {
   text-align: left; padding: 12px 10px; color: var(--muted-2);
-  font-size: 0.74rem; font-weight: 600; border-bottom: 1px solid var(--rule);
+  font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--rule);
 }
 .user-table td { padding: 11px 10px; border-bottom: 1px solid var(--rule-soft); }
 .user-table tr:last-child td { border-bottom: none; }
@@ -773,8 +773,8 @@ onMounted(load)
   display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700;
 }
 .ut-muted { color: var(--muted-2); font-size: 0.78rem; }
-.ut-sub { font-size: 0.75rem; color: var(--muted-2); font-weight: 400; }
-.ut-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 0.74rem; color: var(--muted); }
+.ut-sub { font-size: 0.78rem; color: var(--muted-2); font-weight: 400; }
+.ut-mono { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: 0.78rem; color: var(--muted); }
 .ut-amount { font-weight: 700; color: var(--amber); }
 .ut-empty { text-align: center; color: var(--muted-2); padding: 24px 10px; }
 .ut-act { text-align: right; }
@@ -812,7 +812,7 @@ onMounted(load)
 
 .ov-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
 .ov-cell { display: flex; flex-direction: column; gap: 2px; }
-.ov-l { font-size: 0.74rem; color: var(--muted-2); }
+.ov-l { font-size: 0.78rem; color: var(--muted-2); }
 .ov-v { font-size: 0.9rem; font-weight: 600; }
 .ov-money { color: var(--accent); font-weight: 800; }
 
@@ -836,7 +836,7 @@ onMounted(load)
 .ad-empty { color: var(--muted-2); font-size: 0.8rem; }
 
 .mini-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.mini-table th { text-align: left; padding: 7px 8px; color: var(--muted-2); font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid var(--rule); }
+.mini-table th { text-align: left; padding: 7px 8px; color: var(--muted-2); font-size: 0.78rem; font-weight: 600; border-bottom: 1px solid var(--rule); }
 .mini-table td { padding: 8px; border-bottom: 1px solid var(--rule-soft); }
 .mini-table tr:last-child td { border-bottom: none; }
 .pos { color: var(--green); font-weight: 700; }

@@ -114,7 +114,7 @@ router.post('/session', requireAuth, submitLimiter, (req, res) => {
 // 开始一次练习（专项/错题重练），计入"练习次数"
 router.post('/start', requireAuth, (req, res) => {
   const { subject, mode } = req.body || {};
-  const safeMode = mode === 'redo' ? 'redo' : 'practice';
+  const safeMode = ['redo', 'exam', 'ai'].includes(mode) ? mode : 'practice';
   const info = db.prepare('INSERT INTO practice_sessions (user_id, subject, mode, total, correct, score) VALUES (?,?,?,0,0,0)')
     .run(req.userId, String(subject || '综合').slice(0, 50), safeMode);
   res.json({ code: 0, data: { id: Number(info.lastInsertRowid) } });
@@ -307,6 +307,21 @@ router.get('/wrong/export', requireAuth, (req, res) => {
   doc.fontSize(10).fillColor('#999').text('云南春招智能学习平台 · 错题本导出', { align: 'center' });
 
   doc.end();
+});
+
+// 已掌握题目归档（含掌握时间，供学习成果回顾）
+router.get('/wrong/mastered', requireAuth, (req, res) => {
+  const { subject } = req.query;
+  let sql = `SELECT q.id, q.subject, q.chapter, q.stem, q.options, q.answer, q.analysis, q.source,
+     wm.created_at AS mastered_at
+     FROM wrong_mastered wm JOIN questions q ON q.id = wm.question_id
+     WHERE wm.user_id = ?`;
+  const params = [req.userId];
+  if (subject) { sql += ' AND q.subject = ?'; params.push(subject); }
+  sql += ' ORDER BY wm.created_at DESC, q.id DESC';
+  const rows = db.prepare(sql).all(...params);
+  const list = rows.map(r => withImages({ ...r, options: JSON.parse(r.options || '[]') }));
+  res.json({ code: 0, data: list });
 });
 
 // 盲盒刷题 - 抽取随机题目（带稀有度）

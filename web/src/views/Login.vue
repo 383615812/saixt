@@ -271,7 +271,7 @@ async function submit() {
   animation: errIn 0.25s var(--ease-out) both;
 }
 .field-hint {
-  display: block; font-size: 0.74rem; color: var(--muted-2); margin-top: 5px;
+  display: block; font-size: 0.78rem; color: var(--muted-2); margin-top: 5px;
 }
 @keyframes errIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -300,7 +300,7 @@ async function submit() {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.tip { color: var(--muted-2); font-size: 0.76rem; text-align: center; margin-top: 16px; line-height: 1.6; }
+.tip { color: var(--muted-2); font-size: 0.78rem; text-align: center; margin-top: 16px; line-height: 1.6; }
 
 @media (max-width: 480px) {
   .login-page { padding: 24px 12px 40px; }

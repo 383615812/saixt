@@ -556,7 +556,7 @@ function initCharts() {
           r: {
             angleLines: { color: colors.grid },
             grid: { color: colors.grid },
-            pointLabels: { color: colors.text, font: { size: 12 } },
+            pointLabels: { color: colors.text, font: { size: 13 } },
             ticks: { color: colors.text, backdropColor: 'transparent', stepSize: 20 },
             suggestedMin: 0,
             suggestedMax: 100
@@ -746,6 +746,7 @@ onUnmounted(() => {
 .screen-retry {
   margin-top: 14px;
   padding: 7px 18px;
+  min-height: 44px;
   border: 1px solid rgba(79, 95, 240, 0.5);
   border-radius: 999px;
   background: rgba(79, 95, 240, 0.15);
@@ -819,8 +820,9 @@ onUnmounted(() => {
   gap: 4px;
 }
 .panel-tabs .tab {
-  padding: 2px 10px;
-  font-size: 12px;
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: 13px;
   border-radius: 4px;
   cursor: pointer;
   color: rgba(255,255,255,0.5);
@@ -951,7 +953,7 @@ onUnmounted(() => {
   color: rgba(255,255,255,0.5);
 }
 .ach-pct {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--green-light);
   margin-top: 4px;
 }
@@ -1011,7 +1013,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .ci-bar-label {
   width: 36px;
@@ -1045,7 +1047,7 @@ onUnmounted(() => {
 }
 .ci-trend {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   text-align: right;
 }
@@ -1055,7 +1057,7 @@ onUnmounted(() => {
 
 /* 章节掌握度热力图 */
 .row-1 { grid-template-columns: 1fr; }
-.heat-legend { display: inline-flex; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.55); align-items: center; }
+.heat-legend { display: inline-flex; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.55); align-items: center; }
 .heat-legend .hl { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 3px; }
 .heat-legend .hl.l0 { background: rgba(225,29,72,.55); }
 .heat-legend .hl.l1 { background: rgba(217,119,6,.6); }
@@ -1067,7 +1069,7 @@ onUnmounted(() => {
 .heat-cells { display: flex; flex-wrap: wrap; gap: 8px; }
 .heat-cell {
   display: flex; flex-direction: column; gap: 2px;
-  min-width: 128px; padding: 8px 12px; border-radius: 8px;
+  min-width: 110px; padding: 8px 12px; border-radius: 8px;
   border: 1px solid rgba(255,255,255,.08); cursor: default;
   transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
 }
@@ -1080,8 +1082,8 @@ onUnmounted(() => {
 .heat-cell.l2:hover { box-shadow: 0 6px 18px rgba(79,95,240,.22); }
 .heat-cell.l3 { background: rgba(13,166,120,.18); border-color: rgba(13,166,120,.4); }
 .heat-cell.l3:hover { box-shadow: 0 6px 18px rgba(13,166,120,.22); }
-.hc-name { font-size: 12.5px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hc-vals { font-size: 12px; color: rgba(255,255,255,.6); font-family: 'Courier New', monospace; }
+.hc-name { font-size: 13px; font-weight: 600; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-vals { font-size: 13px; color: rgba(255,255,255,.6); font-family: 'Courier New', monospace; }
 
 @media (max-width: 1024px) {
   .row-4 { grid-template-columns: repeat(2, 1fr); }
@@ -1096,20 +1098,44 @@ onUnmounted(() => {
   .header-left h1 { font-size: 18px; letter-spacing: 1px; }
   .deco { width: 32px; }
   .header-right .time { font-size: 16px; }
-  .header-right .date { font-size: 12px; }
+  .header-right .date { font-size: 13px; }
   .chart-wrap { height: 190px; }
   .chart-wrap.tall { height: 240px; }
   .panel { padding: 13px; }
 }
 
 @media (max-width: 480px) {
+  .screen { padding: 12px 12px calc(28px + env(safe-area-inset-bottom)); }
   .row { gap: 10px; margin-bottom: 10px; }
   .row-4 { grid-template-columns: repeat(2, 1fr); }
   .panel { padding: 12px; }
-  .panel-title { font-size: 13px; }
-  .chart-wrap { height: 180px; }
-  .chart-wrap.tall { height: 220px; }
+  .panel-title { font-size: 14px; }
+  .chart-wrap { height: 190px; }
+  .chart-wrap.tall { height: 230px; }
   .kpi-panel { padding: 16px 10px; }
+  .kpi-label { font-size: 14px; }
+  .ci-label { font-size: 14px; }
+  .heat-legend { font-size: 13px; }
+  .hc-name { font-size: 14px; }
+  .hc-vals { font-size: 13px; }
   .ach-circle { width: 110px; height: 110px; }
+  .header-left { gap: 10px; }
+  .header-left h1 { font-size: 20px; letter-spacing: 1px; }
+  .deco { width: 44px; }
+  .header-right .time { font-size: 18px; }
+}
+@media (max-width: 400px) {
+  .screen { padding: 10px 10px calc(24px + env(safe-area-inset-bottom)); }
+  .screen-header { flex-direction: column; align-items: stretch; gap: 4px; margin-bottom: 12px; padding: 0; }
+  .header-left h1 { font-size: 18px; letter-spacing: 0.5px; }
+  .deco { width: 32px; }
+  .header-right { text-align: left; display: flex; align-items: baseline; gap: 10px; }
+  .header-right .time { font-size: 15px; }
+  .header-right .date { font-size: 13px; }
+  .kpi-value { font-size: 26px; }
+  .ach-num { font-size: 24px; }
+  .row { gap: 8px; margin-bottom: 8px; }
+  .panel { padding: 10px; }
+  .kpi-panel { padding: 14px 8px; }
 }
 </style>

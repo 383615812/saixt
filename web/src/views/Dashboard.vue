@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="container dash-page">
     <div v-if="loading" class="dash-skeleton">
       <!-- 欢迎区骨架 -->
@@ -90,6 +90,31 @@
           <router-link to="/weekly-report" class="btn btn-ghost">学习周报</router-link>
           <button class="btn btn-ghost" @click="exportReport">导出学习报告</button>
           <router-link to="/practice" class="btn btn-primary">去刷题</router-link>
+        </div>
+      </div>
+
+      <!-- 今日学习建议 -->
+      <div v-if="todayTips.length" class="card today-tips">
+        <div class="tt-head">
+          <h3>今日学习建议</h3>
+          <span class="tt-sub">基于你的实时学习情况生成</span>
+        </div>
+        <div class="tt-list">
+          <a
+            v-for="(t, i) in todayTips"
+            :key="i"
+            :class="['tt-item', { clickable: t.to || t.onClick }]"
+            @click="runTip(t)"
+          >
+            <span class="tt-icon">{{ t.icon }}</span>
+            <span class="tt-text">
+              <strong>{{ t.text }}</strong>
+              <em>{{ t.sub }}</em>
+            </span>
+            <span v-if="t.to || t.onClick" class="tt-go">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+          </a>
         </div>
       </div>
 
@@ -649,7 +674,7 @@ function exportReport() {
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .cell { text-align: center; background: #f9fafb; border-radius: 10px; padding: 14px 8px; }
   .cell .num { font-size: 22px; font-weight: 800; color: #4f5ff0; }
-  .cell .lbl { font-size: 12px; color: #6b7280; margin-top: 4px; }
+  .cell .lbl { font-size: 13px; color: #6b7280; margin-top: 4px; }
   .row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
   .row .lbl { width: 170px; flex-shrink: 0; }
   .row .track { flex: 1; height: 10px; background: #f0f2f8; border-radius: 999px; overflow: hidden; }
@@ -659,7 +684,7 @@ function exportReport() {
   .exam-row .d { color: #6b7280; }
   .exam-row .s { font-weight: 700; color: #4f5ff0; }
   .exam-row .c { margin-left: auto; color: #6b7280; }
-  .note { font-size: 12px; color: #9ca3af; margin-top: 16px; line-height: 1.8; }
+  .note { font-size: 13px; color: #9ca3af; margin-top: 16px; line-height: 1.8; }
   @media print { body { padding: 0; } }
 </style>
 </head>
@@ -739,8 +764,8 @@ function exportWrong() {
   .sub { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
   .q-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; page-break-inside: avoid; }
   .q-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .q-no { width: 24px; height: 24px; border-radius: 50%; background: #4f5ff0; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-  .tag { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: #eff6ff; color: #4f5ff0; }
+  .q-no { width: 24px; height: 24px; border-radius: 50%; background: #4f5ff0; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+  .tag { font-size: 13px; padding: 2px 10px; border-radius: 999px; background: #eff6ff; color: #4f5ff0; }
   .q-stem { font-weight: 600; line-height: 1.8; margin: 0 0 12px; }
   .q-opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
   .opt { font-size: 14px; color: #374151; }
@@ -898,11 +923,56 @@ async function doCheckin() {
     await api.post('/checkin')
     const ck = await api.get('/checkin/me')
     checkin.value = ck
+    // 打卡可能伴随积分奖励，即时刷新让奖励"看得见"
+    try {
+      const p = await api.get('/points/me')
+      points.value = p.balance ?? 0
+    } catch (e) { /* 忽略积分刷新失败 */ }
+    toast(`打卡成功！已连续 ${ck.streak} 天`, 'success')
   } catch (e) {
     toast(e.message || '打卡失败，请稍后重试', 'error')
   } finally {
     checking.value = false
   }
+}
+
+// 今日已完成刷题量（趋势最后一项为今天）
+const todayDone = computed(() => {
+  const t = trend.value
+  if (!t.length) return 0
+  const last = t[t.length - 1]
+  return isToday(last.date) ? last.total : 0
+})
+
+// 聚合实时数据生成今日学习建议：打卡/复习/薄弱点/刷题，形成优先级行动清单
+const todayTips = computed(() => {
+  const tips = []
+  if (!checkin.value.checkedToday) {
+    tips.push({ icon: '📅', text: '今天还没打卡', sub: '连续打卡有额外积分奖励，养成习惯', to: null, onClick: doCheckin })
+  }
+  if (reviewDue.value > 0) {
+    tips.push({ icon: '🔔', text: `还有 ${reviewDue.value} 道错题到了复习时间`, sub: '遗忘曲线智能提醒，及时复习记得更牢', to: '/review' })
+  }
+  const weak = mastery.value.weak[0]
+  if (weak) {
+    tips.push({
+      icon: '🎯',
+      text: `优先补强薄弱章节「${weak.subject}·${weak.chapter}」`,
+      sub: `当前正确率 ${weak.accuracy}%，低于 60%`,
+      to: { path: '/ai-practice', query: { subject: weak.subject, chapter: weak.chapter } }
+    })
+  }
+  if (todayDone.value === 0) {
+    tips.push({ icon: '✏️', text: '今天还没开始刷题', sub: '去刷几题，让掌握度测算更准', to: '/practice' })
+  } else if (todayDone.value < 20) {
+    tips.push({ icon: '🚀', text: `今天已刷 ${todayDone.value} 题`, sub: '保持节奏，目标可以后再冲刺', to: '/practice' })
+  }
+  return tips
+})
+function runTip(t) {
+  if (t.linkTo) return
+  if (t.onClick) { t.onClick(); return }
+  if (t.to) router.push(t.to)
 }
 
 async function saveProfile() {
@@ -929,14 +999,13 @@ async function loadAll() {
   loading.value = true
   loadError.value = false
   try {
-    const [me, wrong, ck, mk, tr, ex, fav] = await Promise.all([
+    const [me, wrong, ck, mk, tr, ex] = await Promise.all([
       api.get('/stats/me'),
       api.get('/practice/wrong'),
       api.get('/checkin/me'),
       api.get('/stats/mastery'),
       api.get('/stats/trend'),
-      api.get('/practice/sessions'),
-      api.get('/favorites').catch(() => [])
+      api.get('/practice/sessions')
     ])
     stats.value = me
     wrongList.value = wrong
@@ -944,8 +1013,8 @@ async function loadAll() {
     mastery.value = mk
     trend.value = tr.list
     examHistory.value = ex
-    favCount.value = (fav || []).length
     await loadFavs()
+    favCount.value = favList.value.length
     try {
       achievements.value = await api.get('/achievements')
     } catch (e) { /* 忽略成就加载失败 */ }
@@ -1014,6 +1083,29 @@ onMounted(loadAll)
 .rb-text strong { display: block; font-size: 1.05rem; color: var(--accent); }
 .rb-text span { font-size: 0.85rem; color: var(--muted); }
 .rb-btn { white-space: nowrap; }
+
+/* 今日学习建议 */
+.today-tips { padding: 18px 22px; margin-bottom: 20px; }
+.tt-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.tt-head h3 { font-size: 1.12rem; }
+.tt-sub { font-size: 0.8rem; color: var(--muted); }
+.tt-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.tt-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.tt-item.clickable { cursor: pointer; }
+.tt-item.clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--accent); background: var(--surface); }
+.tt-icon { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--rule); font-size: 1.15rem; }
+.tt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tt-text strong { font-size: 0.92rem; color: var(--ink); font-weight: 700; }
+.tt-text em { font-style: normal; font-size: 0.78rem; color: var(--muted); }
+.tt-go { flex: 0 0 auto; color: var(--muted); }
+.tt-go svg { width: 15px; height: 15px; }
+.tt-item:hover .tt-go { color: var(--accent); }
+@media (max-width: 600px) { .tt-list { grid-template-columns: 1fr; } }
 .w-avatar {
   width: 54px; height: 54px; border-radius: 16px;
   background: var(--grad-accent);
@@ -1102,7 +1194,7 @@ onMounted(loadAll)
 .weak-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; padding: 10px 14px; background: var(--red-soft); border-radius: 10px; font-size: 0.85rem; }
 .weak-tag { padding: 3px 10px; border-radius: 999px; background: var(--red); color: #fff; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: background-color 0.2s var(--ease), transform 0.15s var(--ease), box-shadow 0.2s var(--ease); }
 .weak-tag:hover { background: #e11d48; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3); }
-.weak-go { font-size: 0.75rem; opacity: 0.85; }
+.weak-go { font-size: 0.78rem; opacity: 0.85; }
 .mastery-list { display: flex; flex-direction: column; gap: 12px; }
 .mrow { display: flex; align-items: center; gap: 12px; }
 .mrow-name { font-size: 0.88rem; color: var(--ink); width: 180px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1155,7 +1247,7 @@ onMounted(loadAll)
 .ts-part { display: flex; align-items: baseline; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
 .ts-lbl { font-size: 0.85rem; color: var(--muted); width: 56px; }
 .ts-part strong { font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; }
-.ts-hint { margin-left: auto; font-size: 0.75rem; color: var(--muted); }
+.ts-hint { margin-left: auto; font-size: 0.78rem; color: var(--muted); }
 .ts-tip { margin-top: 12px; font-size: 0.82rem; color: var(--amber); background: var(--amber-soft); padding: 8px 12px; border-radius: 8px; }
 
 .grade-grid { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 6px; overscroll-behavior: contain; }
@@ -1230,7 +1322,7 @@ onMounted(loadAll)
 .ai-explain { margin-top: 12px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--rule); border-left: 3px solid var(--accent); }
 .ai-explain-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .ai-badge {
-  width: 24px; height: 24px; border-radius: 7px; font-size: 0.72rem; font-weight: 800;
+  width: 24px; height: 24px; border-radius: 7px; font-size: 0.78rem; font-weight: 800;
   background: var(--accent); color: #fff;
   display: flex; align-items: center; justify-content: center;
 }
@@ -1245,7 +1337,7 @@ onMounted(loadAll)
 .trend-bar.mid { background: var(--amber); }
 .trend-bar.bad { background: var(--red); }
 .trend-bar.empty { background: var(--rule); }
-.trend-num { font-size: 0.76rem; color: var(--muted-2); font-variant-numeric: tabular-nums; line-height: 1; }
+.trend-num { font-size: 0.78rem; color: var(--muted-2); font-variant-numeric: tabular-nums; line-height: 1; }
 .trend-col.today .trend-num { color: var(--accent); font-weight: 700; }
 .trend-col.today .trend-day {
   color: #fff; font-weight: 700; background: var(--accent);
@@ -1260,7 +1352,7 @@ onMounted(loadAll)
 .sc-best { color: var(--green); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .sc-svg { width: 100%; height: 90px; display: block; }
 .sc-labels { position: relative; height: 18px; margin-top: 4px; }
-.sc-label { position: absolute; transform: translateX(-50%); font-size: 0.76rem; color: var(--muted); }
+.sc-label { position: absolute; transform: translateX(-50%); font-size: 0.78rem; color: var(--muted); }
 .sc-wrap { position: relative; }
 .sc-tooltip {
   position: absolute; top: 2px; transform: translateX(-50%);
@@ -1269,14 +1361,14 @@ onMounted(loadAll)
   box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 5;
 }
 .sc-tooltip strong { display: block; }
-.sc-tooltip span { display: block; opacity: 0.85; font-size: 0.72rem; margin-top: 1px; }
+.sc-tooltip span { display: block; opacity: 0.85; font-size: 0.78rem; margin-top: 1px; }
 
 .goal-progress { padding: 6px 0 2px; }
 .gp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.88rem; margin-bottom: 10px; flex-wrap: wrap; }
 .gp-cur { color: var(--ink); }
 .gp-target { color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
 .gp-pct {
-  font-size: 0.74rem; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 700; padding: 2px 9px; border-radius: 999px;
   background: var(--rule-soft); color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .gp-track { height: 14px; border-radius: 999px; background: var(--rule); overflow: hidden; }
@@ -1323,7 +1415,7 @@ onMounted(loadAll)
 .rv-opt.wrong { border-color: var(--red); background: var(--red-soft); }
 .rv-letter { font-weight: 700; color: var(--accent); flex: 0 0 auto; }
 .rv-text { flex: 1; }
-.rv-mark { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
+.rv-mark { font-size: 0.78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 .rv-mark.right { background: var(--green); color: #fff; }
 .rv-mark.wrong { background: var(--red); color: #fff; }
 .rv-analysis { font-size: 0.88rem; color: var(--ink-soft); line-height: 1.8; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--rule); border-left: 3px solid var(--accent); border-radius: 12px; overflow-wrap: break-word; word-break: break-word; }
@@ -1341,7 +1433,7 @@ onMounted(loadAll)
   .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .stat-card { padding: 14px 8px; }
   .stat-num { font-size: 1.4rem; }
-  .stat-lbl { font-size: 0.76rem; }
+  .stat-lbl { font-size: 0.78rem; }
   .checkin-card { gap: 18px; padding: 18px 18px; }
   .ck-stats { gap: 16px; }
   .predict { gap: 18px; }
@@ -1353,7 +1445,7 @@ onMounted(loadAll)
   .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-card { padding: 14px 8px; }
   .stat-num { font-size: 1.3rem; }
-  .stat-lbl { font-size: 0.75rem; }
+  .stat-lbl { font-size: 0.8rem; }
   .w-ans { margin-left: 0; width: 100%; }
   .welcome { padding: 16px 14px; }
   .w-info h2 { font-size: 1.15rem; }
@@ -1364,12 +1456,13 @@ onMounted(loadAll)
   .ck-btn { width: 100%; }
   .ck-stats { justify-content: space-around; gap: 12px; }
   .ck-heat { overflow-x: auto; padding-bottom: 6px; }
-  .ck-cell { width: 12px; height: 12px; }
+  .ck-cell { width: 14px; height: 14px; }
+  .ck-lbl { font-size: 0.82rem; }
   .mrow-name { width: 100px; font-size: 0.78rem; }
-  .mrow-btn { width: 40px; height: 40px; }
+  .mrow-btn { width: 44px; height: 44px; }
   .srow-name { width: 64px; font-size: 0.78rem; }
   .grade-opts { flex-wrap: wrap; }
-  .grade-chip { width: 38px; height: 36px; }
+  .grade-chip { min-width: 44px; min-height: 44px; width: auto; height: auto; padding: 0 12px; }
   .predict { gap: 14px; }
   .predict-score { font-size: 2.2rem; }
   .predict-bars { min-width: 0; }
@@ -1377,11 +1470,11 @@ onMounted(loadAll)
   .ts-score { font-size: 2rem; }
   .ts-parts { min-width: 0; }
   .trend-chart { height: 140px; }
-  .trend-day { font-size: 0.74rem; }
+  .trend-day { font-size: 0.78rem; }
   .sc-svg { height: 80px; }
-  .sc-label { font-size: 0.75rem; }
-  .rv-no { width: 28px; height: 28px; font-size: 0.75rem; }
-  .rv-mark { font-size: 0.75rem; }
+  .sc-label { font-size: 0.78rem; }
+  .rv-no { width: 28px; height: 28px; font-size: 0.78rem; }
+  .rv-mark { font-size: 0.78rem; }
   .review-item { padding: 14px 12px; }
   .review-panel { padding: 16px 14px; }
   .exam-item { padding: 10px 12px; gap: 10px; }
@@ -1393,14 +1486,15 @@ onMounted(loadAll)
   .f-stem { font-size: 0.9rem; }
   .f-analysis { font-size: 0.84rem; }
   .f-ans { margin-left: 0; width: 100%; }
-  .btn-sm { padding: 8px 14px; min-height: 38px; }
+  .btn-sm { padding: 8px 14px; min-height: 44px; }
   .ach-strip { padding: 14px 16px; }
   .ach-badges { gap: 8px; }
-  .ach-badge { padding: 6px 10px; font-size: 0.78rem; }
+  .ach-badge { padding: 8px 12px; font-size: 0.82rem; min-height: 40px; display: inline-flex; align-items: center; }
+  .weak-tag { font-size: 0.82rem; padding: 5px 12px; min-height: 34px; }
   .panel h3 { font-size: 1.05rem; }
   .panel-sub { font-size: 0.8rem; }
   .panel-head { flex-wrap: wrap; gap: 10px; }
-  .panel-head-right { width: 100%; justify-content: flex-start; }
+  .panel-head-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
   .form input { font-size: 1rem; }
 }
 @media (max-width: 400px) {
@@ -1409,8 +1503,8 @@ onMounted(loadAll)
   .stat-num { font-size: 1.15rem; }
   .predict-score { font-size: 1.8rem; }
   .ts-score { font-size: 1.7rem; }
-  .mrow-name { width: 80px; font-size: 0.75rem; }
-  .srow-name { width: 56px; font-size: 0.75rem; }
+  .mrow-name { width: 80px; font-size: 0.78rem; }
+  .srow-name { width: 56px; font-size: 0.78rem; }
 }
 
 /* ===== 骨架屏（与真实布局结构对齐） ===== */
