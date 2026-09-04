@@ -5,6 +5,15 @@
       <p>按累计答对题数排名，与全省考生一起比拼进步</p>
     </div>
 
+    <!-- 周期切换 -->
+    <div class="card filter-bar">
+      <div class="range-tabs">
+        <button class="tab" :class="{ on: curRange === 'all' }" @click="setRange('all')">全部</button>
+        <button class="tab" :class="{ on: curRange === 'week' }" @click="setRange('week')">本周</button>
+      </div>
+      <span class="range-note">共 {{ totalUsers }} 人上榜</span>
+    </div>
+
     <!-- 骨架屏 -->
     <template v-if="loading">
       <div class="card my-rank">
@@ -106,26 +115,50 @@ const ICONS = {
 const list = ref([])
 const mine = ref(null)
 const loading = ref(true)
+const curRange = ref('all')
+const totalUsers = ref(0)
 
 const podium = computed(() => list.value.slice(0, 3))
 
-onMounted(async () => {
+async function load() {
+  loading.value = true
   try {
-    const data = await api.get('/ranking?limit=50')
-    list.value = data.list
-    mine.value = data.mine
+    const data = await api.get(`/ranking?limit=50&range=${curRange.value}`)
+    list.value = data.list || []
+    mine.value = data.mine || null
+    totalUsers.value = data.total_users || 0
   } catch (e) {
     toast(e.message || '排行榜加载失败，请稍后重试', 'error')
   } finally {
     loading.value = false
   }
-})
+}
+
+function setRange(r) {
+  if (r === curRange.value) return
+  curRange.value = r
+  load()
+}
+
+onMounted(load)
 </script>
 
 <style scoped>
 .page-head { margin-bottom: 20px; }
 .page-head h2 { font-size: 1.6rem; }
 .page-head p { color: var(--muted); margin-top: 4px; }
+
+/* 周期切换 */
+.filter-bar { margin-bottom: 20px; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.range-tabs { display: flex; gap: 6px; background: var(--bg-soft); padding: 4px; border-radius: var(--radius-full); }
+.tab {
+  padding: 7px 18px; border-radius: var(--radius-full); font-size: 0.88rem; font-weight: 600;
+  color: var(--muted); background: transparent; border: none; cursor: pointer;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.tab:hover { color: var(--accent); }
+.tab.on { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(79, 95, 240, 0.28); }
+.range-note { font-size: 0.8rem; color: var(--muted); }
 
 /* 骨架屏（复用全局 .skeleton 类） */
 .rk-circle { width: 48px; height: 48px; border-radius: 50%; }
