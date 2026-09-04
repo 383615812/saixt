@@ -91,24 +91,18 @@ const data = ref({ code: '', count: 0, totalReward: 0, list: [] })
 const redeemCode = ref('')
 const redeeming = ref(false)
 const boundMsg = ref('')
+// 是否已绑定他人邀请码（后端返回 my_inviter_id，用于避免重复绑定并引导流程）
+const hasBound = ref(false)
 
 async function load() {
   try {
-    data.value = await api.get('/invite/me')
-  } catch (e) { toast.error(e.message) }
-}
-
-// 是否已绑定他人邀请码（后端返回 my_inviter_id，用于准确引导绑定流程）
-const hasBound = ref(false)
-async function loadBound() {
-  try {
-    const r = await api.get('/invite/me')
-    if (r.my_inviter_id) {
+    const d = await api.get('/invite/me')
+    data.value = d
+    if (d.my_inviter_id) {
       hasBound.value = true
-      data.value = r
       boundMsg.value = '你已绑定邀请码，无需重复绑定'
     }
-  } catch (e) { /* 忽略，仅作提示辅助 */ }
+  } catch (e) { toast.error(e.message) }
 }
 
 async function redeem() {
@@ -118,8 +112,8 @@ async function redeem() {
   if (hasBound.value) return toast.info('你已绑定过邀请码，无需重复绑定')
   redeeming.value = true
   try {
-    const data = await api.post('/invite/redeem', { code })
-    toast.success(data.message || '绑定成功')
+    const r = await api.post('/invite/redeem', { code })
+    toast.success(r.message || '绑定成功')
     redeemCode.value = ''
     boundMsg.value = '绑定成功，邀请双方均已获得奖励'
     hasBound.value = true
@@ -141,7 +135,7 @@ async function copyCode() {
   }
 }
 
-onMounted(() => { load(); loadBound() })
+onMounted(load)
 </script>
 
 <style scoped>

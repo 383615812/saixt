@@ -93,7 +93,7 @@ router.post('/membership/order/:orderNo/pay', requireAuth, async (req, res) => {
 // 订单状态查询（前端支付后轮询确认结果）
 router.get('/membership/order/:orderNo', requireAuth, (req, res) => {
   const row = db.prepare(
-    `SELECT order_no, product_name, amount, status, pay_method, paid_at, created_at
+    `SELECT order_no, product_code, product_name, amount, status, pay_method, paid_at, created_at
      FROM orders WHERE order_no = ? AND user_id = ?`
   ).get(req.params.orderNo, req.userId);
   if (!row) return res.status(404).json({ code: 404, message: '订单不存在' });
@@ -112,7 +112,7 @@ router.post('/membership/order/:orderNo/cancel', requireAuth, (req, res) => {
 // 我的订单
 router.get('/membership/orders', requireAuth, (req, res) => {
   const rows = db.prepare(
-    `SELECT order_no, product_name, amount, status, pay_method, paid_at, created_at
+    `SELECT order_no, product_code, product_name, amount, status, pay_method, paid_at, created_at
      FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT 20`
   ).all(req.userId);
   res.json({ code: 0, data: rows });

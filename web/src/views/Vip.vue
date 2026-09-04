@@ -107,8 +107,8 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
           </div>
-          <div class="pm-product">{{ currentProduct?.name }}</div>
-          <div class="pm-price"><span class="pc-yen">¥</span>{{ currentProduct?.price }}</div>
+          <div class="pm-product">{{ displayProduct?.name }}</div>
+          <div class="pm-price"><span class="pc-yen">¥</span>{{ displayProduct?.price }}</div>
 
           <!-- 演示支付：选择方式并确认 -->
           <template v-if="payProvider === 'demo'">
@@ -192,6 +192,8 @@ const benefits = [
 ]
 
 const currentProduct = computed(() => data.value.products.find(p => p.code === selected.value))
+// 重付时 currentOrder 已带商品信息，优先展示订单自身商品，避免下架/未知商品导致弹窗空白
+const displayProduct = computed(() => currentProduct.value || currentOrder.value?.product)
 
 const payChannelText = computed(() => ({ demo: '演示模式', wechat: '微信支付', alipay: '支付宝' })[data.value.pay?.provider] || '演示模式')
 
@@ -237,12 +239,16 @@ async function createOrder() {
 async function rePay(o) {
   const product = data.value.products.find(p => p.code === o.product_code)
   if (product) selected.value = product.code
-  currentOrder.value = { order_no: o.order_no, product: { name: o.product_name, price: o.amount } }
   paySuccess.value = false
   payModal.value = true
   try {
     const d = await api.post(`/membership/order/${o.order_no}/pay`, {})
     if (d.pay_error) { toast.error(d.pay_error); return }
+    currentOrder.value = {
+      order_no: o.order_no,
+      product: { name: o.product_name, price: o.amount },
+      pay_url: d.pay_url
+    }
     payProvider.value = d.pay_provider || 'demo'
     if (payProvider.value === 'wechat') {
       await showQr(d.qr_code)
@@ -291,6 +297,7 @@ function startPoll() {
         paySuccess.value = true
         toast.success('支付成功，VIP 会员已开通')
         await load()
+        window.dispatchEvent(new Event('ai-quota-refresh'))
       } else if (pollCount > 40) {
         // 约 2 分钟未支付，停止轮询
         stopPoll()
@@ -324,6 +331,7 @@ async function confirmPay() {
     paySuccess.value = true
     toast.success('支付成功，VIP 会员已开通')
     await load()
+    window.dispatchEvent(new Event('ai-quota-refresh'))
   } catch (e) { toast.error(e.message) }
   finally { paying.value = false }
 }
