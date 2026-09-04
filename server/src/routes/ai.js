@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { requireAuth } from '../auth.js';
 import { db } from '../db.js';
 import { tryConsumeAi, refundAi, aiQuota, isVip, tx } from '../commerce.js';
@@ -6,6 +9,52 @@ import { rateLimit } from '../rateLimit.js';
 import { callDeepSeek, isAiConfigured } from '../aiClient.js';
 
 const router = Router();
+const __dir = path.dirname(fileURLToPath(import.meta.url));
+const KNOW_DIR = path.resolve(__dir, '../../../data');
+
+// 知识底座：subject(中文) -> chapter -> 考纲知识点文本（由讲义提取，用于 AI 讲解贴合考纲）
+const KB = {};
+const KB_META = [
+  ['数学', 'math_knowledge.json'],
+  ['政治', 'pol_knowledge.json'],
+  ['通用技术', 'ty_knowledge.json'],
+  ['信息技术', 'xi_knowledge.json']
+];
+for (const [subj, file] of KB_META) {
+  const p = path.join(KNOW_DIR, file);
+  if (!existsSync(p)) continue;
+  try {
+    KB[subj] = JSON.parse(readFileSync(p, 'utf-8'));
+  } catch (e) {
+    console.error('[ai] 加载知识底座失败:', file, e.message);
+  }
+}
+
+// 题库章节名 -> 知识底座章节名（仅放主题明确一一对应的安全映射，避免误配）
+const KB_ALIAS = {
+  '通用技术': { '结构设计': '结构与设计', '流程设计': '流程与设计', '系统设计': '系统与设计', '控制设计': '控制与设计' },
+  '信息技术': { '数据与信息': '专题01 数据、信息与知识', '程序设计基础': '专题04 Python程序设计基础' }
+};
+
+// 按题目 科目+章节 取考纲知识要点（超过 maxLen 截断），无则返回空串
+// 命中优先级：章节名精确匹配 > 明确别名 > 子串模糊匹配
+function knowledgeHint(subject, chapter, maxLen = 2600) {
+  const subjectKB = KB[subject];
+  if (!subjectKB || !chapter) return '';
+  let content = typeof subjectKB === 'string' ? subjectKB : subjectKB[chapter];
+  if (!content) {
+    const alias = KB_ALIAS[subject]?.[chapter];
+    content = alias ? subjectKB[alias] : '';
+  }
+  if (!content) {
+    const key = Object.keys(subjectKB).find(k => chapter && k && (chapter.includes(k) || k.includes(chapter)));
+    content = key ? subjectKB[key] : '';
+  }
+  if (!content) return '';
+  content = String(content).trim();
+  if (content.length > maxLen) content = content.slice(0, maxLen) + '\n……（已按长度截断）';
+  return content;
+}
 
 // AI 请求限流：按用户每 60 秒最多 20 次，防脚本刷接口
 const aiLimiter = rateLimit({
@@ -349,6 +398,7 @@ router.post('/explain', requireAuth, aiLimiter, async (req, res) => {
   if (!c.ok) return quotaExceeded(res, 'explain');
 
   const options = JSON.parse(q.options).join('\n');
+  const kh = knowledgeHint(q.subject, q.chapter);
   const prompt = `请针对下面这道我做错的${q.subject}题目，给出详细的错题讲解。要求包含：
 1. 【题目】原题重现
 2. 【正确思路】一步步的解题过程，讲清楚为什么选 ${q.answer}
@@ -361,7 +411,8 @@ ${q.stem}
 选项：
 ${options}
 正确答案：${q.answer}
-参考解析：${q.analysis}`;
+参考解析：${q.analysis}
+${kh ? `\n【该章节考纲知识要点】请结合以下云南合格考考纲要点讲解，使解析更贴近实际考试要求：\n${kh}` : ''}`;
 
   try {
     const reply = await callDeepSeek([
@@ -414,6 +465,7 @@ router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
     multi: '多选题（4 个选项，有 2-3 个正确答案，答案用字母组合表示）',
     judge: '判断题（给出一个陈述句，判断正确或错误）'
   }[qtype];
+  const kh = safeChapter ? knowledgeHint(subject, safeChapter, 2200) : '';
   const formatHint = {
     single: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"A","analysis":"解析"}]',
     multi: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
@@ -422,6 +474,7 @@ router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
 
   const prompt = `请为云南省春季招生职业技能测试出 ${n} 道${subject}${qtype === 'judge' ? '判断题' : '题'}，难度为「${level}」。
 ${safeChapter ? `本次出题范围：${subject}「${safeChapter}」这一章。请严格围绕该章节的核心知识点与常见易错点出题，帮助考生针对性巩固这个薄弱环节。` : `本次出题范围：${subject}通科知识。`}
+${kh ? `\n【该章节考纲知识要点】以下是从云南合格考讲义提取的本章知识点，请严格围绕这些真实考点出题，题目必须来自这些要点、不要超出范围：\n${kh}\n` : ''}
 难度说明：
 - 基础：考查核心概念与常识，直白简单，适合打基础。
 - 中等：需要一定理解与推理，贴近春招真题水平。
