@@ -42,7 +42,7 @@ router.get('/', (req, res) => {
 router.get('/:code', (req, res) => {
   const school = db.prepare('SELECT * FROM schools WHERE code = ?').get(req.params.code);
   if (!school) return res.status(404).json({ code: 404, message: '院校不存在' });
-  const plans = db.prepare('SELECT major_code, major_name, tuition, plan FROM plans WHERE school_code = ? ORDER BY major_code').all(req.params.code);
+  const plans = db.prepare('SELECT major_code, major_name, tuition, plan, lang, oral FROM plans WHERE school_code = ? ORDER BY major_code').all(req.params.code);
   res.json({ code: 0, data: { school, plans } });
 });
 

@@ -76,6 +76,8 @@
                 <th>专业</th>
                 <th>专业名称</th>
                 <th class="col-tuition">学费<span class="unit">（万元/年）</span></th>
+                <th>语种</th>
+                <th>口试</th>
                 <th class="col-plan">计划</th>
               </tr>
             </thead>
@@ -84,6 +86,8 @@
                 <td class="mono">{{ p.major_code }}</td>
                 <td class="major-name">{{ p.major_name }}</td>
                 <td class="col-tuition">{{ formatPlanTuition(p.tuition) }}</td>
+                <td class="col-lang">{{ p.lang || '不限' }}</td>
+                <td class="col-oral"><span class="oral-tag" :class="{ on: p.oral === '是' }">{{ p.oral === '是' ? '需口试' : '否' }}</span></td>
                 <td class="col-plan"><span class="plan-num">{{ p.plan }}</span></td>
               </tr>
             </tbody>
@@ -238,6 +242,12 @@ tbody tr:hover { background: var(--accent-soft); }
 th.col-tuition, td.col-tuition { text-align: right; white-space: nowrap; width: 34%; }
 th.col-plan, td.col-plan { text-align: center; width: 62px; }
 td.col-tuition { font-variant-numeric: tabular-nums; }
+td.col-lang { white-space: nowrap; color: var(--muted); }
+.oral-tag {
+  display: inline-block; padding: 1px 9px; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 500; background: var(--surface-2); color: var(--muted);
+}
+.oral-tag.on { background: var(--amber-soft); color: #b45309; font-weight: 600; }
 thead th .unit { font-weight: 400; opacity: 0.72; font-size: 0.76rem; }
 .mono { font-family: Consolas, monospace; color: var(--muted); white-space: nowrap; }
 .major-name { font-weight: 500; }

@@ -187,6 +187,8 @@ db.exec(`
     major_name TEXT,
     tuition TEXT,
     plan INTEGER,
+    lang TEXT DEFAULT '不限',
+    oral TEXT DEFAULT '否',
     FOREIGN KEY (school_code) REFERENCES schools(code) ON DELETE CASCADE
   );
   -- 商业运营：会员 / 订单 / 积分 / 邀请 / AI 配额
@@ -312,6 +314,8 @@ try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_sms INTEGER DEFAULT 0
 try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_time TEXT DEFAULT "19:00"'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE users ADD COLUMN invite_code TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE schools ADD COLUMN estimate_score TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec("ALTER TABLE plans ADD COLUMN lang TEXT DEFAULT '不限'"); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec("ALTER TABLE plans ADD COLUMN oral TEXT DEFAULT '否'"); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE users ADD COLUMN reg_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE invites ADD COLUMN redeem_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 
@@ -343,8 +347,8 @@ seedIfEmpty('schools', 'schools.json', {
 });
 
 seedIfEmpty('plans', 'plans.json', {
-  stmt: `INSERT INTO plans (school_code, school_name, major_code, major_name, tuition, plan) VALUES (?,?,?,?,?,?)`,
-  args: p => [p.school_code, p.school_name, p.major_code, p.major_name, p.tuition, p.plan]
+  stmt: `INSERT INTO plans (school_code, school_name, major_code, major_name, tuition, plan, lang, oral) VALUES (?,?,?,?,?,?,?,?)`,
+  args: p => [p.school_code, p.school_name, p.major_code, p.major_name, p.tuition, p.plan, p.lang || '不限', p.oral || '否']
 });
 
 // 默认商品目录（作为 products 表种子与兼容回退）
