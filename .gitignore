@@ -31,7 +31,7 @@ server/.env*
 【*】2025年高中学业水平合格考真题分类汇编/
 (48)*/
 _ty_txt/
-scripts/sync_*_to_*.json
+scripts/sync_*.json
 化学/
 地理/
 数学/

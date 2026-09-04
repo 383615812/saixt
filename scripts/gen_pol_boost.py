@@ -60,10 +60,25 @@ def call_pol(chapter, text, n):
         for q in questions:
             if not all(k in q for k in ('stem','options','answer','analysis')):
                 continue
-            if len(q.get('options', [])) != 4 or q.get('answer','').upper() not in 'ABCD':
+            opts = q.get('options', [])
+            if not isinstance(opts, list) or len(opts) != 4:
+                continue
+            answer = q.get('answer','').upper() if isinstance(q.get('answer'), str) else ''
+            ans_letter = answer[0] if answer in 'ABCD' else ''
+            if not ans_letter:
                 continue
             if not (q.get('stem','') and len(q['stem'])>5):
                 continue
+            # 去除选项前缀 "A. " "B. " 等
+            cleaned = []
+            for o in opts:
+                o = str(o).strip()
+                m = re.match(r'^[A-D][.、)）:：\s]+', o)
+                if m:
+                    o = o[m.end():].strip()
+                cleaned.append(o)
+            q['options'] = cleaned
+            q['answer'] = ans_letter
             ok.append(q)
         print(f'chapter {chapter}: generated {len(questions)}, ok {len(ok)}')
         return ok
@@ -77,6 +92,7 @@ def main():
     ap.add_argument('--batches', type=int, default=3)
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--only', default='')
+    ap.add_argument('--out', default=OUT)
     args = ap.parse_args()
 
     knowledge = json.load(open(KNOWLEDGE, encoding='utf-8'))
@@ -102,11 +118,18 @@ def main():
                 all_q += qs
             time.sleep(1)
     if all_q:
-        with open(OUT, 'w', encoding='utf-8') as f:
-            json.dump(all_q, f, ensure_ascii=False)
-        print(f'===== 完成 =====\n总题数: {len(all_q)} 写入 {OUT}')
+        prev = []
+        if os.path.exists(args.out):
+            try:
+                prev = json.load(open(args.out, encoding='utf-8'))
+            except Exception:
+                prev = []
+        combined = prev + all_q
+        with open(args.out, 'w', encoding='utf-8') as f:
+            json.dump(combined, f, ensure_ascii=False)
+        print(f'===== 完成 =====\n本次新增: {len(all_q)}, 累计: {len(combined)} 写入 {args.out}')
         from collections import Counter
-        for c, n in Counter(q['chapter'] for q in all_q).most_common():
+        for c, n in Counter(q['chapter'] for q in combined).most_common():
             print(f'  {n:3}  {c}')
     else:
         print('未生成任何题(或为dry-run)')
