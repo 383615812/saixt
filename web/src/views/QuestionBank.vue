@@ -93,6 +93,7 @@
           </p>
         </div>
         <div class="q-foot">
+          <button class="btn btn-primary btn-sm" @click="practice(q)">去练习</button>
           <button class="btn btn-sm btn-detail" :class="{ open: detailId === q.id }" @click="toggleDetail(q)">
             <svg v-if="detailId !== q.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
             <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="m6 9 6 6 6-6"/></svg>
@@ -135,8 +136,11 @@
 
 import { toast } from '../toast'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '../api'
 import { useImgError } from '../useImgError'
+
+const router = useRouter()
 
 const subjects = ref([])
 const chapters = ref([])
@@ -283,6 +287,10 @@ async function toggleDetail(q) {
   } finally {
     detailLoading.value = false
   }
+}
+// 从题库直达单题练习：跳转刷题页并定位到该题（qid 直达）
+function practice(q) {
+  router.push({ path: '/practice', query: { subject: q.subject, chapter: q.chapter, qid: q.id } })
 }
 
 onMounted(async () => {
