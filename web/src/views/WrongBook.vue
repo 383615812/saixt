@@ -74,7 +74,14 @@
           <div v-if="qtypeOf(q) === 'subjective'" class="subjective-box">
             <div class="detail-ans"><span class="tag tag-green">参考答案：{{ q.answer }}</span></div>
             <div class="analysis"><strong>解析：</strong>{{ q.analysis }}</div>
-            <button class="btn btn-ghost" @click="cancelPractice">收起</button>
+            <div class="subjective-self">
+              <strong class="ss-title">主观题请对照参考答案自评，帮助系统安排复习：</strong>
+              <div class="re-actions">
+                <button class="btn btn-primary" :disabled="subjecting" @click="subjectiveMaster(q)">{{ subjecting ? '处理中…' : '我会了，可移出错题本' }}</button>
+                <button class="btn btn-ghost" :disabled="subjecting" @click="subjectiveNot(q)">{{ subjecting ? '处理中…' : '还是不会，加入复习' }}</button>
+                <button class="btn btn-ghost" @click="cancelPractice">收起</button>
+              </div>
+            </div>
           </div>
           <template v-else>
             <div class="options">
@@ -179,6 +186,7 @@ const analysisId = ref(0)
 const exporting = ref(false)
 const aiExplainId = ref(0)
 const aiLoading = ref(false)
+const subjecting = ref(false)
 
 // AI 错题讲解：逐题调用后端 /ai/explain，讲解内容以打字机呈现
 async function aiExplain(q) {
@@ -335,6 +343,37 @@ function cancelPractice() {
   practiceSel.value = ''
   practiceAnswered.value = false
 }
+// 主观题自评"会了"：先记录答对（满足掌握前置条件），再从错题本/复习队列移除
+async function subjectiveMaster(q) {
+  if (subjecting.value) return
+  subjecting.value = true
+  try {
+    await api.post('/practice/submit', { question_id: q.id, answer: '主观题自评：会了', selfCorrect: true })
+    await api.post('/practice/mastered', { question_id: q.id })
+    toast.success('已移出错题本，继续加油！')
+    all.value = all.value.filter(x => x.id !== q.id)
+    applyFilter()
+    cancelPractice()
+  } catch (e) {
+    toast.error(e.message || '操作失败，请稍后重试')
+  } finally {
+    subjecting.value = false
+  }
+}
+// 主观题自评"仍不会"：记录错答并入复习队列，明日再巩固
+async function subjectiveNot(q) {
+  if (subjecting.value) return
+  subjecting.value = true
+  try {
+    await api.post('/practice/submit', { question_id: q.id, answer: '主观题自评：仍不会', selfCorrect: false })
+    toast.success('已加入复习队列，明天再来巩固')
+    cancelPractice()
+  } catch (e) {
+    toast.error(e.message || '操作失败，请稍后重试')
+  } finally {
+    subjecting.value = false
+  }
+}
 function showAnalysis(q) {
   analysisId.value = analysisId.value === q.id ? 0 : q.id
   practiceId.value = 0
@@ -454,6 +493,9 @@ onMounted(load)
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-bottom: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .btn { align-self: flex-start; }
+.subjective-self { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ss-title { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
+.subjective-self .re-actions { gap: 8px; }
 .result { margin-top: 12px; padding: 12px 16px; border-radius: var(--radius-sm); }
 .result.ok { background: var(--green-soft); border: 1px solid rgba(13,166,120,0.25); }
 .result.no { background: var(--red-soft); border: 1px solid rgba(225,29,72,0.25); }

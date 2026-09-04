@@ -145,6 +145,15 @@
         <div v-if="qtype === 'subjective'" class="subjective-box">
           <div class="detail-ans"><span class="tag tag-green">参考答案：{{ currentQuestion.answer }}</span></div>
           <div class="analysis"><strong>解析：</strong>{{ currentQuestion.analysis }}</div>
+          <template v-if="!answered">
+            <div class="subjective-choice">
+              <strong>对照参考答案后自评：</strong>
+              <div class="sc-buttons">
+                <button class="btn btn-primary" @click="submitSubjective(true)">我答对了，掌握</button>
+                <button class="btn btn-ghost" @click="submitSubjective(false)">仍答错，重新复习</button>
+              </div>
+            </div>
+          </template>
         </div>
         <template v-else>
           <div class="options">
@@ -210,7 +219,6 @@
 
         <div class="q-actions">
           <button v-if="!answered && qtype !== 'subjective'" class="btn btn-primary" :disabled="!canSubmit" @click="submitAnswer">提交答案</button>
-          <button v-else-if="!answered && qtype === 'subjective'" class="btn btn-primary" @click="submitSubjective">查看参考答案</button>
           <button v-else-if="reviewIndex < reviewList.length - 1" class="btn btn-primary" @click="nextQuestion">下一题 →</button>
           <button v-else class="btn btn-primary" @click="finishReview">完成复习</button>
         </div>
@@ -339,12 +347,13 @@ async function submitAnswer() {
   }
 }
 
-async function submitSubjective() {
+async function submitSubjective(correct) {
   try {
+    // 主观题无标准自动判分，由用户对照参考答案自评：答对推进遗忘阶段，答错重置重学
     const r = await api.post('/practice/review/submit', {
       question_id: currentQuestion.value.id,
-      answer: '',
-      correct: true
+      answer: correct ? '主观题自评：掌握' : '主观题自评：未掌握',
+      correct
     })
     lastResult.value = r
     answered.value = true
@@ -510,6 +519,9 @@ onMounted(load)
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-top: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
 .subjective-box .detail-ans { margin-bottom: 0; }
+.subjective-choice { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.subjective-choice > strong { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
+.subjective-choice .sc-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .result { border-radius: 12px; padding: 16px 18px; margin-top: 20px; }
 .result.ok { background: var(--green-soft); border: 1px solid rgba(13,166,120,0.3); }
