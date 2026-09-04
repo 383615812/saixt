@@ -13,7 +13,7 @@
         <div class="stat-item">
           <span class="stat-icon" v-html="ICONS.star"></span>
           <span class="stat-val">{{ totalScore }}</span>
-          <span class="stat-lbl">总积分</span>
+          <span class="stat-lbl">本局积分</span>
         </div>
         <div class="stat-item combo" :class="{ fire: combo >= 3 }">
           <span class="stat-icon" v-html="ICONS.flame"></span>
@@ -23,7 +23,7 @@
         <div class="stat-item">
           <span class="stat-icon" v-html="ICONS.box"></span>
           <span class="stat-val">{{ boxesOpened }}</span>
-          <span class="stat-lbl">已开盒</span>
+          <span class="stat-lbl">本局开盒</span>
         </div>
       </div>
     </div>
@@ -125,8 +125,8 @@
           <img v-for="(img, idx) in currentQuestion.images" :key="idx" :src="'/' + img" alt="题目配图" loading="lazy" @error="onImgError">
         </div>
 
-        <!-- 选项 -->
-        <div v-if="currentQuestion.type !== 'subjective'" class="qc-options">
+        <!-- 客观题选项（盲盒仅抽客观题，主观题不入盒以防自判刷分） -->
+        <div class="qc-options">
           <button
             v-for="opt in currentQuestion.options"
             :key="opt[0]"
@@ -143,12 +143,6 @@
             <span class="qco-letter">{{ opt[0] }}</span>
             <span class="qco-text">{{ opt.slice(2) }}</span>
           </button>
-        </div>
-
-        <!-- 主观题 -->
-        <div v-else class="qc-subjective">
-          <p class="qs-hint">主观题请在心中作答，然后点击下方按钮查看答案</p>
-          <button v-if="!answered" class="btn btn-primary" @click="submitSubjective()">查看答案</button>
         </div>
 
         <!-- 结果展示 -->
@@ -352,26 +346,6 @@ async function submitAnswer() {
     // 用服务端权威判分结果回填答案与解析（抽题阶段不再下发，防泄露）
     if (data.correct_answer) currentQuestion.value.answer = data.correct_answer
     if (data.analysis) currentQuestion.value.analysis = data.analysis
-    if (data.is_correct) {
-      totalScore.value += data.earned_score
-    }
-    answered.value = true
-  } catch (e) {
-    toast('提交失败：' + e.message, 'error')
-  }
-}
-
-async function submitSubjective() {
-  // 主观题需显式自判：点击查看答案视为自判答对，由服务端记录
-  try {
-    const data = await api.post('/practice/blind-box/submit', {
-      question_id: currentQuestion.value.id,
-      answer: 'subjective',
-      selfCorrect: true
-    })
-    isCorrect.value = data.is_correct
-    earnedScore.value = data.earned_score
-    combo.value = data.new_combo
     if (data.is_correct) {
       totalScore.value += data.earned_score
     }
@@ -826,9 +800,6 @@ onMounted(() => {
 .qc-option.correct .qco-letter { background: var(--green); color: #fff; }
 .qc-option.wrong .qco-letter { background: var(--red); color: #fff; }
 .qco-text { line-height: 1.5; overflow-wrap: break-word; word-break: break-word; }
-
-.qc-subjective { text-align: center; padding: 20px 0; }
-.qs-hint { color: var(--muted); margin-bottom: 16px; }
 
 .qc-submit { text-align: center; }
 .submit-btn { min-width: 130px; }
