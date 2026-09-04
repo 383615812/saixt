@@ -222,6 +222,7 @@ function isWeakOn(w) { return subject.value === w.subject && chapter.value === w
 function pickWeak(w) {
   subject.value = w.subject
   chapter.value = w.chapter
+  loadChapters() // 同步刷新下方章节候选为新科目的章节，避免展示上个科目的章节
   weakHint.value = `已选定薄弱点「${w.subject}·${w.chapter}」，点击「开始生成」针对性巩固`
 }
 async function focusWorst() {
