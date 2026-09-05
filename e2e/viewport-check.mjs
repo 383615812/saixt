@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 
-const BASE = 'http://localhost:5174/';
+const BASE = process.env.CHECK_BASE || 'http://localhost:5174/';
 const OUT = 'E:/saixt/screenshots/viewports';
 const phone = '13800000099', pwd = 'Test@123456';
 
