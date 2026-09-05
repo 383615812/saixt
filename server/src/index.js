@@ -117,8 +117,11 @@ app.use((req, res) => res.status(404).json({ code: 404, message: '接口不存�
 app.use((err, req, res, next) => {
   // 响应头已发送时不能再写 body，交由默认处理避免二次抛异常
   if (res.headersSent) return next(err);
-  console.error('[saixt-server] 未捕获异常:', err?.stack || err);
-  res.status(500).json({ code: 500, message: '服务器内部错误' });
+  // body-parser 等中间件抛出的错误自带 status（如畸形 JSON → 400），优先返回正确状态码
+  const status = Number.isInteger(err?.status) ? err.status : (Number.isInteger(err?.statusCode) ? err.statusCode : 500);
+  if (status >= 500) console.error('[saixt-server] 未捕获异常:', err?.stack || err);
+  else console.warn(`[saixt-server] 请求错误 ${status}: ${err?.message || ''}`);
+  res.status(status).json({ code: status, message: status >= 500 ? '服务器内部错误' : '请求参数格式错误' });
 });
 
 const server = app.listen(PORT, () => {
