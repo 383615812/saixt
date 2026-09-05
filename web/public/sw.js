@@ -1,7 +1,7 @@
 /* 云南春招智能学习平台 Service Worker
  * 策略：应用外壳（hashed JS/CSS + 静态资源）预缓存，导航兜底离线；
  * 运行时的 /api 与 /qimages 请求网络优先，离线时尝试缓存。 */
-const CACHE = 'springzhaokao-v2'
+const CACHE = 'springzhaokao-v3'
 
 const ASSETS = [
   '/',
