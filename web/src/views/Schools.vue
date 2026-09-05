@@ -286,6 +286,13 @@ onMounted(() => load(0))
 @media (max-width: 900px) {
   .school-grid { grid-template-columns: repeat(2, 1fr); }
 }
+@media (max-width: 1024px) and (min-width: 821px) {
+  .sorts .chip, .filters .chip { min-height: 40px; display: inline-flex; align-items: center; }
+}
+@media (max-width: 820px) {
+  .sorts .chip, .filters .chip { min-height: 44px; display: inline-flex; align-items: center; }
+  .school-card .btn-sm { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+}
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
   .page-head p { font-size: 0.82rem; }
@@ -293,8 +300,6 @@ onMounted(() => load(0))
   .search { width: 100%; }
   .search input { width: 100%; font-size: 1rem; }
   .sorts { width: 100%; justify-content: flex-start; overflow-x: auto; }
-  .sorts .chip, .filters .chip { min-height: 44px; display: inline-flex; align-items: center; }
-  .school-card .btn-sm { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
   .filters { width: 100%; padding-top: 10px; margin-top: 4px; gap: 8px 14px; }
   .f-group { flex: 1 1 auto; min-width: 0; }
   .sel { flex: 1 1 auto; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

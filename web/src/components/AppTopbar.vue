@@ -405,6 +405,15 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   .user-area { margin-left: auto; }
   .reg-btn { display: none; }
 }
+@media (max-width: 1024px) and (min-width: 821px) {
+  .search-btn, .bell { width: 40px; height: 40px; }
+  .nav-more-btn { min-height: 40px; }
+}
+@media (max-width: 820px) {
+  .search-btn, .bell { width: 44px; height: 44px; }
+  .search-btn { border-radius: 12px; }
+  .hamburger { min-width: 44px; min-height: 44px; padding: 12px; }
+}
 @media (max-width: 760px) {
   .points-chip { display: none; }
   .uname { display: none; }
@@ -419,8 +428,5 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
   .brand-logo-img { width: 24px; height: 24px; }
   .brand-text small { display: none; }
   .user-area { gap: 8px; }
-  .search-btn, .bell { width: 44px; height: 44px; }
-  .search-btn { border-radius: 12px; }
-  .hamburger { min-width: 44px; min-height: 44px; padding: 12px; }
 }
 </style>

@@ -1021,12 +1021,18 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1024px) and (min-width: 821px) {
+  .gw-toggle { min-height: 40px; }
+  .gc-btn { width: 40px; height: 40px; }
+}
+@media (max-width: 820px) {
   .gw-toggle { min-height: 44px; }
+  .gc-btn { width: 40px; height: 40px; }
+}
+@media (max-width: 600px) {
   .graph-container { min-height: 400px; }
   .chart-canvas { height: 400px; }
   .graph-controls { top: 12px; right: 12px; gap: 6px; }
-  .gc-btn { width: 40px; height: 40px; }
 }
 
 @media (max-width: 480px) {

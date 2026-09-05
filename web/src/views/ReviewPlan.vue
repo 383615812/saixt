@@ -626,6 +626,8 @@ onMounted(load)
 @media (max-width: 768px) {
   .ov-grid { grid-template-columns: repeat(2, 1fr); }
   .curve-step { min-width: 62px; }
+  .cal-day { flex: 0 0 52px; padding: 8px 4px; }
+  .cal-scroll { flex-wrap: wrap; overflow-x: visible; }
 }
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }

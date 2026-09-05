@@ -280,6 +280,9 @@ onMounted(load)
 .acc-fill { display: block; height: 100%; background: var(--green); border-radius: 999px; transition: width 0.8s var(--ease); }
 
 /* 空状态 */
+@media (max-width: 1024px) {
+  .tab { min-height: 40px; display: inline-flex; align-items: center; }
+}
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
   .page-head p { font-size: 0.82rem; }

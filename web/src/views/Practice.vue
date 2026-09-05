@@ -1064,13 +1064,15 @@ onBeforeUnmount(() => clearInterval(examTimer))
   .fs-count strong { font-size: 1.4rem; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+@media (max-width: 820px) {
+  .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; font-size: 0.85rem; }
+}
 @media (max-width: 600px) {
   .pp-head h2 { font-size: 1.25rem; }
   .pp-head p { font-size: 0.82rem; }
   .setup { padding: 18px 14px; }
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
-  .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 14px; font-size: 0.85rem; }
   .chip-count { font-size: 0.78rem; }
   .exam-timer { flex-wrap: wrap; gap: 6px 10px; padding: 12px 14px; }
   .timer-tip { margin-left: 0; width: 100%; }

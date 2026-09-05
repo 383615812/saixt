@@ -587,7 +587,7 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .setup { padding: 22px 18px; }
   .setup .btn-primary { align-self: stretch; }
-  .chip { padding: 10px 18px; }
+  .chip { padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center; }
   .question-card { padding: 22px 16px; }
   .q-actions .btn { flex: 1; }
 }
@@ -597,7 +597,7 @@ onMounted(async () => {
   .setup { padding: 18px 14px; gap: 14px; }
   .setup-block { margin-bottom: 18px; }
   .setup-block h3 { font-size: 0.92rem; }
-  .chip { padding: 8px 14px; font-size: 0.85rem; min-height: 44px; display: inline-flex; align-items: center; }
+  .chip { padding: 8px 14px; font-size: 0.85rem; }
   .chip-count { font-size: 0.78rem; }
   .gen-bar { flex-direction: column; align-items: stretch; padding: 12px 14px; gap: 10px; }
   .gen-note { font-size: 0.8rem; }

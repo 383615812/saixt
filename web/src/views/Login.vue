@@ -302,6 +302,14 @@ async function submit() {
 
 .tip { color: var(--muted-2); font-size: 0.78rem; text-align: center; margin-top: 16px; line-height: 1.6; }
 
+@media (max-width: 1024px) and (min-width: 821px) {
+  .pwd-toggle { width: 40px; height: 40px; }
+}
+@media (max-width: 820px) {
+  .mode-switch button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .pwd-toggle { width: 44px; height: 44px; right: 2px; }
+  .field input { padding-right: 48px; }
+}
 @media (max-width: 480px) {
   .login-page { padding: 24px 12px 40px; }
   .login-card { padding: 24px 20px 22px; }
@@ -309,9 +317,6 @@ async function submit() {
   .lc-logo { width: 40px; height: 40px; border-radius: 12px; }
   .lc-logo-img { width: 28px; height: 28px; }
   .lc-brand-text strong { font-size: 0.98rem; }
-  .mode-switch button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-  .pwd-toggle { width: 44px; height: 44px; right: 2px; }
-  .field input { padding-right: 48px; }
 }
 @media (max-width: 400px) {
   .login-page { padding: 16px 10px 32px; }

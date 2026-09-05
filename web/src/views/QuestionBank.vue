@@ -483,6 +483,7 @@ onMounted(async () => {
   .search { width: 100%; }
   .search input { flex: 1; width: auto; }
   .q-source { margin-left: 0; width: 100%; }
+  .chip { min-height: 40px; display: inline-flex; align-items: center; }
 }
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }

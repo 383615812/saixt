@@ -1251,7 +1251,7 @@ onMounted(loadAll)
 .ts-lbl { font-size: 0.85rem; color: var(--muted); width: 56px; }
 .ts-part strong { font-size: 1.05rem; color: var(--ink); font-variant-numeric: tabular-nums; }
 .ts-hint { margin-left: auto; font-size: 0.78rem; color: var(--muted); }
-.ts-tip { margin-top: 12px; font-size: 0.82rem; color: var(--amber); background: var(--amber-soft); padding: 8px 12px; border-radius: 8px; }
+.ts-tip { margin-top: 12px; font-size: 0.82rem; color: #92400e; background: var(--amber-soft); padding: 8px 12px; border-radius: 8px; }
 
 .grade-grid { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; padding-right: 6px; overscroll-behavior: contain; }
 .grade-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--rule); }
@@ -1444,6 +1444,13 @@ onMounted(loadAll)
   .mrow-name { width: 130px; font-size: 0.84rem; }
   .srow-name { width: 76px; font-size: 0.84rem; }
 }
+@media (max-width: 1024px) and (min-width: 821px) {
+  .grade-chip { min-width: 40px; min-height: 40px; width: auto; height: auto; padding: 0 10px; }
+}
+@media (max-width: 820px) {
+  .grade-chip { min-width: 44px; min-height: 44px; width: auto; height: auto; padding: 0 12px; }
+  .hui-kao .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 5px 14px; }
+}
 @media (max-width: 600px) {
   .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-card { padding: 14px 8px; }
@@ -1464,9 +1471,6 @@ onMounted(loadAll)
   .mrow-name { width: 100px; font-size: 0.78rem; }
   .mrow-btn { width: 44px; height: 44px; }
   .srow-name { width: 64px; font-size: 0.78rem; }
-  .grade-opts { flex-wrap: wrap; }
-  .grade-chip { min-width: 44px; min-height: 44px; width: auto; height: auto; padding: 0 12px; }
-  .hui-kao .chip { min-height: 44px; display: inline-flex; align-items: center; padding: 5px 14px; }
   .predict { gap: 14px; }
   .predict-score { font-size: 2.2rem; }
   .predict-bars { min-width: 0; }

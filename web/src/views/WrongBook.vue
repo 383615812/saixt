@@ -608,13 +608,20 @@ onMounted(load)
 .sk-w-stem.short { width: 52%; }
 .sk-w-opt { width: 100%; height: 14px; border-radius: 6px; margin-top: 6px; }
 
+@media (max-width: 1024px) and (min-width: 821px) {
+  .vt { min-height: 40px; }
+  .chip { min-height: 40px; display: inline-flex; align-items: center; }
+}
+@media (max-width: 820px) {
+  .vt { min-height: 44px; padding: 9px 14px; }
+  .chip { min-height: 44px; display: inline-flex; align-items: center; }
+}
 @media (max-width: 600px) {
   .page-head h2 { font-size: 1.3rem; }
   .page-head { margin-bottom: 16px; }
   .view-tabs { max-width: none; }
-  .vt { min-height: 44px; padding: 9px 14px; }
   .filter-bar { padding: 12px 14px; }
-  .chip { padding: 8px 14px; font-size: 0.84rem; min-height: 44px; display: inline-flex; align-items: center; }
+  .chip { padding: 8px 14px; font-size: 0.84rem; }
   .chip-sm { padding: 7px 12px; font-size: 0.78rem; min-height: 40px; display: inline-flex; align-items: center; }
   .q-item { padding: 14px 12px; }
   .q-stem { font-size: 0.95rem; }
