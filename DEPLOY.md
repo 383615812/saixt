@@ -77,6 +77,33 @@ node prod-functional.mjs
 node ai-practice.e2e.mjs
 ```
 
+## 后端部署
+
+后端由 **ubuntu 用户的 PM2** 管理（进程名 `saixt-server`）。注意：`sudo pm2 list` 看到的是 root 的空实例，必须用 ubuntu 身份：
+
+```powershell
+ssh -i $KEY ubuntu@62.234.79.165 "bash -lc 'pm2 list'"
+```
+
+更新后端代码（如 `server/src/index.js`）：
+
+```powershell
+# 1. 备份 + 上传
+ssh -i $KEY ubuntu@62.234.79.165 "sudo cp /opt/saixt/server/src/index.js /opt/saixt/server/src/index.js.bak-`$(date +%Y%m%d-%H%M%S)"
+scp -i $KEY E:\saixt\server\src\index.js ubuntu@62.234.79.165:/tmp/index.js.new
+# 2. 应用 + 语法检查 + 重启
+ssh -i $KEY ubuntu@62.234.79.165 "sudo cp /tmp/index.js.new /opt/saixt/server/src/index.js && node --check /opt/saixt/server/src/index.js && bash -lc 'pm2 restart saixt-server'"
+```
+
+> PowerShell 会把远程命令里的 `$(date ...)` 当本地表达式解析，含 `$()` 的命令需用单引号包裹整条 ssh 命令，或改用固定时间戳。
+
+**开机自启**：已配置 `pm2-ubuntu.service`（systemd，enabled）。若需重建：`pm2 startup systemd -u ubuntu --hp /home/ubuntu` 后执行其输出的 sudo 命令，再 `pm2 save`。
+
+## API 路径说明
+
+生产 API 基础路径是 **`http://62.234.79.165/saixt/api`**（nginx `location /saixt/` 代理到 3000）。
+直接访问 `http://62.234.79.165/api` 会被 `location /` 301 到 https（443 是另一个监控服务，无 /api），**勿用**。
+
 ## 推送网络波动应对
 
 GitHub HTTPS 推送偶发 `connection reset`。项目自带后台补推脚本：
