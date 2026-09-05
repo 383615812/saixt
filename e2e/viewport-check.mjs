@@ -5,11 +5,18 @@ const BASE = process.env.CHECK_BASE || 'http://localhost:5174/';
 const OUT = 'E:/saixt/screenshots/viewports';
 const phone = '13800000099', pwd = 'Test@123456';
 
-const viewports = [
-  ['desktop', { width: 1920, height: 1080 }],
-  ['tablet-land', { width: 1024, height: 768 }],
-  ['tablet-port', { width: 768, height: 1024 }],
-];
+// CHECK_VIEWPORTS 覆盖：格式 "name:WxH,name:WxH"，如 "iphone:375x812,laptop:1366x768"
+const viewports = process.env.CHECK_VIEWPORTS
+  ? process.env.CHECK_VIEWPORTS.split(',').map(s => {
+      const [name, dim] = s.split(':');
+      const [w, h] = dim.split('x').map(Number);
+      return [name.trim(), { width: w, height: h }];
+    })
+  : [
+      ['desktop', { width: 1920, height: 1080 }],
+      ['tablet-land', { width: 1024, height: 768 }],
+      ['tablet-port', { width: 768, height: 1024 }],
+    ];
 
 const pages = [
   ['home', '/'],

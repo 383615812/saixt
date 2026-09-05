@@ -491,8 +491,8 @@ onMounted(async () => {
   .filter-bar { padding: 14px 12px; }
   .filter-row { gap: 8px; }
   .filter-row + .filter-row { margin-top: 10px; }
-  .chip { padding: 8px 12px; font-size: 0.84rem; min-height: 40px; }
-  .chip-sm { padding: 6px 11px; font-size: 0.78rem; min-height: 36px; }
+  .chip { padding: 8px 12px; font-size: 0.84rem; min-height: 44px; }
+  .chip-sm { padding: 6px 11px; font-size: 0.78rem; min-height: 44px; }
   .search input { padding: 10px 12px; font-size: 1rem; }
   .search .btn { padding: 10px 14px; font-size: 0.85rem; }
   .q-item { padding: 14px 12px; }
