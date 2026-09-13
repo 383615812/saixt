@@ -145,6 +145,19 @@ function notConfigured(res) {
   });
 }
 
+// 统一的 AI 调用失败响应：区分「额度/密钥类配置错误」与「网络/限流类错误」，
+// 避免把 DeepSeek 402 余额不足、401 密钥失效误报成「连接失败」，便于定位。
+function aiFail(res, err) {
+  const msg = String((err && err.message) || '');
+  if (err && err.aiConfig) {
+    return res.status(503).json({ code: 503, message: 'AI 服务不可用：账户额度不足或密钥失效，请联系管理员' });
+  }
+  if (/429/.test(msg)) {
+    return res.status(429).json({ code: 429, message: 'AI 服务繁忙（限流），请稍后重试' });
+  }
+  return res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
+}
+
 // 清洗 AI 生成内容：剥离 HTML 标签与危险字符，防止存储型 XSS 污染共享题库
 function sanitizeText(s) {
   return String(s || '').replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim();
@@ -364,7 +377,7 @@ router.post('/chat', requireAuth, aiLimiter, async (req, res) => {
     // 上游异常：归还已扣配额，用户可重试
     refundAi(req.userId, 'chat', c.kind);
     console.error('[ai] 请求异常:', err.message);
-    res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
+    aiFail(res, err);
   }
 });
 
@@ -433,7 +446,7 @@ ${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此细化每�
   } catch (err) {
     refundAi(req.userId, 'plan', c.kind);
     console.error('[ai] 学习计划异常:', err.message);
-    res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
+    aiFail(res, err);
   }
 });
 
@@ -479,7 +492,7 @@ ${kh ? `\n【该章节考纲知识要点】请结合以下云南合格考考纲�
   } catch (err) {
     refundAi(req.userId, 'explain', c.kind);
     console.error('[ai] 错题讲解异常:', err.message);
-    res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
+    aiFail(res, err);
   }
 });
 
@@ -705,7 +718,7 @@ ${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此点出最�
   } catch (err) {
     refundAi(req.userId, 'analysis', c.kind);
     console.error('[ai] 学情分析异常:', err.message);
-    res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
+    aiFail(res, err);
   }
 });
 

@@ -31,7 +31,10 @@ export async function callDeepSeek(messages, { temperature = 0.7, max_tokens = 1
         // 限流与服务端不稳定可重试；其余 4xx（如鉴权失败）不重试
         const retriable = resp.status === 429 || resp.status >= 500;
         if (retriable && attempt < retries) continue;
-        throw new Error(resp.status === 429 ? 'DeepSeek 429 限流' : `DeepSeek ${resp.status}`);
+        const err = new Error(resp.status === 429 ? 'DeepSeek 429 限流' : `DeepSeek ${resp.status}`);
+        // 402 余额不足 / 401、403 密钥或权限问题：属配置类错误，标记以便上层给出明确提示
+        if (resp.status === 401 || resp.status === 402 || resp.status === 403) err.aiConfig = true;
+        throw err;
       }
       const data = await resp.json();
       return data.choices?.[0]?.message?.content?.trim() || '';
