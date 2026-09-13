@@ -35,10 +35,15 @@
             >{{ s.subject }}<span class="chip-count">{{ s.count }}</span></button>
           </template>
         </div>
-        <button v-if="view === 'active'" class="btn btn-ghost export-btn" :disabled="!list.length || exporting" @click="exportPDF">
-          <span v-if="exporting">导出中...</span>
-          <template v-else><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>导出 PDF</template>
-        </button>
+        <div class="head-actions">
+          <button v-if="view === 'active'" class="btn btn-primary sprint-btn" :disabled="!list.length || sessionActive" @click="startSession">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/><path d="M3 14h10"/></svg>错题冲刺
+          </button>
+          <button v-if="view === 'active'" class="btn btn-ghost export-btn" :disabled="!list.length || exporting" @click="exportPDF">
+            <span v-if="exporting">导出中...</span>
+            <template v-else><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>导出 PDF</template>
+          </button>
+        </div>
       </div>
       <div v-if="chapters.length" class="filter-row chapters">
         <button
@@ -168,6 +173,87 @@
             <p v-else class="ai-err">AI 讲解暂不可用，请稍后再试</p>
           </div>
         </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- 错题冲刺：把当前筛选的错题组成连续练习 session，带进度与总结 -->
+  <div v-if="sessionActive" class="sprint-mask" @click.self="exitSession">
+    <div class="sprint-card">
+      <div class="sprint-head">
+        <div>
+          <div class="sprint-title">错题冲刺</div>
+          <div class="sprint-meta">待巩固 · 第 {{ sessionIdx + 1 }} / {{ sessionQueue.length }} 题</div>
+        </div>
+        <button class="sprint-close" @click="exitSession" aria-label="退出">✕</button>
+      </div>
+      <div class="sprint-bar"><div class="sprint-bar-fill" :style="{ width: sprintPct + '%' }"></div></div>
+
+      <div v-if="!sessionDone" class="sprint-body">
+        <div class="q-top">
+          <span class="tag tag-blue">{{ cur.subject }}</span>
+          <span class="tag tag-purple">{{ cur.chapter }}</span>
+          <span class="q-wrong-tag">答错</span>
+        </div>
+        <p class="q-stem">{{ cur.stem }}</p>
+        <div v-if="cur.images && cur.images.length" class="q-image">
+          <img v-for="(img, idx) in cur.images" :key="idx" :src="'/' + img" alt="题目配图" loading="lazy" @error="onImgError">
+        </div>
+
+        <div v-if="isSubjective(cur)" class="subjective-box">
+          <div class="detail-ans"><span class="tag tag-green">参考答案：{{ cur.answer }}</span></div>
+          <div class="analysis"><strong>解析：</strong>{{ cur.analysis }}</div>
+          <div class="re-actions">
+            <button class="btn btn-primary" :disabled="subjecting" @click="sprintSubjective(true)">{{ subjecting ? '处理中…' : '我会了，移出错题本' }}</button>
+            <button class="btn btn-ghost" :disabled="subjecting" @click="sprintSubjective(false)">{{ subjecting ? '处理中…' : '还是不会，继续巩固' }}</button>
+            <button class="btn btn-ghost" @click="exitSession">退出</button>
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="options">
+            <button v-for="opt in cur.options" :key="opt[0]" class="option"
+              :class="{ selected: sIsSelected(opt[0]), correct: sessionAnswered && sIsCorrect(opt[0]), wrong: sessionAnswered && sIsWrong(opt[0]), disabled: sessionAnswered }"
+              @click="sessionChoose(opt[0])">
+              <span class="opt-letter">{{ opt[0] }}</span>
+              <span class="opt-text">{{ opt.slice(2) }}</span>
+              <span v-if="sessionAnswered && qtypeOf(cur) === 'multiple' && sIsCorrect(opt[0]) && !sIsSelected(opt[0])" class="opt-miss">漏选</span>
+            </button>
+          </div>
+          <p v-if="qtypeOf(cur) === 'multiple'" class="multi-hint">多选题 · 可多选，需全部选对才算对</p>
+          <div v-if="sessionAnswered && sShowAna" class="result" :class="sessionCorrect ? 'ok' : 'no'">
+            <div class="result-head">
+              <span class="result-icon">{{ sessionCorrect ? '✓' : '✗' }}</span>
+              <strong>{{ sessionCorrect ? '重练答对，已掌握！' : '仍未答对，再看看解析' }}</strong>
+            </div>
+            <div class="detail-ans"><span class="tag tag-green">正确答案：{{ cur.answer }}</span></div>
+            <div class="analysis"><strong>解析：</strong>{{ cur.analysis }}</div>
+          </div>
+          <div class="re-actions">
+            <button v-if="!sessionAnswered" class="btn btn-primary" :disabled="!sHasSel || sessionSubmitting" @click="sessionSubmit">{{ sessionSubmitting ? '提交中…' : '提交答案' }}</button>
+            <button v-else-if="sessionCorrect" class="btn btn-primary" @click="sprintAdvance(true)">移出错题本 · 下一题</button>
+            <button v-else class="btn btn-primary" @click="sprintAdvance(false)">下一题 · 继续巩固</button>
+            <button v-if="sessionAnswered && !sShowAna" class="btn btn-ghost" @click="sShowAna = true">查看解析</button>
+            <button v-if="sessionAnswered && sShowAna" class="btn btn-ghost" @click="sShowAna = false">收起解析</button>
+            <button class="btn btn-ghost" @click="exitSession">退出</button>
+          </div>
+        </template>
+      </div>
+
+      <div v-else class="sprint-done">
+        <div class="done-emoji">🎯</div>
+        <h3>错题冲刺完成</h3>
+        <div class="done-stats">
+          <div class="ds"><span class="ds-n">{{ sessionStats.answered }}</span><span class="ds-l">练习题数</span></div>
+          <div class="ds"><span class="ds-n">{{ sessionStats.correct }}</span><span class="ds-l">答对</span></div>
+          <div class="ds"><span class="ds-n">{{ sessionStats.mastered }}</span><span class="ds-l">移出错题本</span></div>
+        </div>
+        <p class="done-acc">本轮正确率 {{ sessionStats.answered ? Math.round(sessionStats.correct / sessionStats.answered * 100) : 0 }}%</p>
+        <p class="done-tip">{{ sessionStats.mastered ? '已掌握 ' + sessionStats.mastered + ' 道，错题本又轻了一些' : '继续巩固剩余错题，下次一定能答对' }}</p>
+        <div class="re-actions">
+          <button class="btn btn-primary" @click="startSession" :disabled="!list.length">再来一轮</button>
+          <button class="btn btn-ghost" @click="exitSession">返回错题本</button>
+        </div>
       </div>
     </div>
   </div>
@@ -443,6 +529,123 @@ async function refreshMastered() {
   } catch (e) { /* 忽略归档刷新失败 */ }
 }
 
+/* ========== 错题冲刺：把当前筛选的错题组成连续练习 session ========== */
+const sessionActive = ref(false)
+const sessionDone = ref(false)
+const sessionQueue = ref([])
+const sessionIdx = ref(0)
+const sessionSel = ref('')
+const sessionAnswered = ref(false)
+const sessionCorrect = ref(false)
+const sessionSubmitting = ref(false)
+const sShowAna = ref(false)
+const sessionStats = ref({ answered: 0, correct: 0, mastered: 0 })
+const cur = computed(() => sessionQueue.value[sessionIdx.value] || {})
+const sprintPct = computed(() => sessionQueue.value.length ? Math.round(sessionStats.value.answered / sessionQueue.value.length * 100) : 0)
+function isSubjective(q) { return (q.type || 'single') === 'subjective' }
+function sHasSel() {
+  if (qtypeOf(cur.value) === 'multiple') return Array.isArray(sessionSel.value) && sessionSel.value.length > 0
+  return !!sessionSel.value
+}
+function sIsSelected(letter) {
+  if (qtypeOf(cur.value) === 'multiple') return Array.isArray(sessionSel.value) && sessionSel.value.includes(letter)
+  return sessionSel.value === letter
+}
+function sIsCorrect(letter) { return String(cur.value.answer || '').includes(letter) }
+function sIsWrong(letter) { return sIsSelected(letter) && !sIsCorrect(letter) }
+function sessionChoose(letter) {
+  if (sessionAnswered.value) return
+  if (qtypeOf(cur.value) === 'multiple') {
+    const arr = Array.isArray(sessionSel.value) ? [...sessionSel.value] : []
+    const i = arr.indexOf(letter)
+    if (i >= 0) arr.splice(i, 1)
+    else arr.push(letter)
+    sessionSel.value = arr.sort()
+  } else {
+    sessionSel.value = letter
+  }
+}
+function sessionUserAnswer() {
+  if (qtypeOf(cur.value) === 'multiple') return Array.isArray(sessionSel.value) ? sessionSel.value.join('') : ''
+  return sessionSel.value || ''
+}
+function resetSessionQ() {
+  sessionSel.value = qtypeOf(cur.value) === 'multiple' ? [] : ''
+  sessionAnswered.value = false
+  sessionCorrect.value = false
+  sessionSubmitting.value = false
+  sShowAna.value = false
+}
+function startSession() {
+  if (!list.value.length) return
+  sessionQueue.value = list.value.slice()
+  sessionIdx.value = 0
+  sessionStats.value = { answered: 0, correct: 0, mastered: 0 }
+  sessionDone.value = false
+  sessionActive.value = true
+  resetSessionQ()
+}
+async function sessionSubmit() {
+  if (sessionSubmitting.value) return
+  sessionSubmitting.value = true
+  sessionAnswered.value = true
+  try {
+    const res = await api.post('/practice/submit', { question_id: cur.value.id, answer: sessionUserAnswer() })
+    sessionCorrect.value = !!res.correct
+    if (res.answer) cur.value.answer = res.answer
+    if (res.analysis) cur.value.analysis = res.analysis
+    sessionStats.value.answered++
+    if (sessionCorrect.value) sessionStats.value.correct++
+  } catch (e) {
+    sessionAnswered.value = false
+    toast(e.message || '提交失败，请稍后重试', 'error')
+  } finally {
+    sessionSubmitting.value = false
+  }
+}
+async function sprintAdvance(remove) {
+  if (remove) {
+    try {
+      await api.post('/practice/mastered', { question_id: cur.value.id })
+      sessionStats.value.mastered++
+      all.value = all.value.filter(x => x.id !== cur.value.id)
+      if (masteredAll.value.length) refreshMastered()
+    } catch (e) { toast(e.message || '移出错题本失败', 'error') }
+  }
+  applyFilter()
+  if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; return }
+  sessionIdx.value++
+  resetSessionQ()
+}
+async function sprintSubjective(willMaster) {
+  if (subjecting.value) return
+  subjecting.value = true
+  try {
+    await api.post('/practice/submit', { question_id: cur.value.id, answer: willMaster ? '主观题自评：会了' : '主观题自评：仍不会', selfCorrect: willMaster })
+    sessionStats.value.answered++
+    if (willMaster) {
+      sessionStats.value.correct++
+      await api.post('/practice/mastered', { question_id: cur.value.id })
+      sessionStats.value.mastered++
+      all.value = all.value.filter(x => x.id !== cur.value.id)
+      if (masteredAll.value.length) refreshMastered()
+    }
+    applyFilter()
+    if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; return }
+    sessionIdx.value++
+    resetSessionQ()
+  } catch (e) {
+    toast.error(e.message || '操作失败，请稍后重试')
+  } finally {
+    subjecting.value = false
+  }
+}
+function exitSession() {
+  sessionActive.value = false
+  sessionDone.value = false
+  applyFilter()
+}
+
 async function load() {
   loading.value = true
   try {
@@ -582,6 +785,50 @@ onMounted(load)
 .re-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .export-btn svg { width: 17px; height: 17px; }
+
+/* 错题冲刺：筛选栏按钮 + 全屏练习 session */
+.head-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.sprint-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sprint-btn svg { width: 16px; height: 16px; }
+
+.sprint-mask {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: sprint-fade 0.2s ease;
+}
+@keyframes sprint-fade { from { opacity: 0; } to { opacity: 1; } }
+.sprint-card {
+  width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto;
+  background: var(--surface); border-radius: 18px; box-shadow: var(--shadow-lg);
+  padding: 22px 24px; animation: sprint-pop 0.22s var(--ease);
+}
+@keyframes sprint-pop { from { transform: translateY(16px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+.sprint-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.sprint-title { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.01em; }
+.sprint-meta { font-size: 0.84rem; color: var(--muted); margin-top: 2px; }
+.sprint-close {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; border: 1px solid var(--rule);
+  background: var(--surface-2); color: var(--muted); font-size: 1rem; cursor: pointer; transition: all 0.2s var(--ease);
+}
+.sprint-close:hover { color: var(--ink); border-color: var(--accent); }
+.sprint-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-bottom: 16px; }
+.sprint-bar-fill { height: 100%; border-radius: 999px; background: var(--grad-accent); transition: width 0.35s var(--ease); }
+.sprint-body { display: flex; flex-direction: column; gap: 4px; }
+.sprint-done { text-align: center; padding: 14px 6px 6px; }
+.done-emoji { font-size: 2.6rem; }
+.sprint-done h3 { font-size: 1.3rem; font-weight: 800; margin: 6px 0 16px; }
+.done-stats { display: flex; justify-content: center; gap: 14px; margin-bottom: 12px; }
+.ds {
+  min-width: 88px; padding: 14px 10px; border-radius: 14px;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.ds-n { font-size: 1.6rem; font-weight: 800; color: var(--accent); line-height: 1; }
+.ds-l { font-size: 0.8rem; color: var(--muted); }
+.done-acc { font-size: 1rem; font-weight: 700; color: var(--ink); margin: 4px 0; }
+.done-tip { font-size: 0.9rem; color: var(--muted); margin-bottom: 16px; }
+.sprint-done .re-actions { justify-content: center; }
 
 .ai-btn { color: var(--accent); border: 1px solid rgba(79, 95, 240, 0.4); background: var(--accent-soft); }
 .ai-btn:hover { background: var(--accent); color: #fff; border-color: transparent; }
