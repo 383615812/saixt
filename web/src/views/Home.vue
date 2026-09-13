@@ -177,6 +177,29 @@
       </div>
     </section>
 
+    <!-- 今日学习建议（来自学情诊断，聚合练习/模考/复习信号，给出优先级行动） -->
+    <section v-if="user && diag" class="container">
+      <div class="card diag-banner">
+        <div class="db-head">
+          <div class="db-title">
+            <span class="db-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></svg></span>
+            <div>
+              <h3>今日学习建议</h3>
+              <span class="db-sub">基于你的练习、模考与复习情况智能生成</span>
+            </div>
+          </div>
+          <router-link to="/diagnosis" class="db-more">查看学情诊断 →</router-link>
+        </div>
+        <div class="db-list">
+          <div v-for="(s, i) in diagSuggestions" :key="i" class="db-item" :class="'lv-' + s.level">
+            <span class="db-dot"></span>
+            <p class="db-text">{{ s.text }}</p>
+            <router-link :to="s.action.to" class="db-btn">{{ s.action.label }}</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 志愿速查：依据预估总分实时推荐冲稳保院校（登录且有分时显示） -->
     <section v-if="user && rec.ready && !rec.loading" class="container">
       <div class="card rec-quick">
@@ -369,6 +392,7 @@ const router = useRouter()
 const overview = ref(null)
 const overviewLoading = ref(false)
 const weekly = ref(null)
+const diag = ref(null)
 const now = ref(Date.now())
 const daily = ref({ date: '', count: 0, done: false, answeredToday: 0 })
 const weakChapters = ref([])
@@ -452,6 +476,17 @@ function goPractice(subject) {
 
 function goTasks() {
   router.push({ name: 'tasks' })
+}
+
+// 今日学习建议：复用学情诊断聚合接口，把优先级行动提示到首页顶栏
+const diagSuggestions = computed(() => (diag.value?.suggestions || []).slice(0, 4))
+async function loadDiagnose() {
+  try {
+    const d = await api.get('/diagnose')
+    diag.value = d
+  } catch (e) {
+    console.warn('[home] 学情诊断获取失败:', e.message)
+  }
 }
 
 function deltaClass(diff) {
@@ -576,6 +611,7 @@ onMounted(async () => {
     } catch (e) { console.warn('[home] 学习概览获取失败:', e.message) }
     finally { overviewLoading.value = false }
   }
+  if (user.value) loadDiagnose()
 })
 onBeforeUnmount(() => clearInterval(timer))
 </script>
@@ -884,6 +920,58 @@ font-size: 0.95rem; color: var(--ink); }
 .weak-link:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(225, 29, 72, 0.18); }
 .weak-link-arrow { font-weight: 800; margin-left: 2px; }
 .weak-link-hint { font-size: 0.78rem; color: var(--muted-2); }
+
+/* 今日学习建议横条 */
+.diag-banner { padding: 22px 26px; border-color: rgba(79, 95, 240, 0.16); }
+.db-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.db-title { display: flex; align-items: center; gap: 12px; }
+.db-ic {
+  width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+  background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.db-ic svg { width: 22px; height: 22px; }
+.db-title h3 { font-size: 1.1rem; font-weight: 700; }
+.db-sub { font-size: 0.8rem; color: var(--muted); }
+.db-more { font-size: 0.82rem; color: var(--accent); font-weight: 600; white-space: nowrap; transition: opacity 0.2s var(--ease); }
+.db-more:hover { opacity: 0.78; }
+.db-list { display: flex; flex-direction: column; gap: 10px; }
+.db-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  border-left-width: 3px;
+  animation: dbIn 0.45s var(--ease-out) both;
+}
+.db-item:nth-child(2) { animation-delay: 0.05s; }
+.db-item:nth-child(3) { animation-delay: 0.1s; }
+.db-item:nth-child(4) { animation-delay: 0.15s; }
+@keyframes dbIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .db-item { animation: none; } }
+.db-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.db-item.lv-warn { border-left-color: var(--amber); }
+.db-item.lv-warn .db-dot { background: var(--amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16); }
+.db-item.lv-info { border-left-color: var(--accent); }
+.db-item.lv-info .db-dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.db-item.lv-success { border-left-color: var(--green); }
+.db-item.lv-success .db-dot { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.db-text { flex: 1; font-size: 0.9rem; color: var(--text); margin: 0; min-width: 0; line-height: 1.5; }
+.db-btn {
+  font-size: 0.82rem; font-weight: 600; padding: 8px 16px; border-radius: 999px;
+  background: var(--accent); color: #fff; text-decoration: none; flex-shrink: 0;
+  min-height: 36px; display: inline-flex; align-items: center;
+  transition: background-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.db-btn:hover { background: var(--accent-deep); }
+.db-btn:active { transform: scale(0.97); }
+@media (max-width: 600px) {
+  .diag-banner { padding: 16px 14px; }
+  .db-title h3 { font-size: 1rem; }
+  .db-item { flex-wrap: wrap; gap: 10px; }
+  .db-text { flex: 1 1 100%; order: 2; }
+  .db-dot { display: none; }
+  .db-btn { order: 3; width: 100%; justify-content: center; }
+}
 
 .stat {
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
