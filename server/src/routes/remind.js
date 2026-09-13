@@ -31,11 +31,35 @@ export function getDueCount(uid) {
   return row.c || 0;
 }
 
-// 生成真实提醒内容
+// 模考节奏：从 mock_exams 计算最近模考与距今天数
+export function getExamCadence(uid) {
+  const row = db.prepare(`
+    SELECT COUNT(*) AS c, MAX(COALESCE(submitted_at, started_at)) AS last_at
+    FROM mock_exams WHERE user_id = ?
+  `).get(uid);
+  const examCount = row.c || 0;
+  let daysSinceLast = null;
+  if (row.last_at) {
+    const d = db.prepare("SELECT CAST(julianday('now','localtime') - julianday(?) AS INTEGER) AS days").get(row.last_at);
+    daysSinceLast = d ? d.days : null;
+  }
+  const needExam = examCount === 0 || (daysSinceLast !== null && daysSinceLast >= 7);
+  return { examCount, lastExamAt: row.last_at || null, daysSinceLast, needExam };
+}
+
+// 生成真实提醒内容（含模考节奏提示）
 export function buildReminderContent(uid, due) {
   const user = db.prepare('SELECT nickname FROM users WHERE id = ?').get(uid);
   const name = user?.nickname || '同学';
-  return `【云南春招学习提醒】${name}，你有 ${due} 道错题到了复习时间。及时复习记得更牢，点击前往：${config.baseUrl}/review`;
+  let msg = `【云南春招学习提醒】${name}，你有 ${due} 道错题到了复习时间。及时复习记得更牢，点击前往：${config.baseUrl}/review`;
+  const ex = getExamCadence(uid);
+  if (ex.needExam) {
+    const tip = ex.examCount === 0
+      ? '你还没有模考记录，建议本周来一场套卷模考，摸清自己的真实水平'
+      : `你已 ${ex.daysSinceLast} 天没模考了，建议本周安排一场套卷模考保持手感`;
+    msg += `。${tip}：${config.baseUrl}/mock-exam`;
+  }
+  return msg;
 }
 
 // 记录一条提醒
@@ -53,6 +77,7 @@ router.get('/remind/settings', requireAuth, (req, res) => {
       email: p?.email || '',
       remind_email: p?.remind_email ? 1 : 0,
       remind_sms: p?.remind_sms ? 1 : 0,
+      remind_exam: p?.remind_exam ? 1 : 0,
       remind_time: p?.remind_time || '19:00'
     }
   });
@@ -60,18 +85,18 @@ router.get('/remind/settings', requireAuth, (req, res) => {
 
 // 保存提醒设置
 router.put('/remind/settings', requireAuth, (req, res) => {
-  const { email, remind_email, remind_sms, remind_time } = req.body || {};
+  const { email, remind_email, remind_sms, remind_exam, remind_time } = req.body || {};
   const mail = String(email || '').trim();
   if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
     return res.status(400).json({ code: 400, message: '邮箱格式不正确' });
   }
   const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(remind_time || '')) ? remind_time : '19:00';
-  db.prepare(`INSERT INTO user_profiles (user_id, email, remind_email, remind_sms, remind_time, updated_at)
-              VALUES (?,?,?,?,?,datetime('now','localtime'))
+  db.prepare(`INSERT INTO user_profiles (user_id, email, remind_email, remind_sms, remind_exam, remind_time, updated_at)
+              VALUES (?,?,?,?,?,?,datetime('now','localtime'))
               ON CONFLICT(user_id) DO UPDATE SET
                 email=excluded.email, remind_email=excluded.remind_email, remind_sms=excluded.remind_sms,
-                remind_time=excluded.remind_time, updated_at=excluded.updated_at`)
-    .run(req.userId, mail || null, parseBool(remind_email) ? 1 : 0, parseBool(remind_sms) ? 1 : 0, time);
+                remind_exam=excluded.remind_exam, remind_time=excluded.remind_time, updated_at=excluded.updated_at`)
+    .run(req.userId, mail || null, parseBool(remind_email) ? 1 : 0, parseBool(remind_sms) ? 1 : 0, parseBool(remind_exam) ? 1 : 0, time);
   res.json({ code: 0, message: '提醒设置已保存' });
 });
 
@@ -112,9 +137,15 @@ router.get('/remind/logs', requireAuth, (req, res) => {
   res.json({ code: 0, data: rows });
 });
 
-// 当前到期复习数量
+// 当前到期复习数量 + 模考节奏
 router.get('/remind/due', requireAuth, (req, res) => {
-  res.json({ code: 0, data: { dueToday: getDueCount(req.userId) } });
+  res.json({
+    code: 0,
+    data: {
+      dueToday: getDueCount(req.userId),
+      exam: getExamCadence(req.userId)
+    }
+  });
 });
 
 export default router;

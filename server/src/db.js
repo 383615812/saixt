@@ -408,6 +408,7 @@ try { db.exec('ALTER TABLE group_buys ADD COLUMN pay_method TEXT'); } catch (e) 
 try { db.exec('ALTER TABLE group_buys ADD COLUMN paid_at TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE group_buys ADD COLUMN batches_meta TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_group_buys_pay_no ON group_buys(pay_no)'); } catch (e) { /* 索引已存在则忽略 */ }
+try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_exam INTEGER DEFAULT 1'); } catch (e) { /* 列已存在则忽略 */ }
 
 // ---- 种子数据 ----
 function seedIfEmpty(table, file, mapper) {

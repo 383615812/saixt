@@ -46,6 +46,19 @@
         <router-link to="/review" class="btn btn-primary db-btn">去复习</router-link>
       </div>
 
+      <!-- 模考提醒 -->
+      <div v-if="examReminder" class="card exam-banner">
+        <div class="eb-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="eb-text">
+          <strong v-if="exam.examCount === 0">你还没有模考记录，建议本周来一场套卷模考</strong>
+          <strong v-else>你已 {{ exam.daysSinceLast }} 天没模考了，建议本周安排一场套卷模考</strong>
+          <span>模考能真实检验复习效果，保持手感不滑坡</span>
+        </div>
+        <router-link to="/mock-exam" class="btn btn-primary eb-btn">去模考</router-link>
+      </div>
+
       <!-- 提醒设置 -->
       <div class="card set-card">
         <div class="set-head">
@@ -85,6 +98,16 @@
             <span>到期错题通过短信通知你</span>
           </div>
           <button class="switch" :class="{ on: form.remind_sms }" @click="form.remind_sms = !form.remind_sms" :aria-pressed="form.remind_sms">
+            <span class="knob"></span>
+          </button>
+        </div>
+
+        <div class="set-row">
+          <div class="set-label">
+            <strong>模考提醒</strong>
+            <span>到模考节奏时（≥7 天未模考），在每日提醒中加入模考建议</span>
+          </div>
+          <button class="switch" :class="{ on: form.remind_exam }" @click="form.remind_exam = !form.remind_exam" :aria-pressed="form.remind_exam">
             <span class="knob"></span>
           </button>
         </div>
@@ -176,7 +199,7 @@
 <script setup>
 
 import { toast } from '../toast'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { api } from '../api'
 
 const loading = ref(true)
@@ -184,6 +207,8 @@ const saving = ref(false)
 const saved = ref(false)
 const testing = ref('')
 const due = ref({ dueToday: 0 })
+const exam = computed(() => due.value.exam)
+const examReminder = computed(() => !!(due.value.exam && due.value.exam.needExam))
 const logs = ref([])
 const testResult = ref(null)
 const browserNotif = ref(localStorage.getItem('saixt_browser_notif') === '1')
@@ -219,6 +244,7 @@ const form = reactive({
   email: '',
   remind_email: false,
   remind_sms: false,
+  remind_exam: true,
   remind_time: '19:00'
 })
 
@@ -227,12 +253,13 @@ async function load() {
   try {
     const [s, d, l] = await Promise.all([
       api.get('/remind/settings'),
-      api.get('/remind/due').catch(() => ({ dueToday: 0 })),
+      api.get('/remind/due').catch(() => ({ dueToday: 0, exam: { needExam: false } })),
       api.get('/remind/logs')
     ])
     form.email = s.email || ''
     form.remind_email = !!s.remind_email
     form.remind_sms = !!s.remind_sms
+    form.remind_exam = !!s.remind_exam
     form.remind_time = s.remind_time || '19:00'
     due.value = d
     logs.value = l
@@ -251,6 +278,7 @@ async function save() {
       email: form.email,
       remind_email: form.remind_email ? 1 : 0,
       remind_sms: form.remind_sms ? 1 : 0,
+      remind_exam: form.remind_exam ? 1 : 0,
       remind_time: form.remind_time
     })
     saved.value = true
@@ -307,6 +335,20 @@ onMounted(load)
 .due-banner:not(.hot) .db-text strong { color: var(--green); }
 .db-text span { font-size: 0.85rem; color: var(--muted); }
 .db-btn { white-space: nowrap; }
+
+/* 模考提醒横条 */
+.exam-banner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 18px 22px; margin-bottom: 16px;
+  border: 1px solid rgba(79, 95, 240, 0.3);
+  background: var(--accent-soft);
+}
+.eb-icon { display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.eb-icon svg { width: 28px; height: 28px; }
+.eb-text { flex: 1; min-width: 200px; }
+.eb-text strong { display: block; font-size: 1.05rem; color: var(--accent); }
+.eb-text span { font-size: 0.85rem; color: var(--muted); }
+.eb-btn { white-space: nowrap; }
 
 /* 骨架屏 */
 .sk-db-icon { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; }
@@ -396,6 +438,7 @@ onMounted(load)
   .db-text { min-width: 140px; }
   .db-text strong { font-size: 0.96rem; }
   .db-btn { width: 100%; text-align: center; }
+  .eb-btn { width: 100%; text-align: center; }
   .set-card, .test-card, .log-card { padding: 18px 16px; }
   .set-row { align-items: flex-start; }
   .set-input { width: 100%; min-width: 0; font-size: 1rem; }
