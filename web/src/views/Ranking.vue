@@ -5,17 +5,21 @@
       <p>按累计答对题数排名，与全省考生一起比拼进步</p>
     </div>
 
-    <!-- 周期切换 -->
+    <!-- 榜单类型与周期切换 -->
     <div class="card filter-bar">
       <div class="range-tabs">
-        <button class="tab" :class="{ on: curRange === 'all' }" @click="setRange('all')">全部</button>
-        <button class="tab" :class="{ on: curRange === 'week' }" @click="setRange('week')">本周</button>
+        <button class="tab" :class="{ on: curTab === 'practice' }" @click="setTab('practice')">刷题榜</button>
+        <button class="tab" :class="{ on: curTab === 'exam' }" @click="setTab('exam')">模考榜</button>
+        <template v-if="curTab === 'practice'">
+          <button class="tab" :class="{ on: curRange === 'all' }" @click="setRange('all')">全部</button>
+          <button class="tab" :class="{ on: curRange === 'week' }" @click="setRange('week')">本周</button>
+        </template>
       </div>
-      <span class="range-note">共 {{ totalUsers }} 人上榜</span>
+      <span class="range-note">共 {{ curTab === 'practice' ? totalUsers : examTotalUsers }} 人上榜</span>
     </div>
 
     <!-- 骨架屏 -->
-    <template v-if="loading">
+    <template v-if="loading && curTab === 'practice'">
       <div class="card my-rank">
         <div class="skeleton rk-circle"></div>
         <div class="sk-lines">
@@ -32,7 +36,7 @@
       </div>
     </template>
 
-    <template v-else>
+    <template v-else-if="curTab === 'practice'">
       <!-- 我的排名 -->
       <div v-if="mine" class="card my-rank">
         <div class="mr-ring" :class="'ring-' + Math.min(mine.rank, 3)">
@@ -104,6 +108,83 @@
         </div>
       </div>
     </template>
+
+    <!-- ===================== 模考榜 ===================== -->
+    <template v-else-if="curTab === 'exam'">
+      <template v-if="loading">
+        <div class="card my-rank">
+          <div class="skeleton rk-circle"></div>
+          <div class="sk-lines">
+            <div class="skeleton rk-line w60"></div>
+            <div class="skeleton rk-line w40"></div>
+          </div>
+        </div>
+        <div class="card rank-list">
+          <div v-for="i in 6" :key="i" class="sk-row">
+            <div class="skeleton rk-circle sm"></div>
+            <div class="skeleton rk-line w30"></div>
+            <div class="skeleton rk-line w50"></div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+        <div v-if="examMine" class="card my-rank">
+          <div class="mr-ring" :class="'ring-' + Math.min(examMine.rank, 3)">
+            <div class="mr-avatar">{{ (examMine.nickname || '考')[0] }}</div>
+          </div>
+          <div class="mr-info">
+            <div class="mr-title">
+              <h3>我的模考：第 {{ examMine.rank }} 名</h3>
+              <span v-if="examMine.rank <= 3" class="mr-badge"><span class="mb-ic" v-html="ICONS.trophy"></span>榜上有名</span>
+            </div>
+            <p>最高 <strong>{{ examMine.best }}</strong> 分 · 共 <strong>{{ examMine.exams }}</strong> 场 · 平均正确率 <strong>{{ examMine.accuracy }}%</strong></p>
+          </div>
+          <router-link to="/mock-exam" class="btn btn-primary">再来一场模考</router-link>
+        </div>
+
+        <div v-if="examPodium.length" class="podium">
+          <div v-for="(p, i) in examPodium" :key="p.user_id" class="podium-col" :class="'col-' + (i + 1)">
+            <div class="podium-avatar" :class="'av-' + (i + 1)">{{ (p.nickname || '考')[0] }}</div>
+            <div class="podium-name">{{ p.nickname }}</div>
+            <div class="podium-stats">最高 {{ p.best }} 分</div>
+            <div class="podium-block" :class="'block-' + (i + 1)">
+              <span class="podium-medal" v-html="MEDALS[i]"></span>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="!examList.length" class="card empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a2 2 0 0 1 2 2H7a2 2 0 0 1 2-2z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><path d="M8 11h8M8 15h5"/></svg>
+          </div>
+          <p>暂无模考成绩</p>
+          <span class="empty-sub">完成一场模拟考试，即可登上模考榜</span>
+          <router-link to="/mock-exam" class="btn btn-primary empty-btn">去参加模考</router-link>
+        </div>
+
+        <div v-else class="card rank-list">
+          <div v-for="(r, i) in examList" :key="r.user_id" class="rank-row" :class="{ me: examMine && r.user_id === examMine.user_id }">
+            <div class="rank-no" :class="'top' + (i + 1)">
+              <span v-if="i < 3" class="rank-medal" v-html="MEDALS[i]"></span>
+              <template v-else>{{ i + 1 }}</template>
+            </div>
+            <div class="rank-avatar">{{ (r.nickname || '考')[0] }}</div>
+            <div class="rank-name">
+              <strong>{{ r.nickname }}</strong>
+              <span v-if="examMine && r.user_id === examMine.user_id" class="me-tag">我</span>
+            </div>
+            <div class="rank-stats">
+              <span>最高 <strong>{{ r.best }}</strong> 分</span>
+              <span class="rank-acc">
+                <span class="acc-bar"><span class="acc-fill" :style="{ width: r.accuracy + '%' }"></span></span>
+                {{ r.accuracy }}% · {{ r.exams }} 场
+              </span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </template>
   </div>
 </template>
 
@@ -151,6 +232,36 @@ function setRange(r) {
   if (r === curRange.value) return
   curRange.value = r
   load()
+}
+
+// ===== 模考榜 =====
+const curTab = ref('practice')
+const examList = ref([])
+const examMine = ref(null)
+const examTotalUsers = ref(0)
+const examPodium = computed(() => examList.value.slice(0, 3))
+
+async function loadExam() {
+  loading.value = true
+  loadFailed.value = false
+  try {
+    const data = await api.get('/ranking/exam?limit=50')
+    examList.value = data.list || []
+    examMine.value = data.mine || null
+    examTotalUsers.value = data.total_users || 0
+  } catch (e) {
+    toast(e.message || '模考榜加载失败，请稍后重试', 'error')
+    loadFailed.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+function setTab(t) {
+  if (t === curTab.value) return
+  curTab.value = t
+  if (t === 'exam') loadExam()
+  else load()
 }
 
 onMounted(load)

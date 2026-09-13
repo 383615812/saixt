@@ -75,4 +75,63 @@ router.get('/', requireAuth, (req, res) => {
   res.json({ code: 0, data: { list, mine, total_users, range } });
 });
 
+// 模考榜：按每人历史最高一次模考成绩排序（并列同名次），仅暴露昵称与成绩
+router.get('/exam', requireAuth, (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+  const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+  const all = rankingCache.get('exam', () => db.prepare(
+    `SELECT u.id AS user_id, u.nickname,
+            MAX(m.score) AS best,
+            COUNT(m.id) AS exams,
+            SUM(m.correct) AS correct,
+            SUM(m.total) AS total
+     FROM mock_exams m
+     JOIN users u ON u.id = m.user_id
+     WHERE m.status = 'submitted'
+     GROUP BY m.user_id
+     ORDER BY best DESC, exams ASC`
+  ).all());
+
+  const total_users = all.length;
+  const rows = all.slice(offset, offset + limit);
+
+  const list = [];
+  let prevBest = null;
+  let prevRank = 0;
+  rows.forEach((r, i) => {
+    const rank = r.best === prevBest ? prevRank : offset + i + 1;
+    prevBest = r.best;
+    prevRank = rank;
+    list.push({
+      rank,
+      user_id: r.user_id,
+      nickname: r.nickname,
+      best: r.best,
+      exams: r.exams,
+      accuracy: r.total ? Math.round((r.correct / r.total) * 1000) / 10 : 0
+    });
+  });
+
+  const myRow = db.prepare(
+    `SELECT MAX(score) AS best, COUNT(*) AS exams, SUM(correct) AS correct, SUM(total) AS total
+     FROM mock_exams WHERE user_id = ? AND status = 'submitted'`
+  ).get(req.userId);
+  let mine = null;
+  if (myRow && myRow.exams > 0) {
+    const better = all.filter(r => r.best > myRow.best).length;
+    const user = db.prepare('SELECT nickname FROM users WHERE id = ?').get(req.userId);
+    mine = {
+      rank: better + 1,
+      user_id: req.userId,
+      nickname: user?.nickname || '',
+      best: myRow.best,
+      exams: myRow.exams,
+      accuracy: myRow.total ? Math.round((myRow.correct / myRow.total) * 1000) / 10 : 0
+    };
+  }
+
+  res.json({ code: 0, data: { list, mine, total_users } });
+});
+
 export default router;
