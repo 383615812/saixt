@@ -52,3 +52,7 @@ scripts/sync_*.json
 # ===== 系统杂项 =====
 .DS_Store
 Thumbs.db
+
+# ===== Agent 本地状态 / 大体积课程资料（不入库） =====
+.workbuddy/
+2026国考980系统班/

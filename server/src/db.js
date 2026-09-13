@@ -276,6 +276,64 @@ db.exec(`
     sort INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT DEFAULT (datetime('now','localtime'))
   );
+  -- 团购（学校 / 合作机构批量采购会员）
+  CREATE TABLE IF NOT EXISTS partners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'school',
+    contact TEXT,
+    phone TEXT,
+    school_code TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    created_by INTEGER,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (school_code) REFERENCES schools(code) ON DELETE SET NULL
+  );
+  CREATE TABLE IF NOT EXISTS group_buys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    partner_id INTEGER NOT NULL,
+    product_code TEXT NOT NULL,
+    product_name TEXT,
+    months INTEGER,
+    unit_price INTEGER NOT NULL DEFAULT 0,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    redeemed INTEGER NOT NULL DEFAULT 0,
+    total_amount INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    paid INTEGER NOT NULL DEFAULT 0,
+    pay_no TEXT,
+    pay_method TEXT,
+    paid_at TEXT,
+    batches_meta TEXT,
+    expire_at TEXT,
+    remark TEXT,
+    created_by INTEGER,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (partner_id) REFERENCES partners(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE TABLE IF NOT EXISTS group_buy_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_buy_id INTEGER NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    product_code TEXT,
+    months INTEGER,
+    batch_label TEXT,
+    status TEXT NOT NULL DEFAULT 'unused',
+    redeemed_by INTEGER,
+    redeemed_at TEXT,
+    expire_at TEXT,
+    created_at TEXT DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (group_buy_id) REFERENCES group_buys(id) ON DELETE CASCADE,
+    FOREIGN KEY (redeemed_by) REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_partners_type ON partners(type);
+  CREATE INDEX IF NOT EXISTS idx_group_buys_partner ON group_buys(partner_id);
+  CREATE INDEX IF NOT EXISTS idx_group_buy_codes_code ON group_buy_codes(code);
+  CREATE INDEX IF NOT EXISTS idx_group_buy_codes_gb ON group_buy_codes(group_buy_id, status);
+
   CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
   CREATE INDEX IF NOT EXISTS idx_point_logs_user ON point_logs(user_id);
   CREATE INDEX IF NOT EXISTS idx_invites_inviter ON invites(inviter_id);
@@ -322,6 +380,14 @@ try { db.exec("ALTER TABLE plans ADD COLUMN lang TEXT DEFAULT '不限'"); } catc
 try { db.exec("ALTER TABLE plans ADD COLUMN oral TEXT DEFAULT '否'"); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE users ADD COLUMN reg_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE invites ADD COLUMN redeem_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE memberships ADD COLUMN source_ref TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE group_buy_codes ADD COLUMN batch_label TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_group_buy_codes_batch ON group_buy_codes(group_buy_id, batch_label)'); } catch (e) { /* 索引已存在则忽略 */ }
+try { db.exec('ALTER TABLE group_buys ADD COLUMN pay_no TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE group_buys ADD COLUMN pay_method TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE group_buys ADD COLUMN paid_at TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE group_buys ADD COLUMN batches_meta TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('CREATE INDEX IF NOT EXISTS idx_group_buys_pay_no ON group_buys(pay_no)'); } catch (e) { /* 索引已存在则忽略 */ }
 
 // ---- 种子数据 ----
 function seedIfEmpty(table, file, mapper) {
@@ -357,9 +423,9 @@ seedIfEmpty('plans', 'plans.json', {
 
 // 默认商品目录（作为 products 表种子与兼容回退）
 export const DEFAULT_PRODUCTS = [
-  { code: 'vip_month', kind: 'vip', name: 'VIP 会员 · 月卡', price: 29, months: 1, sort: 1 },
-  { code: 'vip_quarter', kind: 'vip', name: 'VIP 会员 · 季卡', price: 79, months: 3, sort: 2 },
-  { code: 'vip_year', kind: 'vip', name: 'VIP 会员 · 年卡', price: 199, months: 12, sort: 3 }
+  { code: 'vip_month', kind: 'vip', name: 'VIP 会员 · 月卡', price: 38, months: 1, sort: 1 },
+  { code: 'vip_quarter', kind: 'vip', name: 'VIP 会员 · 季卡', price: 103, months: 3, sort: 2 },
+  { code: 'vip_year', kind: 'vip', name: 'VIP 会员 · 年卡', price: 259, months: 12, sort: 3 }
 ];
 
 // products 表为空时写入默认商品
@@ -512,9 +578,9 @@ rebuildTableWithFk('memberships',
   `CREATE TABLE memberships (
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, level TEXT NOT NULL DEFAULT 'vip',
     status TEXT NOT NULL DEFAULT 'active', start_at TEXT DEFAULT (datetime('now','localtime')),
-    expire_at TEXT, source TEXT DEFAULT 'order', UNIQUE(user_id),
+    expire_at TEXT, source TEXT DEFAULT 'order', source_ref TEXT, UNIQUE(user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)`,
-  ['id', 'user_id', 'level', 'status', 'start_at', 'expire_at', 'source'], [orphans('memberships')],
+  ['id', 'user_id', 'level', 'status', 'start_at', 'expire_at', 'source', 'source_ref'], [orphans('memberships')],
   ['CREATE INDEX IF NOT EXISTS idx_memberships_status ON memberships(status)']);
 
 rebuildTableWithFk('orders',

@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { requireAuth, verifyToken } from '../auth.js';
 import { getMembership, genOrderNo, markOrderPaid, listProducts, getProduct, tx } from '../commerce.js';
 import { createPayment, handleNotify, notifyOk, notifyFail, providerReady, PAY_PROVIDER, isDemo } from '../payment.js';
+import { getGroupBuyByPayNo, settleGroupBuy } from '../groupbuy.js';
 import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
@@ -130,13 +131,39 @@ router.post('/membership/pay/notify/:method', notifyLimiter, async (req, res) =>
       const token = header.startsWith('Bearer ') ? header.slice(7) : null;
       const uid = verifyToken(token);
       if (!uid) return res.status(401).json({ code: 401, message: '未登录或登录已过期' });
-      const order = db.prepare('SELECT user_id FROM orders WHERE order_no = ?').get((req.body || {}).order_no);
-      if (!order) return res.status(404).json({ code: 404, message: '订单不存在' });
       const isAdmin = db.prepare('SELECT 1 FROM admins WHERE user_id = ?').get(uid);
-      if (order.user_id !== uid && !isAdmin) return res.status(403).json({ code: 403, message: '无权操作该订单' });
+      const gbPreview = getGroupBuyByPayNo((req.body || {}).order_no);
+      if (gbPreview) {
+        // 团购方案支付：无个人订单归属，仅管理员可触发演示回调
+        if (!isAdmin) return res.status(403).json({ code: 403, message: '无权操作该团购方案' });
+      } else {
+        const order = db.prepare('SELECT user_id FROM orders WHERE order_no = ?').get((req.body || {}).order_no);
+        if (!order) return res.status(404).json({ code: 404, message: '订单不存在' });
+        if (order.user_id !== uid && !isAdmin) return res.status(403).json({ code: 403, message: '无权操作该订单' });
+      }
     }
     const result = await handleNotify(req);
     if (!result) return notifyFail(res);
+
+    // 团购方案支付回调：命中 pay_no 则结算团购（生成兑换码），与个人订单分流
+    const gbRow = getGroupBuyByPayNo(result.order_no);
+    if (gbRow) {
+      if (!isDemo()) {
+        if (result.amount == null) return notifyFail(res);
+        if (Math.round(gbRow.total_amount * 100) !== result.amount) {
+          console.error(`[pay] 团购回调金额不匹配: gb=${gbRow.code} expect=${gbRow.total_amount} got=${result.amount}`);
+          return notifyFail(res);
+        }
+      }
+      try {
+        settleGroupBuy(gbRow.id, { method });
+      } catch (e) {
+        console.error(`[pay] 团购结算失败: gb=${gbRow.code} ${e.message}`);
+        return notifyFail(res);
+      }
+      return notifyOk(res);
+    }
+
     // 金额校验：真实渠道回调金额必须与订单金额一致（防篡改/防错配）；demo 渠道无金额字段
     if (!isDemo()) {
       if (result.amount == null) return notifyFail(res);

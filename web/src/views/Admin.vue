@@ -266,6 +266,82 @@
         </table>
         <p v-if="adminCurrent.role !== 'main'" class="admin-hint">仅主管理员可编辑商品配置。</p>
       </div>
+
+      <!-- ===================== 团购管理（学校/合作机构批量采购） ===================== -->
+      <div class="sec-head">
+        <h3 class="sec-title">团购管理 <span class="sec-sub">学校 / 合作机构批量采购会员</span></h3>
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" @click="openPartnerModal()">新增机构</button>
+          <button class="btn btn-primary btn-sm" @click="openGbModal()">新增团购方案</button>
+        </div>
+      </div>
+
+      <!-- 团购统计 -->
+      <div class="gb-kpi-grid">
+        <div class="card gb-kpi"><span class="gb-kpi-l">合作机构</span><div class="gb-kpi-n">{{ gbStats.partners }}</div></div>
+        <div class="card gb-kpi"><span class="gb-kpi-l">进行中方案</span><div class="gb-kpi-n">{{ gbStats.campaigns }}</div></div>
+        <div class="card gb-kpi">
+          <span class="gb-kpi-l">团购席位</span>
+          <div class="gb-kpi-n">{{ gbStats.seats_total }}</div>
+          <span class="gb-kpi-s">已兑 {{ gbStats.seats_redeemed }} · 余 {{ gbStats.seats_remaining }}</span>
+        </div>
+        <div class="card gb-kpi"><span class="gb-kpi-l">团购营收</span><div class="gb-kpi-n">¥{{ gbStats.revenue }}</div></div>
+        <div class="card gb-kpi"><span class="gb-kpi-l">团购开通 VIP</span><div class="gb-kpi-n">{{ gbStats.vip_via_group }}</div></div>
+      </div>
+
+      <!-- 合作机构 -->
+      <div class="card user-table-wrap">
+        <table class="user-table user-table-sm2">
+          <thead><tr><th>机构名称</th><th>类型</th><th>联系人</th><th>手机号</th><th>团购方案</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr v-for="p in partners" :key="p.id">
+              <td class="ut-user"><span class="ut-avatar">{{ (p.name || '?')[0] }}</span><span>{{ p.name }}</span></td>
+              <td>{{ p.type === 'school' ? '学校' : '合作机构' }}</td>
+              <td>{{ p.contact || '-' }}</td>
+              <td class="ut-mono">{{ p.phone || '-' }}</td>
+              <td>{{ partnerGbCount(p.id) }}</td>
+              <td><span class="tag" :class="p.status === 'active' ? 'tag-green' : 'tag-gray'">{{ p.status === 'active' ? '启用' : '停用' }}</span></td>
+            </tr>
+            <tr v-if="!partners.length"><td colspan="6" class="ut-empty">暂无合作机构</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 团购方案 -->
+      <div class="card user-table-wrap">
+        <table class="user-table">
+          <thead><tr><th>方案编号</th><th>机构</th><th>商品</th><th>时长</th><th>单价</th><th>数量</th><th>已兑</th><th>结算</th><th>状态</th><th>兑换截止</th><th></th></tr></thead>
+          <tbody>
+            <tr v-for="g in groupBuys" :key="g.id">
+              <td class="ut-mono">{{ g.code }}</td>
+              <td>{{ g.partner_name }}</td>
+              <td>{{ g.product_name }}</td>
+              <td>{{ g.months }} 月</td>
+              <td class="ut-amount">¥{{ g.unit_price }}</td>
+              <td>{{ g.quantity }}</td>
+              <td>{{ g.codes_redeemed }}/{{ g.codes_total }}</td>
+              <td>
+                <span class="tag" :class="g.paid ? 'tag-green' : 'tag-amber'">{{ g.paid ? '已收款' : '待收款' }}</span>
+                <span v-if="g.paid && g.total_amount > 0" class="ut-muted gb-amount">¥{{ g.total_amount }}</span>
+              </td>
+              <td><span class="tag" :class="gbStatusClass(g.status)">{{ gbStatusText(g.status) }}</span></td>
+              <td class="ut-muted">{{ g.expire_at || '长期' }}</td>
+              <td class="ut-act">
+                <button v-if="g.status !== 'pending' && g.status !== 'cancelled'" class="btn btn-ghost btn-xs" @click="openCodes(g)">查看码</button>
+                <button v-if="g.status === 'pending'" class="btn btn-primary btn-xs" @click="payGb(g)">收款</button>
+                <button v-if="g.status === 'pending'" class="btn btn-ghost btn-xs" @click="cancelGb(g)">取消</button>
+                <button v-if="g.status === 'active'" class="btn btn-ghost btn-xs" @click="closeGb(g)">关闭</button>
+              </td>
+            </tr>
+            <tr v-if="!groupBuys.length"><td colspan="11" class="ut-empty">暂无团购方案</td></tr>
+          </tbody>
+        </table>
+        <div class="pager">
+          <button class="btn btn-ghost btn-sm" :disabled="gbPage <= 1" @click="gbPage--; loadGroupBuys()">上一页</button>
+          <span class="pager-info">共 {{ gbTotal }} 个 · 第 {{ gbPage }} / {{ gbPageCount }} 页</span>
+          <button class="btn btn-ghost btn-sm" :disabled="gbPage >= gbPageCount" @click="gbPage++; loadGroupBuys()">下一页</button>
+        </div>
+      </div>
     </template>
 
     <div v-else class="card empty">
@@ -421,6 +497,185 @@
             <div class="ai-kinds">
               <span v-for="a in detail.ai" :key="a.kind" class="ai-kind">{{ { chat: 'AI 答疑', plan: '学习计划', analyze: '学情分析', explain: '错题讲解', generate: '智能出题' }[a.kind] || a.kind }}：{{ a.total }} 次</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 团购：新增合作机构 ===================== -->
+    <div v-if="partnerOpen" class="modal-mask" @click.self="partnerOpen = false">
+      <div class="modal-panel modal-product">
+        <div class="modal-head">
+          <div><h4>新增合作机构</h4></div>
+          <button class="modal-x" @click="partnerOpen = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="pf-row"><label class="pf-label">机构名称</label><input v-model="partnerForm.name" class="tool-input pf-input" placeholder="如 昆明某职业学院"></div>
+          <div class="pf-grid">
+            <div class="pf-row"><label class="pf-label">类型</label>
+              <select v-model="partnerForm.type" class="pager-sel pf-input">
+                <option value="school">学校</option>
+                <option value="institution">合作机构</option>
+              </select>
+            </div>
+            <div class="pf-row"><label class="pf-label">联系人</label><input v-model="partnerForm.contact" class="tool-input pf-input" placeholder="选填"></div>
+          </div>
+          <div class="pf-grid">
+            <div class="pf-row"><label class="pf-label">手机号</label><input v-model="partnerForm.phone" class="tool-input pf-input" placeholder="选填"></div>
+            <div class="pf-row"><label class="pf-label">关联院校编码</label><input v-model="partnerForm.school_code" class="tool-input pf-input" placeholder="选填，schools.code"></div>
+          </div>
+          <p v-if="partnerMsg" class="pf-err">{{ partnerMsg }}</p>
+          <div class="pf-actions">
+            <button class="btn btn-ghost btn-sm" @click="partnerOpen = false">取消</button>
+            <button class="btn btn-primary btn-sm" :disabled="partnerBusy" @click="savePartner">保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 团购：新增团购方案 ===================== -->
+    <div v-if="gbOpen" class="modal-mask" @click.self="gbOpen = false">
+      <div class="modal-panel modal-product">
+        <div class="modal-head">
+          <div><h4>新增团购方案</h4><p class="modal-sub">生成后自动批量产出兑换码</p></div>
+          <button class="modal-x" @click="gbOpen = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="pf-row"><label class="pf-label">合作机构</label>
+            <select v-model.number="gbForm.partner_id" class="pager-sel pf-input">
+              <option :value="0" disabled>请选择机构</option>
+              <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+          <div class="pf-row"><label class="pf-label">团购商品</label>
+            <select v-model="gbForm.product_code" class="pager-sel pf-input">
+              <option v-for="p in products.filter(x => x.active)" :key="p.code" :value="p.code">{{ p.name }}（{{ p.months }} 月）</option>
+            </select>
+          </div>
+          <div class="pf-grid">
+            <div class="pf-row"><label class="pf-label">会员时长（月）</label><input v-model.number="gbForm.months" type="number" min="1" max="120" class="tool-input pf-input" placeholder="留空用商品默认"></div>
+            <div class="pf-row" v-if="!gbForm.useBatches"><label class="pf-label">团购数量（张）</label><input v-model.number="gbForm.quantity" type="number" min="1" max="100000" class="tool-input pf-input"></div>
+          </div>
+          <div class="pf-batch">
+            <label class="pf-check"><input type="checkbox" v-model="gbForm.useBatches"> 按班级 / 专业分批发码</label>
+            <p class="pf-hint" v-if="!gbForm.useBatches">关闭则整批发码；开启后可按班级、专业等拆分多批，便于分发出账与兑换进度跟踪。</p>
+            <div v-if="gbForm.useBatches" class="batch-editor">
+              <div v-for="(b, i) in gbForm.batches" :key="i" class="batch-row">
+                <input v-model="b.label" class="tool-input" placeholder="批次名称，如 高三1班 / 计算机专业" maxlength="50">
+                <input v-model.number="b.count" type="number" min="1" max="100000" class="tool-input batch-count" placeholder="数量">
+                <button class="btn btn-ghost btn-sm" @click="gbForm.batches.splice(i, 1)">✕</button>
+              </div>
+              <button class="btn btn-ghost btn-sm" @click="gbForm.batches.push({ label: '', count: 1 })">+ 添加批次</button>
+              <p class="pf-hint">合计 <b>{{ gbBatchTotal }}</b> 张（单批 1~100000，总 ≤ 100000）</p>
+            </div>
+          </div>
+          <div class="pf-grid">
+            <div class="pf-row"><label class="pf-label">团购单价（元）</label><input v-model.number="gbForm.unit_price" type="number" min="0" max="100000000" class="tool-input pf-input"></div>
+            <div class="pf-row"><label class="pf-label">兑换截止</label><input v-model="gbForm.expire_at" type="date" class="tool-input pf-input" placeholder="选填，留空长期有效"></div>
+          </div>
+          <div class="pf-row"><label class="pf-label">备注</label><input v-model="gbForm.remark" class="tool-input pf-input" placeholder="选填"></div>
+          <p v-if="gbMsg" class="pf-err">{{ gbMsg }}</p>
+          <div class="pf-actions">
+            <button class="btn btn-ghost btn-sm" @click="gbOpen = false">取消</button>
+            <button class="btn btn-primary btn-sm" :disabled="gbBusy || gbForm.partner_id === 0" @click="saveGb">生成团购码</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 团购：团购码查看 / 导出 ===================== -->
+    <div v-if="codesOpen" class="modal-mask" @click.self="codesOpen = false">
+      <div class="modal-panel">
+        <div class="modal-head">
+          <div>
+            <h4>团购码 · {{ codesGb?.code }}</h4>
+            <p class="modal-sub" v-if="codesGb">{{ codesGb.partner_name }} · 已兑 {{ codesGb.codes_redeemed }}/{{ codesGb.codes_total }}</p>
+          </div>
+          <button class="modal-x" @click="codesOpen = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="toolbar">
+            <select v-model="codeStatus" class="pager-sel" @change="loadCodes()">
+              <option value="">全部状态</option>
+              <option value="unused">未兑换</option>
+              <option value="redeemed">已兑换</option>
+              <option value="expired">已过期</option>
+            </select>
+            <select v-model="codeBatch" class="pager-sel" @change="loadCodes()">
+              <option value="">全部批次</option>
+              <option v-for="l in codeBatchLabels" :key="l" :value="l === '（未分组）' ? '__none__' : l">{{ l }}</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" @click="exportCodes">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              导出 CSV
+            </button>
+          </div>
+          <div v-if="codeBatches.length" class="batch-stats">
+            <div v-for="b in codeBatches" :key="b.batch_label" class="batch-stat">
+              <div class="batch-stat-head"><span class="batch-name">{{ b.batch_label }}</span><span class="batch-sub">已兑 {{ b.redeemed }}/{{ b.total }} · {{ b.conversion }}%</span></div>
+              <div class="batch-bar"><i :style="{ width: b.conversion + '%' }"></i></div>
+            </div>
+          </div>
+          <div class="card user-table-wrap">
+            <table class="mini-table">
+              <thead><tr><th>兑换码</th><th>批次</th><th>状态</th><th>兑换用户</th><th>兑换时间</th></tr></thead>
+              <tbody>
+                <tr v-for="c in codesList" :key="c.id">
+                  <td class="ut-mono">{{ c.code }}</td>
+                  <td class="ut-muted">{{ c.batch_label || '-' }}</td>
+                  <td>
+                    <span class="tag" :class="c.status === 'unused' ? 'tag-amber' : c.status === 'redeemed' ? 'tag-green' : 'tag-gray'">
+                      {{ { unused: '未兑换', redeemed: '已兑换', expired: '已过期' }[c.status] }}
+                    </span>
+                  </td>
+                  <td>{{ c.redeemed_nickname || (c.redeemed_phone ? c.redeemed_phone : '-') }}</td>
+                  <td class="ut-muted">{{ c.redeemed_at || '-' }}</td>
+                </tr>
+                <tr v-if="!codesList.length"><td colspan="5" class="ut-empty">暂无团购码</td></tr>
+              </tbody>
+            </table>
+            <div class="pager">
+              <button class="btn btn-ghost btn-sm" :disabled="codePage <= 1" @click="codePage--; loadCodes()">上一页</button>
+              <span class="pager-info">共 {{ codeTotal }} 张 · 第 {{ codePage }} / {{ codePageCount }} 页</span>
+              <button class="btn btn-ghost btn-sm" :disabled="codePage >= codePageCount" @click="codePage++; loadCodes()">下一页</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 团购：收款 / 结算 ===================== -->
+    <div v-if="gbPayOpen" class="modal-mask" @click.self="gbPayOpen = false">
+      <div class="modal-panel modal-product">
+        <div class="modal-head">
+          <div>
+            <h4>团购收款 · {{ gbPayInfo?.group_buy?.code }}</h4>
+            <p class="modal-sub" v-if="gbPayInfo">{{ gbPayInfo.group_buy.partner_name }} · 应收 ¥{{ gbPayInfo.amount }}</p>
+          </div>
+          <button class="modal-x" @click="gbPayOpen = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="gb-pay-box">
+            <div v-if="gbPayInfo?.qr_code" class="gb-qr"><img :src="gbPayInfo.qr_code" alt="支付二维码"></div>
+            <div v-else class="gb-qr gb-qr-empty">
+              <p>当前支付渠道：<b>{{ gbPayInfo?.pay_provider || 'demo' }}</b></p>
+              <p class="pf-hint">演示/线下模式无二维码。可与机构确认收款后点击下方「确认已收款」。</p>
+            </div>
+            <div v-if="gbPayInfo?.pay_url" class="gb-pay-link">
+              <input :value="gbPayInfo.pay_url" readonly class="tool-input">
+              <button class="btn btn-ghost btn-sm" @click="copyPayUrl">复制链接</button>
+            </div>
+            <p v-if="gbPayInfo?.pay_error" class="pf-err">支付参数获取失败：{{ gbPayInfo.pay_error }}</p>
+          </div>
+          <div v-if="gbPayInfo?.group_buy?.batches_plan?.length" class="batch-stats">
+            <div v-for="b in gbPayInfo.group_buy.batches_plan" :key="b.label" class="batch-stat">
+              <div class="batch-stat-head"><span class="batch-name">{{ b.label }}</span><span class="batch-sub">{{ b.count }} 张</span></div>
+            </div>
+          </div>
+          <p class="pf-hint">确认收款后将 <b>立即生成 {{ gbPayInfo?.group_buy?.quantity }} 张兑换码</b>并生效，可发给机构分发给学生。</p>
+          <div class="pf-actions">
+            <button class="btn btn-ghost btn-sm" @click="gbPayOpen = false">稍后处理</button>
+            <button class="btn btn-primary btn-sm" :disabled="gbPayBusy" @click="confirmGbSettle">确认已收款 · 生成兑换码</button>
           </div>
         </div>
       </div>
@@ -683,6 +938,209 @@ async function exportOrders() {
   }
 }
 
+// ---------- 团购管理 ----------
+const gbStats = ref({ partners: 0, campaigns: 0, seats_total: 0, seats_redeemed: 0, seats_remaining: 0, revenue: 0, vip_via_group: 0 })
+const partners = ref([])
+const partnerOpen = ref(false)
+const partnerBusy = ref(false)
+const partnerMsg = ref('')
+const partnerForm = ref({ name: '', type: 'school', contact: '', phone: '', school_code: '' })
+
+const groupBuys = ref([])
+const gbPage = ref(1)
+const gbPerPage = 30
+const gbTotal = ref(0)
+const gbPageCount = computed(() => Math.max(1, Math.ceil(gbTotal.value / gbPerPage)))
+
+const gbOpen = ref(false)
+const gbBusy = ref(false)
+const gbMsg = ref('')
+const gbForm = ref({ partner_id: 0, product_code: '', months: '', quantity: 1, unit_price: 0, expire_at: '', remark: '', useBatches: false, batches: [] })
+const gbBatchTotal = computed(() => (gbForm.value.batches || []).reduce((s, b) => s + (Number(b.count) || 0), 0))
+
+const codesOpen = ref(false)
+const codesGb = ref(null)
+const codesList = ref([])
+const codePage = ref(1)
+const codePerPage = 50
+const codeTotal = ref(0)
+const codePageCount = computed(() => Math.max(1, Math.ceil(codeTotal.value / codePerPage)))
+const codeStatus = ref('')
+const codeBatch = ref('')
+const codeBatchLabels = ref([])
+const codeBatches = ref([])
+
+const gbPayOpen = ref(false)
+const gbPayBusy = ref(false)
+const gbPayInfo = ref(null)
+const gbPayGb = ref(null)
+
+function gbStatusText(s) {
+  return { pending: '待收款', active: '生效中', closed: '已关闭', cancelled: '已取消' }[s] || s
+}
+function gbStatusClass(s) {
+  return s === 'active' ? 'tag-green' : s === 'pending' ? 'tag-amber' : 'tag-gray'
+}
+async function payGb(g) {
+  gbPayGb.value = g
+  gbPayInfo.value = { group_buy: g, amount: g.total_amount, pay_provider: '', qr_code: null, pay_url: null }
+  gbPayOpen.value = true
+  try {
+    gbPayInfo.value = await api.post(`/groupbuy/groupbuys/${g.id}/pay`, {})
+  } catch (e) { toast(e.message, 'error') }
+}
+async function confirmGbSettle() {
+  if (!gbPayGb.value) return
+  gbPayBusy.value = true
+  try {
+    const r = await api.post(`/groupbuy/groupbuys/${gbPayGb.value.id}/settle`, { method: 'manual' })
+    toast(r.message || '已确认收款', 'success')
+    gbPayOpen.value = false
+    await loadGroupBuys(); await loadGbStats()
+  } catch (e) { toast(e.message, 'error') }
+  finally { gbPayBusy.value = false }
+}
+async function cancelGb(g) {
+  if (!confirm(`确认取消团购方案「${g.code}」？取消后不可恢复。`)) return
+  try {
+    const r = await api.post(`/groupbuy/groupbuys/${g.id}/cancel`, {})
+    toast(r.message || '方案已取消', 'success')
+    await loadGroupBuys(); await loadGbStats()
+  } catch (e) { toast(e.message, 'error') }
+}
+async function copyPayUrl() {
+  try { await navigator.clipboard.writeText(gbPayInfo.value?.pay_url || ''); toast('支付链接已复制', 'success') }
+  catch { toast('复制失败，请手动选择', 'error') }
+}
+
+function partnerGbCount(id) {
+  const n = groupBuys.value.filter(g => g.partner_id === id).length
+  return n ? `${n} 个` : '0'
+}
+
+async function loadGbStats() {
+  try { gbStats.value = await api.get('/groupbuy/stats') } catch (e) { if (e.code !== 403) toast(e.message, 'error') }
+}
+async function loadPartners() {
+  try { partners.value = (await api.get('/groupbuy/partners')).list } catch (e) { if (e.code !== 403) toast(e.message, 'error') }
+}
+async function loadGroupBuys() {
+  const params = new URLSearchParams({ page: gbPage.value, limit: gbPerPage })
+  try {
+    const d = await api.get('/groupbuy/groupbuys?' + params)
+    groupBuys.value = d.list
+    gbTotal.value = d.total || d.list.length
+    gbPage.value = Math.min(gbPage.value, Math.max(1, Math.ceil(gbTotal.value / gbPerPage)))
+  } catch (e) { if (e.code !== 403) toast(e.message, 'error') }
+}
+
+function openPartnerModal() {
+  partnerMsg.value = ''
+  partnerForm.value = { name: '', type: 'school', contact: '', phone: '', school_code: '' }
+  partnerOpen.value = true
+}
+async function savePartner() {
+  partnerBusy.value = true
+  partnerMsg.value = ''
+  try {
+    const r = await api.post('/groupbuy/partners', { ...partnerForm.value })
+    toast(r.message || '已新增合作机构', 'success')
+    partnerOpen.value = false
+    await loadPartners()
+  } catch (e) { toast(e.message, 'error'); partnerMsg.value = e.message }
+  finally { partnerBusy.value = false }
+}
+
+function openGbModal() {
+  gbMsg.value = ''
+  gbForm.value = { partner_id: partners.value[0]?.id || 0, product_code: (products.value.find(p => p.active) || {}).code || '', months: '', quantity: 1, unit_price: 0, expire_at: '', remark: '', useBatches: false, batches: [] }
+  gbOpen.value = true
+}
+async function saveGb() {
+  gbBusy.value = true
+  gbMsg.value = ''
+  try {
+    const f = gbForm.value
+    const body = {
+      partner_id: f.partner_id,
+      product_code: f.product_code,
+      months: f.months === '' ? undefined : f.months,
+      unit_price: f.unit_price,
+      expire_at: f.expire_at || undefined,
+      remark: f.remark
+    }
+    if (f.useBatches) {
+      const batches = (f.batches || []).map(b => ({ label: String(b.label || '').trim(), count: Number(b.count) }))
+      if (!batches.length || batches.some(b => !b.label || !(b.count >= 1))) {
+        gbMsg.value = '请填写每个批次的名称与数量（数量 ≥ 1）'; gbBusy.value = false; return
+      }
+      body.batches = batches
+    } else {
+      body.quantity = f.quantity
+    }
+    const r = await api.post('/groupbuy/groupbuys', body)
+    toast(r.message || '已创建团购方案', 'success')
+    gbOpen.value = false
+    await loadGroupBuys(); await loadGbStats()
+    // 待收款方案：直接拉起收款弹窗，方便立即收款发码
+    if (r.group_buy && !r.group_buy.paid) payGb(r.group_buy)
+  } catch (e) { toast(e.message, 'error'); gbMsg.value = e.message }
+  finally { gbBusy.value = false }
+}
+
+async function openCodes(g) {
+  codesGb.value = g
+  codeStatus.value = ''
+  codeBatch.value = ''
+  codePage.value = 1
+  codesOpen.value = true
+  try {
+    codeBatchLabels.value = (await api.get(`/groupbuy/groupbuys/${g.id}/batches`)).labels || []
+    codeBatches.value = (await api.get(`/groupbuy/groupbuys/${g.id}`)).group_buy?.batches || []
+  } catch (e) { /* 忽略筛选加载失败 */ }
+  await loadCodes()
+}
+async function loadCodes() {
+  if (!codesGb.value) return
+  const params = new URLSearchParams({ page: codePage.value, limit: codePerPage })
+  if (codeStatus.value) params.set('status', codeStatus.value)
+  if (codeBatch.value) params.set('batch', codeBatch.value)
+  try {
+    const d = await api.get(`/groupbuy/groupbuys/${codesGb.value.id}/codes?` + params)
+    codesList.value = d.list
+    codeTotal.value = d.total || d.list.length
+    codePage.value = Math.min(codePage.value, Math.max(1, Math.ceil(codeTotal.value / codePerPage)))
+  } catch (e) { toast(e.message, 'error') }
+}
+async function exportCodes() {
+  const token = localStorage.getItem('saixt_token')
+  const q = new URLSearchParams()
+  if (codeStatus.value) q.set('status', codeStatus.value)
+  if (codeBatch.value) q.set('batch', codeBatch.value)
+  const qs = q.toString() ? '?' + q.toString() : ''
+  try {
+    const resp = await fetch('/api/groupbuy/groupbuys/' + codesGb.value.id + '/codes/export' + qs, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (!resp.ok) { const j = await resp.json().catch(() => null); throw new Error((j && j.message) || '导出失败') }
+    const blob = await resp.blob()
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `gb_codes_${codesGb.value.id}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast('团购码已导出', 'success')
+  } catch (e) { toast(e.message, 'error') }
+}
+async function closeGb(g) {
+  if (!confirm(`确认关闭团购方案「${g.code}」？未兑换的码仍可继续使用，也可一并作废。`)) return
+  const expire = confirm('是否一并作废所有未兑换的团购码？')
+  try {
+    const r = await api.post(`/groupbuy/groupbuys/${g.id}/close`, { expireCodes: expire })
+    toast(r.message || '已关闭', 'success')
+    await loadGroupBuys(); await loadGbStats()
+  } catch (e) { toast(e.message, 'error') }
+}
 async function load() {
   try {
     const [o, t] = await Promise.all([api.get('/admin/overview'), api.get('/admin/trend')])
@@ -697,6 +1155,9 @@ async function load() {
   loadOrders()
   loadAdmins()
   loadProducts()
+  loadGbStats()
+  loadPartners()
+  loadGroupBuys()
 }
 
 onMounted(load)
@@ -756,6 +1217,16 @@ onMounted(load)
 
 .user-table-wrap { padding: 6px 8px; overflow-x: auto; max-width: 100%; }
 .user-table.user-table-sm { min-width: 520px; }
+.user-table.user-table-sm2 { min-width: 560px; }
+
+.gb-kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-top: 14px; }
+.gb-kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 3px; }
+.gb-kpi-l { font-size: 0.78rem; color: var(--muted); }
+.gb-kpi-n { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.gb-kpi-s { font-size: 0.76rem; color: var(--muted-2); }
+
+@media (max-width: 900px) { .gb-kpi-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .gb-kpi-grid { grid-template-columns: 1fr; } }
 .admin-hint { margin: 8px 10px 4px; font-size: 0.78rem; color: var(--muted-2); }
 .user-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 640px; }
 .user-table th {
@@ -826,6 +1297,29 @@ onMounted(load)
 .pf-check input { accent-color: var(--accent); width: 15px; height: 15px; }
 .pf-err { color: var(--red); font-size: 0.8rem; margin: 2px 0 10px; }
 .pf-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.pf-batch { margin: 4px 0 6px; padding: 12px; border: 1px dashed var(--line, #2a2f3a); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
+.pf-hint { font-size: 0.76rem; color: var(--muted-2); margin: 8px 0 0; line-height: 1.5; }
+.pf-hint b { color: var(--ink); }
+.batch-editor { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.batch-row { display: flex; gap: 8px; align-items: center; }
+.batch-row .tool-input { flex: 1; }
+.batch-count { max-width: 110px; min-width: 80px; }
+.batch-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 12px 0; }
+.batch-stat { padding: 10px 12px; border: 1px solid var(--line, #2a2f3a); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
+.batch-stat-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+.batch-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); }
+.batch-sub { font-size: 0.72rem; color: var(--muted-2); }
+.batch-bar { height: 6px; border-radius: 4px; background: var(--line, #2a2f3a); overflow: hidden; }
+.batch-bar i { display: block; height: 100%; background: var(--accent, #4f8cff); border-radius: 4px; transition: width .3s ease; }
+.gb-amount { margin-left: 6px; font-size: 0.74rem; }
+.gb-pay-box { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 10px; }
+.gb-qr { width: 190px; height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--line, #2a2f3a); border-radius: 12px; background: #fff; padding: 10px; text-align: center; }
+.gb-qr img { width: 100%; height: 100%; object-fit: contain; }
+.gb-qr-empty { background: var(--bg-soft, rgba(255,255,255,0.02)); color: var(--muted); font-size: 0.8rem; height: auto; padding: 16px; }
+.gb-qr-empty b { color: var(--ink); }
+.gb-pay-link { display: flex; gap: 8px; width: 100%; align-items: center; }
+.gb-pay-link .tool-input { flex: 1; }
 
 .ad-sec { margin-top: 18px; }
 .ad-title { font-size: 0.86rem; font-weight: 700; margin-bottom: 10px; color: var(--ink); }

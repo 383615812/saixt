@@ -51,6 +51,20 @@ router.post('/login', authLimiter, (req, res) => {
   res.json({ code: 0, data: { token: signToken(user.id), user: { id: user.id, phone: user.phone, nickname: user.nickname } } });
 });
 
+// 修改登录密码：校验当前密码后更新为新的 scrypt 哈希
+router.post('/password', authLimiter, requireAuth, (req, res) => {
+  const { old_password, new_password } = req.body || {};
+  if (!old_password || !new_password) return res.status(400).json({ code: 400, message: '请填写当前密码与新密码' });
+  const np = String(new_password);
+  if (np.length < 6 || np.length > 64) return res.status(400).json({ code: 400, message: '新密码长度需为 6~64 位' });
+  if (np === String(old_password)) return res.status(400).json({ code: 400, message: '新密码不能与当前密码相同' });
+  const user = db.prepare('SELECT id, password FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ code: 404, message: '用户不存在' });
+  if (!verifyPassword(String(old_password), user.password)) return res.status(400).json({ code: 400, message: '当前密码不正确' });
+  db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(np), req.userId);
+  res.json({ code: 0, message: '密码已修改，请使用新密码登录' });
+});
+
 router.get('/me', requireAuth, (req, res) => {
   const user = db.prepare('SELECT id, phone, nickname, created_at FROM users WHERE id = ?').get(req.userId);
   const profile = db.prepare('SELECT * FROM user_profiles WHERE user_id = ?').get(req.userId);

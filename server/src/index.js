@@ -27,6 +27,7 @@ import membershipRoutes from './routes/membership.js';
 import pointsRoutes from './routes/points.js';
 import inviteRoutes from './routes/invite.js';
 import adminRoutes from './routes/admin.js';
+import groupbuyRoutes from './routes/groupbuy.js';
 import searchRoutes from './routes/search.js';
 import { startScheduler, stopScheduler } from './scheduler.js';
 import { PAY_PROVIDER, providerReady } from './payment.js';
@@ -98,6 +99,7 @@ app.use('/api', membershipRoutes);
 app.use('/api', pointsRoutes);
 app.use('/api', inviteRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', groupbuyRoutes);
 app.use('/api/search', searchRoutes);
 
 // 静态托管题库图片资源
@@ -109,6 +111,8 @@ if (existsSync(publicDir)) {
 // 静态托管前端构建产物（若存在）
 const webDist = join(__dirname, '..', '..', 'web', 'dist');
 if (existsSync(webDist)) {
+  // 兼容 index.html 中以 /saixt 为前缀引用的静态资源（构建 base 路径）
+  app.use('/saixt', express.static(webDist));
   app.use(express.static(webDist));
   app.get(/^(?!\/api).*/, (req, res) => res.sendFile(join(webDist, 'index.html')));
 }

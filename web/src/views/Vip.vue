@@ -78,14 +78,16 @@
         @click="selected = p.code"
       >
         <span v-if="p.code === 'vip_quarter'" class="plan-hot">最受欢迎</span>
+        <span v-else-if="p.code === 'vip_year'" class="plan-hot plan-best">超值之选</span>
         <div class="pc-name">{{ p.name.replace('VIP 会员 · ', '') }}</div>
         <div class="pc-price"><span class="pc-yen">¥</span>{{ p.price }}</div>
-        <div class="pc-unit">约 ¥{{ (p.price / p.months).toFixed(0) }}/月</div>
+        <div class="pc-unit">折合 ¥{{ perMonth(p) }}/月<span v-if="savedAmount(p)" class="pc-save">立省 ¥{{ savedAmount(p) }}</span></div>
         <div class="pc-check">
           <svg v-if="selected === p.code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         </div>
       </div>
     </div>
+    <p v-if="cheapestMonthly" class="plan-hint">长期套餐更划算 · 年卡折合每月低至 <b>¥{{ cheapestMonthly }}/月</b>（立省 ¥{{ yearlySaved }}）</p>
 
     <button class="btn btn-primary buy-btn" :disabled="buying || data.vip" @click="createOrder">
       {{ data.vip ? '已是 VIP 会员' : (buying ? '正在下单…' : '立即开通') }}
@@ -115,6 +117,26 @@
       <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-6-4-6 4V2z"/></svg></div>
       <p>暂无订单记录</p>
       <span class="empty-sub">开通会员后，订单记录将展示在这里</span>
+    </div>
+
+    <!-- 机构团购码兑换 -->
+    <h3 class="sec-title">机构团购兑换</h3>
+    <div class="card gb-redeem">
+      <p class="gb-tip">由学校或合作机构统一采购后发放的团购码，可在此兑换 VIP 会员权益。</p>
+      <div class="gb-row">
+        <input
+          v-model="redeemCodeInput"
+          class="gb-input"
+          placeholder="输入团购码，如 TYGB-XXXX-XXXX"
+          maxlength="16"
+          :disabled="redeeming"
+          @keyup.enter="redeemCodeFn"
+        >
+        <button class="btn btn-primary" :disabled="redeeming || !redeemCodeInput.trim()" @click="redeemCodeFn">
+          {{ redeeming ? '兑换中…' : '兑换会员' }}
+        </button>
+      </div>
+      <p v-if="redeemMsg" class="gb-msg" :class="redeemOk ? 'ok' : 'err'">{{ redeemMsg }}</p>
     </div>
 
     <!-- 支付弹窗 -->
@@ -211,6 +233,29 @@ const paySuccess = ref(false)
 const currentOrder = ref(null)
 const payProvider = ref('demo')
 const qrCode = ref('')
+
+// 团购码兑换
+const redeemCodeInput = ref('')
+const redeeming = ref(false)
+const redeemMsg = ref('')
+const redeemOk = ref(false)
+async function redeemCodeFn() {
+  const code = redeemCodeInput.value.trim().toUpperCase()
+  if (!code) return
+  redeeming.value = true
+  redeemMsg.value = ''
+  try {
+    const d = await api.post('/groupbuy/redeem', { code })
+    redeemOk.value = true
+    redeemMsg.value = d.message || '兑换成功，VIP 会员已开通'
+    redeemCodeInput.value = ''
+    await load()
+    window.dispatchEvent(new Event('ai-quota-refresh'))
+  } catch (e) {
+    redeemOk.value = false
+    redeemMsg.value = e.message
+  } finally { redeeming.value = false }
+}
 let pollTimer = null
 let pollCount = 0
 
@@ -226,6 +271,31 @@ const benefits = [
 const currentProduct = computed(() => data.value.products.find(p => p.code === selected.value))
 // 重付时 currentOrder 已带商品信息，优先展示订单自身商品，避免下架/未知商品导致弹窗空白
 const displayProduct = computed(() => currentProduct.value || currentOrder.value?.product)
+
+// 定价展示：折合每月 / 相对月卡的立省金额
+const monthlyRef = computed(() => {
+  const m = (data.value.products || []).find(p => p.code === 'vip_month')
+  return m ? m.price : 0
+})
+const cheapestMonthly = computed(() => {
+  const list = (data.value.products || []).filter(p => p.months > 0)
+  if (!list.length) return null
+  const best = list.reduce((a, b) => (a.price / a.months <= b.price / b.months ? a : b))
+  return perMonth(best)
+})
+const yearlySaved = computed(() => {
+  const y = (data.value.products || []).find(p => p.code === 'vip_year')
+  return y ? savedAmount(y) : 0
+})
+function perMonth(p) {
+  if (!p.months || p.months <= 1) return p.price
+  const v = p.price / p.months
+  return Number.isInteger(v) ? v : Number(v.toFixed(1))
+}
+function savedAmount(p) {
+  if (!p.months || p.months <= 1 || !monthlyRef.value) return 0
+  return Math.max(0, Math.round(monthlyRef.value * p.months - p.price))
+}
 
 const payChannelText = computed(() => ({ demo: '演示模式', wechat: '微信支付', alipay: '支付宝' })[data.value.pay?.provider] || '演示模式')
 
@@ -457,7 +527,11 @@ onBeforeUnmount(() => {
 .pc-name { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
 .pc-price { font-size: 2rem; font-weight: 800; color: var(--ink); margin: 8px 0 2px; letter-spacing: -0.02em; }
 .pc-yen { font-size: 1rem; font-weight: 700; vertical-align: 8px; color: var(--accent); }
-.pc-unit { font-size: 0.78rem; color: var(--muted-2); }
+.pc-unit { font-size: 0.78rem; color: var(--muted-2); display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.pc-save { font-size: 0.68rem; font-weight: 700; color: var(--green, #16a34a); background: color-mix(in srgb, var(--green, #16a34a) 14%, transparent); padding: 1px 7px; border-radius: var(--radius-full); white-space: nowrap; }
+.plan-best { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.plan-hint { text-align: center; font-size: 0.8rem; color: var(--muted); margin-top: 14px; }
+.plan-hint b { color: var(--accent); font-weight: 800; }
 .pc-check {
   position: absolute; top: 12px; right: 12px;
   width: 22px; height: 22px; border-radius: 50%;
@@ -557,6 +631,28 @@ onBeforeUnmount(() => {
   100% { transform: scale(1); opacity: 1; }
 }
 .tag-gray { background: var(--bg-soft); color: var(--muted-2); }
+
+/* 团购码兑换 */
+.gb-redeem { padding: 18px; }
+.gb-tip { font-size: 0.84rem; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+.gb-row { display: flex; gap: 10px; align-items: center; }
+.gb-input {
+  flex: 1; min-width: 0; height: 44px; padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--ink); font-size: 0.95rem;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.gb-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.gb-input:disabled { opacity: 0.7; }
+.gb-msg { font-size: 0.85rem; margin-top: 12px; }
+.gb-msg.ok { color: var(--green); font-weight: 600; }
+.gb-msg.err { color: var(--red); }
+.gb-row .btn { height: 44px; padding: 0 20px; flex-shrink: 0; }
+@media (max-width: 480px) {
+  .gb-row { flex-direction: column; align-items: stretch; }
+  .gb-row .btn { width: 100%; }
+}
 
 @media (max-width: 768px) {
   .benefit-grid, .plan-grid { grid-template-columns: 1fr 1fr; }

@@ -182,9 +182,9 @@ export function markOrderPaid(orderNo, payMethod = 'wechat') {
 
 // ---------- 商品目录 ----------
 export const PRODUCTS = {
-  vip_month: { name: 'VIP 会员 · 月卡', months: 1, price: 29 },
-  vip_quarter: { name: 'VIP 会员 · 季卡', months: 3, price: 79 },
-  vip_year: { name: 'VIP 会员 · 年卡', months: 12, price: 199 }
+  vip_month: { name: 'VIP 会员 · 月卡', months: 1, price: 38 },
+  vip_quarter: { name: 'VIP 会员 · 季卡', months: 3, price: 103 },
+  vip_year: { name: 'VIP 会员 · 年卡', months: 12, price: 259 }
 };
 
 // 列出商品：优先读 products 表（后台可配置），表为空则回退内置目录

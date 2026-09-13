@@ -582,6 +582,27 @@
           </div>
         </div>
       </div>
+
+      <!-- 账号安全 -->
+      <div class="card panel">
+        <div class="panel-head">
+          <h3>账号安全</h3>
+          <div class="panel-head-right">
+            <button class="btn btn-ghost btn-sm redo-btn" @click="togglePwd">{{ pwdOpen ? '收起' : '修改密码' }}</button>
+          </div>
+        </div>
+        <p v-if="!pwdOpen" class="sec-sub">登录密码 · 定期更换密码可提升账号安全</p>
+        <div v-else class="pwd-form">
+          <div class="pf-row"><label class="pf-label">当前密码</label><input v-model="pwdForm.old_password" type="password" class="pwd-input" autocomplete="current-password" placeholder="请输入当前登录密码"></div>
+          <div class="pf-row"><label class="pf-label">新密码</label><input v-model="pwdForm.new_password" type="password" class="pwd-input" autocomplete="new-password" placeholder="6~64 位，建议字母 + 数字"></div>
+          <div class="pf-row"><label class="pf-label">确认新密码</label><input v-model="pwdForm.confirm" type="password" class="pwd-input" autocomplete="new-password" placeholder="再次输入新密码" @keyup.enter="submitPwd"></div>
+          <p v-if="pwdMsg" class="pf-err">{{ pwdMsg }}</p>
+          <div class="pf-actions">
+            <button class="btn btn-ghost btn-sm" @click="togglePwd">取消</button>
+            <button class="btn btn-primary btn-sm" :disabled="pwdBusy" @click="submitPwd">{{ pwdBusy ? '提交中…' : '确认修改' }}</button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -634,6 +655,32 @@ const achievements = ref({ list: [], earnedCount: 0, total: 0 })
 const reviewDue = ref(0)
 const membership = ref({ vip: false })
 const points = ref(0)
+
+// 账号安全：修改登录密码
+const pwdOpen = ref(false)
+const pwdBusy = ref(false)
+const pwdMsg = ref('')
+const pwdForm = reactive({ old_password: '', new_password: '', confirm: '' })
+function togglePwd() {
+  pwdOpen.value = !pwdOpen.value
+  pwdMsg.value = ''
+  if (!pwdOpen.value) { pwdForm.old_password = ''; pwdForm.new_password = ''; pwdForm.confirm = '' }
+}
+async function submitPwd() {
+  pwdMsg.value = ''
+  const f = pwdForm
+  if (!f.old_password) { pwdMsg.value = '请输入当前密码'; return }
+  if (!f.new_password || f.new_password.length < 6) { pwdMsg.value = '新密码至少 6 位'; return }
+  if (f.new_password !== f.confirm) { pwdMsg.value = '两次输入的新密码不一致'; return }
+  pwdBusy.value = true
+  try {
+    const r = await api.post('/auth/password', { old_password: f.old_password, new_password: f.new_password })
+    toast(r.message || '密码已修改', 'success')
+    pwdOpen.value = false
+    pwdForm.old_password = ''; pwdForm.new_password = ''; pwdForm.confirm = ''
+  } catch (e) { pwdMsg.value = e.message || '修改失败，请稍后重试' }
+  finally { pwdBusy.value = false }
+}
 
 const { onImgError } = useImgError()
 
@@ -1553,4 +1600,14 @@ onMounted(loadAll)
   .sk-w-btn { flex: 1; }
   .sk-checkin { gap: 18px; padding: 18px; }
 }
+
+/* 账号安全 · 修改密码 */
+.sec-sub { color: var(--muted-2, #8b93a7); font-size: 0.82rem; margin: 4px 0 0; }
+.pwd-form { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; max-width: 420px; }
+.pf-row { display: flex; flex-direction: column; gap: 6px; }
+.pf-label { font-size: 0.78rem; font-weight: 600; color: var(--muted, #6b7280); }
+.pwd-input { height: 38px; padding: 0 12px; border: 1px solid var(--rule, #2a2f3a); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.03)); color: var(--ink, #e6e8ee); font-size: 0.9rem; width: 100%; box-sizing: border-box; }
+.pwd-input:focus { outline: none; border-color: var(--accent, #4f5ff0); box-shadow: 0 0 0 3px var(--accent-soft, rgba(79,95,240,0.18)); }
+.pf-err { color: var(--red, #ef4444); font-size: 0.8rem; margin: 0; }
+.pf-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
 </style>
