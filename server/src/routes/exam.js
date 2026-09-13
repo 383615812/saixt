@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../auth.js';
 import { rateLimit } from '../rateLimit.js';
-import { examMeta, startExam, submitExam, getExam, listExams, ongoingExam } from '../exam.js';
+import { examMeta, examChapters, startExam, submitExam, getExam, listExams, ongoingExam } from '../exam.js';
 
 const router = Router();
 
@@ -15,6 +15,13 @@ const examLimiter = rateLimit({
 // 可组卷科目 / 题量时长预设 / 难度档
 router.get('/exam/meta', requireAuth, (req, res) => {
   res.json({ code: 0, data: examMeta() });
+});
+
+// 某科目下可组卷的章节与题量（定向组卷用）
+router.get('/exam/chapters', requireAuth, (req, res) => {
+  const subject = String(req.query.subject || '').trim();
+  if (!subject) return res.status(400).json({ code: 400, message: '请提供科目' });
+  res.json({ code: 0, data: { chapters: examChapters(subject) } });
 });
 
 // 历史模考记录

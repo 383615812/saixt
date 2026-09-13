@@ -40,22 +40,38 @@ export function examMeta() {
   };
 }
 
-// 抽题：难度优先，同卷不重复；不足则放宽难度补齐
-function pickQuestionIds(subject, size, difficulty) {
+// 某科目下可组卷的章节与题量（供按章节定向组卷选择）
+export function examChapters(subject) {
+  return db.prepare(
+    `SELECT chapter, COUNT(*) AS c FROM questions
+     WHERE subject = ? AND type IN ('single','multiple','judge') AND chapter IS NOT NULL AND chapter <> ''
+     GROUP BY chapter ORDER BY c DESC`
+  ).all(subject);
+}
+
+// 章节过滤子句：chapters 为空数组表示不限章节
+function chapterClause(chapters) {
+  if (!chapters.length) return { sql: '', params: [] };
+  return { sql: ` AND chapter IN (${chapters.map(() => '?').join(',')})`, params: chapters };
+}
+
+// 抽题：难度优先，同卷不重复；不足则放宽难度补齐（章节过滤始终保留）
+function pickQuestionIds(subject, size, difficulty, chapters = []) {
   const diffs = DIFF_MAP[difficulty] || DIFF_MAP['综合'];
   const ph = diffs.map(() => '?').join(',');
+  const cw = chapterClause(chapters);
   const seen = new Set();
   const ids = [];
   const push = rows => { for (const r of rows) { if (ids.length >= size) break; if (!seen.has(r.id)) { seen.add(r.id); ids.push(r.id); } } };
   push(db.prepare(
-    `SELECT id FROM questions WHERE subject = ? AND type IN ('single','multiple','judge') AND difficulty IN (${ph})
+    `SELECT id FROM questions WHERE subject = ? AND type IN ('single','multiple','judge') AND difficulty IN (${ph})${cw.sql}
      ORDER BY RANDOM() LIMIT ?`
-  ).all(subject, ...diffs, size));
+  ).all(subject, ...diffs, ...cw.params, size));
   if (ids.length < size) {
     push(db.prepare(
-      `SELECT id FROM questions WHERE subject = ? AND type IN ('single','multiple','judge')
+      `SELECT id FROM questions WHERE subject = ? AND type IN ('single','multiple','judge')${cw.sql}
        ORDER BY RANDOM() LIMIT ?`
-    ).all(subject, size * 2));
+    ).all(subject, ...cw.params, size * 2));
   }
   return ids;
 }
@@ -101,22 +117,27 @@ export function getExam(userId, examId) {
   };
 }
 
-// 开始一场模考：组卷 → 落库（ongoing）
-export function startExam(userId, { subject, size, durationSec, difficulty } = {}) {
+// 开始一场模考：组卷 → 落库（ongoing）；chapters 可选，传入章节名数组则定向组卷
+export function startExam(userId, { subject, size, durationSec, difficulty, chapters } = {}) {
   const subj = String(subject || '').trim();
   if (!subj) throw new Error('请选择考试科目');
   const preset = EXAM_PRESETS.find(p => p.size === Number(size));
   const n = Math.min(Math.max(Number(size) || (preset ? preset.size : 20), 5), 100);
   const dur = Math.min(Math.max(Number(durationSec) || (preset ? preset.durationSec : n * 90), 60), 4 * 3600);
   const diff = Object.keys(DIFF_MAP).includes(difficulty) ? difficulty : '综合';
+  const chs = Array.isArray(chapters)
+    ? [...new Set(chapters.map(c => String(c).trim()).filter(Boolean))].slice(0, 50)
+    : [];
+  if (chs.length && chs.length !== chapters.length) throw new Error('章节名称不能为空');
 
+  const cw = chapterClause(chs);
   const avail = db.prepare(
-    `SELECT COUNT(*) AS c FROM questions WHERE subject = ? AND type IN ('single','multiple','judge')`
-  ).get(subj).c || 0;
-  if (avail < 5) throw new Error('该科目可用客观题不足，暂无法组卷');
+    `SELECT COUNT(*) AS c FROM questions WHERE subject = ? AND type IN ('single','multiple','judge')${cw.sql}`
+  ).get(subj, ...cw.params).c || 0;
+  if (avail < 5) throw new Error(chs.length ? '所选章节可用题目不足，请减少章节数量或调整范围' : '该科目可用客观题不足，暂无法组卷');
 
-  const ids = pickQuestionIds(subj, Math.min(n, avail), diff);
-  if (ids.length < 5) throw new Error('该科目可用客观题不足，暂无法组卷');
+  const ids = pickQuestionIds(subj, Math.min(n, avail), diff, chs);
+  if (ids.length < 5) throw new Error(chs.length ? '所选章节可用题目不足，请减少章节数量或调整范围' : '该科目可用客观题不足，暂无法组卷');
 
   const info = db.prepare(
     `INSERT INTO mock_exams (user_id, subject, difficulty, question_ids, total, duration_sec, status)

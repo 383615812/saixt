@@ -62,6 +62,25 @@
           </div>
         </div>
 
+        <div class="setup-block">
+          <div class="sec-head">
+            <h3>4. 定向章节（可选）</h3>
+            <button v-if="form.chapters.length" class="mini-btn" @click="form.chapters = []">清除，全部章节</button>
+          </div>
+          <p class="block-sub">不选则从本科目全部章节随机组卷；选中后仅从所选章节出题</p>
+          <div v-if="loadingChapters" class="me-empty-sm">章节加载中…</div>
+          <div v-else-if="!chapterList.length" class="me-empty-sm">该科目暂无章节数据</div>
+          <div v-else class="chips">
+            <button
+              v-for="c in chapterList"
+              :key="c.chapter"
+              class="chip"
+              :class="{ on: form.chapters.includes(c.chapter) }"
+              @click="toggleChapter(c.chapter)"
+            >{{ c.chapter }}<em>{{ c.c }}</em></button>
+          </div>
+        </div>
+
         <p v-if="setupMsg" class="me-err">{{ setupMsg }}</p>
         <button class="btn btn-primary start-btn" :disabled="starting || !form.subject" @click="start">
           {{ starting ? '正在组卷…' : '开始考试' }}
@@ -196,13 +215,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { api } from '../api'
 import { toast } from '../toast'
 
 const phase = ref('setup')            // setup | exam | result
 const meta = ref({ subjects: [], presets: [], difficulties: [] })
-const form = reactive({ subject: '', size: 20, durationSec: 1800, difficulty: '综合' })
+const form = reactive({ subject: '', size: 20, durationSec: 1800, difficulty: '综合', chapters: [] })
+const chapterList = ref([])
+const loadingChapters = ref(false)
 const starting = ref(false)
 const submitting = ref(false)
 const setupMsg = ref('')
@@ -322,11 +343,31 @@ async function loadOngoing() {
 
 function pickPreset(p) { form.size = p.size; form.durationSec = p.durationSec }
 
+// 定向章节：切换科目时重新加载章节列表并清空已选
+async function loadChapters(subject) {
+  if (!subject) { chapterList.value = []; return }
+  loadingChapters.value = true
+  try {
+    const d = await api.get('/exam/chapters?subject=' + encodeURIComponent(subject))
+    chapterList.value = d.chapters || []
+  } catch (e) { chapterList.value = [] }
+  loadingChapters.value = false
+}
+watch(() => form.subject, s => { form.chapters = []; loadChapters(s) })
+function toggleChapter(name) {
+  const i = form.chapters.indexOf(name)
+  if (i >= 0) form.chapters.splice(i, 1)
+  else form.chapters.push(name)
+}
+
 async function start() {
   setupMsg.value = ''
   starting.value = true
   try {
-    const ex = await api.post('/exam/start', { subject: form.subject, size: form.size, durationSec: form.durationSec, difficulty: form.difficulty })
+    const ex = await api.post('/exam/start', {
+      subject: form.subject, size: form.size, durationSec: form.durationSec,
+      difficulty: form.difficulty, chapters: form.chapters.slice()
+    })
     beginExam(ex)
   } catch (e) { setupMsg.value = e.message || '组卷失败，请稍后重试' }
   finally { starting.value = false }
@@ -451,6 +492,12 @@ onUnmounted(stopTimer)
 
 .start-btn { width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px; }
 .me-note { text-align: center; color: var(--muted-2); font-size: 0.78rem; margin-top: 10px; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.sec-head h3 { margin-bottom: 0; }
+.mini-btn { font-size: 0.76rem; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; }
+.mini-btn:hover { text-decoration: underline; }
+.block-sub { font-size: 0.76rem; color: var(--muted-2); margin-bottom: 10px; }
+.me-empty-sm { font-size: 0.8rem; color: var(--muted-2); padding: 6px 0; }
 .me-err { color: var(--red); font-size: 0.84rem; margin: 4px 0 10px; }
 .me-empty { text-align: center; color: var(--muted-2); padding: 30px 12px; }
 .me-empty p { color: var(--muted); font-weight: 500; margin-bottom: 4px; }

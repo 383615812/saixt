@@ -67,5 +67,15 @@ threw = false;
 try { startExam(uid, { subject: '不存在的科目' }); } catch { threw = true; }
 assert(threw, '题量不足的科目被拒');
 
+console.log('9) 按章节定向组卷');
+const exC = startExam(uid, { subject: '测试科', size: 10, difficulty: '综合', chapters: ['章节0'] });
+assert(exC.id && exC.total === 10, '定向组卷成功(10题)');
+const chSet = new Set();
+for (const q of exC.questions) chSet.add(db.prepare('SELECT chapter FROM questions WHERE id = ?').get(q.id).chapter);
+assert(chSet.size === 1 && chSet.has('章节0'), '所有题目均来自所选章节');
+let threw2 = false;
+try { startExam(uid, { subject: '测试科', size: 10, difficulty: '综合', chapters: ['不存在的章节'] }); } catch { threw2 = true; }
+assert(threw2, '所选章节题量不足被拒');
+
 console.log(`\n结果：通过 ${pass} / 失败 ${fail}`);
 process.exit(fail ? 1 : 0);
