@@ -99,6 +99,7 @@ const menuSections = [
     { to: '/practice', label: '在线刷题', icon: 'pen' },
     { to: '/ai-practice', label: 'AI 练习', icon: 'spark' },
     { to: '/paper', label: '薄弱专项套卷', icon: 'page' },
+    { to: '/diagnosis', label: '学情诊断', icon: 'chart' },
     { to: '/bank', label: '题库中心', icon: 'book' },
     { to: '/wrong-book', label: '错题本', icon: 'cross' },
     { to: '/review', label: '复习计划', icon: 'refresh' },

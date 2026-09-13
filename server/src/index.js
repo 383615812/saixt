@@ -29,6 +29,7 @@ import inviteRoutes from './routes/invite.js';
 import adminRoutes from './routes/admin.js';
 import groupbuyRoutes from './routes/groupbuy.js';
 import examRoutes from './routes/exam.js';
+import diagnoseRoutes from './routes/diagnose.js';
 import searchRoutes from './routes/search.js';
 import { startScheduler, stopScheduler } from './scheduler.js';
 import { PAY_PROVIDER, providerReady } from './payment.js';
@@ -102,6 +103,7 @@ app.use('/api', inviteRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', groupbuyRoutes);
 app.use('/api', examRoutes);
+app.use('/api', diagnoseRoutes);
 app.use('/api/search', searchRoutes);
 
 // 静态托管题库图片资源

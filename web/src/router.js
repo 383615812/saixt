@@ -11,6 +11,7 @@ const routes = [
   { path: '/ai-practice', name: 'ai-practice', component: () => import('./views/AiPractice.vue'), meta: { title: 'AI 练习', auth: true } },
   { path: '/paper', name: 'paper', component: () => import('./views/PaperPractice.vue'), meta: { title: '薄弱专项套卷', auth: true } },
   { path: '/mock-exam', name: 'mock-exam', component: () => import('./views/MockExam.vue'), meta: { title: '模拟考试', auth: true } },
+  { path: '/diagnosis', name: 'diagnosis', component: () => import('./views/Diagnosis.vue'), meta: { title: '学情诊断', auth: true } },
   { path: '/plan', name: 'plan', component: () => import('./views/Plan.vue'), meta: { title: '学习计划', auth: true } },
   { path: '/recommend', name: 'recommend', component: () => import('./views/Recommend.vue'), meta: { title: '志愿推荐', auth: true } },
   { path: '/ranking', name: 'ranking', component: () => import('./views/Ranking.vue'), meta: { title: '排行榜', auth: true } },
