@@ -189,6 +189,34 @@
         <div v-else class="empty-mini">本周还没参加模拟考试，<router-link class="mock-link" to="/mock-exam">来一场全真模考</router-link>检验实力吧</div>
       </div>
 
+      <!-- 错题冲刺 -->
+      <div class="card sprint-card">
+        <h3>错题冲刺</h3>
+        <div v-if="sprint.count" class="mock-ov">
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ sprint.count }}</div>
+            <div class="mock-ov-lbl">冲刺轮数</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ sprint.total }}</div>
+            <div class="mock-ov-lbl">冲刺题数</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ sprint.accuracy }}%</div>
+            <div class="mock-ov-lbl">答对率</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ data.masteredCount }}</div>
+            <div class="mock-ov-lbl">移出错题本</div>
+          </div>
+        </div>
+        <div v-else-if="data.masteredCount" class="sprint-mini">
+          本周移出错题本 <b>{{ data.masteredCount }}</b> 道，错题越刷越少，继续保持！
+          <router-link class="mock-link" to="/wrong-book">去错题冲刺 →</router-link>
+        </div>
+        <div v-else class="empty-mini">本周还没做错题冲刺，<router-link class="mock-link" to="/wrong-book">去错题本冲刺</router-link>把错题逐个消灭</div>
+      </div>
+
       <!-- AI 周报配额：与生成共用 AI 分析配额，消耗后随 ai-quota-refresh 同步 -->
       <QuotaBar kind="analysis" label="AI 周报" />
 
@@ -323,6 +351,16 @@
             </div>
           </div>
 
+          <div class="hm-sec" v-if="hmSprint.count || historyView.masteredCount">
+            <h4>错题冲刺</h4>
+            <div class="hm-mock-ov">
+              <span><b>{{ hmSprint.count }}</b> 轮</span>
+              <span><b>{{ hmSprint.total }}</b> 题</span>
+              <span>答对率 <b>{{ hmSprint.accuracy }}%</b></span>
+              <span>移出错题本 <b>{{ historyView.masteredCount || 0 }}</b> 道</span>
+            </div>
+          </div>
+
           <div class="hm-sec">
             <div class="hm-ai-head">
               <h4>AI 总结</h4>
@@ -358,7 +396,7 @@ import QuotaBar from '../components/QuotaBar.vue'
 const { text: aiText, typing: aiTyping, type: typeAi } = useTypewriter()
 const { text: histAiText, typing: histAiTyping, type: typeHistAi } = useTypewriter()
 
-const data = ref({ trend: [], total: 0, accuracy: 0, bySubject: [], weak: [], exams: [], mockExam: { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] }, checkinDays: 0, lastWeek: { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 } })
+const data = ref({ trend: [], total: 0, accuracy: 0, bySubject: [], weak: [], exams: [], mockExam: { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] }, sprint: { count: 0, total: 0, correct: 0, accuracy: 0 }, masteredCount: 0, checkinDays: 0, lastWeek: { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 } })
 const loading = ref(true)
 const loadFailed = ref(false)
 const aiReply = ref('')
@@ -372,6 +410,8 @@ const histAiLoading = ref(false)
 const lastWeek = computed(() => data.value.lastWeek || { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 })
 
 const mockExam = computed(() => data.value.mockExam || { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] })
+
+const sprint = computed(() => data.value.sprint || { count: 0, total: 0, correct: 0, accuracy: 0 })
 
 // 本周薄弱标签（格式："科目·章节（xx%）"）解析为可跳转 AI 专项补强的链接
 const weakTags = computed(() => data.value.weak.map(w => {
@@ -441,6 +481,8 @@ const histAiBlocks = computed(() => {
 const hmMaxTotal = computed(() => Math.max(1, ...(historyView.value?.trend || []).map(t => t.total)))
 
 const hmMockExam = computed(() => historyView.value?.mockExam || { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] })
+
+const hmSprint = computed(() => historyView.value?.sprint || { count: 0, total: 0, correct: 0, accuracy: 0 })
 
 function hmBar(n) {
   return Math.max(6, Math.round((n / hmMaxTotal.value) * 90)) + 'px'
@@ -552,6 +594,12 @@ function exportPdf() {
     ? `<p class="mock-sum">本周完成 <b>${mk.count}</b> 场模拟考试，最高 <b>${mk.best}</b> 分，平均分 <b>${mk.avgScore}</b>，平均正确率 <b>${mk.avgAccuracy}%</b>${mk.bySubject.length ? '（' + mk.bySubject.slice(0, 4).map(s => `${escHtml(s.subject)}最高${s.best}分`).join('、') + '）' : ''}。</p>`
     : '<p class="muted">本周暂无模拟考试记录</p>'
 
+  const sp = d.sprint || { count: 0, total: 0, correct: 0, accuracy: 0 }
+  const masteredCount = d.masteredCount || 0
+  const sprintSummary = sp.count
+    ? `<p class="mock-sum">本周完成 <b>${sp.count}</b> 轮错题冲刺，共 <b>${sp.total}</b> 题，答对率 <b>${sp.accuracy}%</b>，移出错题本 <b>${masteredCount}</b> 道。</p>`
+    : (masteredCount ? `<p class="mock-sum">本周移出错题本 <b>${masteredCount}</b> 道。</p>` : '<p class="muted">本周暂未进行错题冲刺</p>')
+
   const aiText = aiReply.value
     ? aiReply.value.split('\n').map(line => {
         const t = line.trim()
@@ -661,6 +709,11 @@ function exportPdf() {
     <h2>模拟考试</h2>
     ${mockSummary}
     ${examRows}
+  </div>
+
+  <div class="sec">
+    <h2>错题冲刺</h2>
+    ${sprintSummary}
   </div>
 
   <div class="sec">
@@ -790,7 +843,10 @@ onMounted(() => {
 .weak-go { margin-left: 6px; font-size: 0.78rem; font-weight: 700; opacity: 0.85; }
 
 /* 模拟考试卡片 */
-.trend-card, .sub-card, .weak-card, .mock-card { padding: 22px 26px; margin-bottom: 16px; }
+.trend-card, .sub-card, .weak-card, .mock-card, .sprint-card { padding: 22px 26px; margin-bottom: 16px; }
+.sprint-mini { font-size: 0.9rem; color: var(--muted); line-height: 1.7; }
+.sprint-mini b { color: var(--accent); font-size: 1rem; }
+.sprint-mini .mock-link { margin-left: 8px; }
 .mock-ov { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
 .mock-ov-item { text-align: center; padding: 12px 4px; position: relative; }
 .mock-ov-item::after {
@@ -930,7 +986,7 @@ onMounted(() => {
   .cmp-item { padding: 12px 14px; }
   .cmp-nums strong { font-size: 1.3rem; }
   .cmp-lbl { font-size: 0.82rem; }
-  .trend-card, .sub-card, .weak-card, .ai-report, .hist-card { padding: 16px 14px; }
+  .trend-card, .sub-card, .weak-card, .ai-report, .hist-card, .sprint-card { padding: 16px 14px; }
   .trend-chart { height: 130px; gap: 6px; }
   .tc-val { font-size: 0.78rem; }
   .tc-day { font-size: 0.78rem; }

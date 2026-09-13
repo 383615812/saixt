@@ -120,6 +120,18 @@ router.post('/start', requireAuth, (req, res) => {
   res.json({ code: 0, data: { id: Number(info.lastInsertRowid) } });
 });
 
+// 错题冲刺完赛记录：仅登记一条 mode='sprint' 的会话用于周报统计
+// （逐题作答明细已由 /submit 写入，不在此重复落库，避免重复计数）
+router.post('/sprint', requireAuth, submitLimiter, (req, res) => {
+  const total = Math.min(Math.max(Math.trunc(Number(req.body?.total) || 0), 0), 500);
+  const correct = Math.min(Math.max(Math.trunc(Number(req.body?.correct) || 0), 0), total);
+  if (total <= 0) return res.status(400).json({ code: 400, message: '缺少冲刺题数' });
+  const score = Math.round((correct / total) * 100 * 10) / 10;
+  const info = db.prepare('INSERT INTO practice_sessions (user_id, subject, mode, total, correct, score) VALUES (?,?,?,?,?,?)')
+    .run(req.userId, '错题冲刺', 'sprint', total, correct, score);
+  res.json({ code: 0, data: { id: Number(info.lastInsertRowid), total, correct, score } });
+});
+
 // 我的练习记录
 router.get('/records', requireAuth, (req, res) => {
   const { limit = 50, offset = 0 } = req.query;

@@ -613,7 +613,7 @@ async function sprintAdvance(remove) {
     } catch (e) { toast(e.message || '移出错题本失败', 'error') }
   }
   applyFilter()
-  if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; return }
+  if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; finishSprint(); return }
   sessionIdx.value++
   resetSessionQ()
 }
@@ -631,7 +631,7 @@ async function sprintSubjective(willMaster) {
       if (masteredAll.value.length) refreshMastered()
     }
     applyFilter()
-    if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; return }
+    if (sessionIdx.value + 1 >= sessionQueue.value.length) { sessionDone.value = true; finishSprint(); return }
     sessionIdx.value++
     resetSessionQ()
   } catch (e) {
@@ -644,6 +644,13 @@ function exitSession() {
   sessionActive.value = false
   sessionDone.value = false
   applyFilter()
+}
+
+// 完赛登记：写入一条 mode='sprint' 会话，供学习周报统计（失败静默，不打扰用户）
+function finishSprint() {
+  const t = sessionStats.value.answered
+  if (!t) return
+  api.post('/practice/sprint', { total: t, correct: sessionStats.value.correct }).catch(() => {})
 }
 
 async function load() {

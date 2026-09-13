@@ -130,6 +130,15 @@ function computeWeekData(uid, weekStart, weekEnd) {
     FROM practice_sessions WHERE user_id = ? AND mode = 'ai' AND date(created_at) >= ? AND date(created_at) <= ?
   `).get(uid, weekStart, weekEnd);
 
+  // 错题冲刺：完赛会话（mode='sprint'）+ 当周移出错题本数（wrong_mastered）
+  const sprintSessions = db.prepare(`
+    SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS total, COALESCE(SUM(correct),0) AS correct
+    FROM practice_sessions WHERE user_id = ? AND mode = 'sprint' AND date(created_at) >= ? AND date(created_at) <= ?
+  `).get(uid, weekStart, weekEnd);
+  const masteredCount = db.prepare(`
+    SELECT COUNT(*) AS c FROM wrong_mastered WHERE user_id = ? AND date(created_at) >= ? AND date(created_at) <= ?
+  `).get(uid, weekStart, weekEnd).c || 0;
+
   const checkinDays = db.prepare(`
     SELECT COUNT(*) AS c FROM checkins WHERE user_id = ? AND date >= ? AND date <= ?
   `).get(uid, weekStart, weekEnd).c || 0;
@@ -158,6 +167,13 @@ function computeWeekData(uid, weekStart, weekEnd) {
       total: aiSessions.total || 0,
       correct: aiSessions.correct || 0
     },
+    sprint: {
+      count: sprintSessions.c || 0,
+      total: sprintSessions.total || 0,
+      correct: sprintSessions.correct || 0,
+      accuracy: sprintSessions.total ? Math.round((sprintSessions.correct / sprintSessions.total) * 100) : 0
+    },
+    masteredCount,
     checkinDays,
     favCount,
     analysisCount
@@ -220,6 +236,14 @@ router.get('/report/weekly', requireAuth, (req, res) => {
     FROM practice_sessions WHERE user_id = ? AND mode = 'ai' AND date(created_at) >= date('now','localtime','-6 days')
   `).get(uid);
 
+  const sprintSessions = db.prepare(`
+    SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS total, COALESCE(SUM(correct),0) AS correct
+    FROM practice_sessions WHERE user_id = ? AND mode = 'sprint' AND date(created_at) >= date('now','localtime','-6 days')
+  `).get(uid);
+  const masteredCount = db.prepare(`
+    SELECT COUNT(*) AS c FROM wrong_mastered WHERE user_id = ? AND date(created_at) >= date('now','localtime','-6 days')
+  `).get(uid).c || 0;
+
   const checkinDays = db.prepare(`
     SELECT COUNT(*) AS c FROM checkins WHERE user_id = ? AND date >= date('now','localtime','-6 days')
   `).get(uid).c || 0;
@@ -277,6 +301,13 @@ router.get('/report/weekly', requireAuth, (req, res) => {
         total: aiSessions.total || 0,
         correct: aiSessions.correct || 0
       },
+      sprint: {
+        count: sprintSessions.c || 0,
+        total: sprintSessions.total || 0,
+        correct: sprintSessions.correct || 0,
+        accuracy: sprintSessions.total ? Math.round((sprintSessions.correct / sprintSessions.total) * 100) : 0
+      },
+      masteredCount,
       checkinDays,
       favCount,
       analysisCount,
@@ -328,6 +359,14 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
   const me7 = db.prepare("SELECT date('now','localtime','-6 days') s, date('now','localtime') e").get();
   const mk = computeMockExamSummary(uid, me7.s, me7.e);
 
+  const sprint = db.prepare(`
+    SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS total, COALESCE(SUM(correct),0) AS correct
+    FROM practice_sessions WHERE user_id = ? AND mode = 'sprint' AND date(created_at) >= date('now','localtime','-6 days')
+  `).get(uid);
+  const masteredCount = db.prepare(`
+    SELECT COUNT(*) AS c FROM wrong_mastered WHERE user_id = ? AND date(created_at) >= date('now','localtime','-6 days')
+  `).get(uid).c || 0;
+
   const checkinDays = db.prepare(`
     SELECT COUNT(*) AS c FROM checkins WHERE user_id = ? AND date >= date('now','localtime','-6 days')
   `).get(uid).c || 0;
@@ -340,6 +379,8 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
 - 薄弱知识点：${weak.length ? weak.join('、') : '暂无'}
 ${weakKnowledge ? `\n薄弱章节对应的考纲要点（请在建议中据此点出具体考点）：\n${weakKnowledge}\n` : ''}
 - 模拟考试：${mk.count ? `本周完成 ${mk.count} 场，最高 ${mk.best} 分，平均正确率 ${mk.avgAccuracy}%（${mk.bySubject.slice(0, 3).map(s => `${s.subject}最高${s.best}分`).join('、')}）` : '暂无'}${exams.length ? `（最近：${exams.map(e => e.score + '分').join('、')}）` : ''}
+- 错题冲刺：${sprint.c ? `完成 ${sprint.c} 轮，共 ${sprint.total} 题，答对 ${sprint.correct} 题，正确率 ${sprint.total ? Math.round((sprint.correct / sprint.total) * 100) : 0}%` : '暂无'}
+- 本周移出错题本 ${masteredCount} 道
 - 打卡 ${checkinDays} 天
 
 要求输出（简体中文，结构清晰）：
@@ -419,6 +460,7 @@ router.post('/report/weekly/:id/ai', requireAuth, async (req, res) => {
 - 各科目：${d.bySubject.map(s => `${s.subject} ${s.total}题/${s.total ? Math.round((s.correct || 0) / s.total * 100) : 0}%`).join('、') || '无'}
 - 薄弱知识点：${d.weak.length ? d.weak.join('、') : '暂无'}
 - 模拟考试：${d.exams.map(e => `${e.score}分`).join('、') || '暂无'}
+- 错题冲刺：${d.sprint && d.sprint.count ? `完成 ${d.sprint.count} 轮，共 ${d.sprint.total} 题，正确率 ${d.sprint.accuracy}%` : '暂无'}；移出错题本 ${d.masteredCount || 0} 道
 - 打卡 ${d.checkinDays} 天
 
 要求输出（简体中文，结构清晰）：
