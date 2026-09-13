@@ -17,5 +17,6 @@ export const ICONS = {
   star: '<path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.8 1-5.8L3.5 9.2l5.9-.9L12 3z"/>',
   calendar: '<rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
   podium: '<path d="M6 21V13M12 21V7M18 21v-5"/><path d="M3 21h18"/>',
-  page: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M9 11h6"/><path d="M9 19h4"/>'
+  page: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M9 11h6"/><path d="M9 19h4"/>',
+  exam: '<path d="M9 4h6a2 2 0 0 1 2 2H7a2 2 0 0 1 2-2z"/><path d="M5 6h14v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6z"/><path d="M8 11h8"/><path d="M8 15h5"/><path d="M15 17.5l1.5 1.5 2.5-3"/>'
 }

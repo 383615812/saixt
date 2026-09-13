@@ -121,6 +121,7 @@ const moreGroups = [
     items: [
       { to: '/tasks', label: '任务中心', icon: 'check', desc: '每日学习任务' },
       { to: '/paper', label: '薄弱专项套卷', icon: 'page', desc: '自动针对薄弱点出卷' },
+      { to: '/mock-exam', label: '模拟考试', icon: 'exam', desc: '限时套卷模考评分' },
       { to: '/review', label: '复习计划', icon: 'refresh', desc: '错题复习' },
       { to: '/plan', label: '学习计划', icon: 'calendar', desc: 'AI 计划' },
       { to: '/favorites', label: '我的收藏', icon: 'star', desc: '收藏题目' },

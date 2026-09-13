@@ -334,6 +334,26 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_group_buy_codes_code ON group_buy_codes(code);
   CREATE INDEX IF NOT EXISTS idx_group_buy_codes_gb ON group_buy_codes(group_buy_id, status);
 
+  -- 套卷模拟考试：保存试卷快照（题目顺序）与成绩，答案仅在交卷后下发
+  CREATE TABLE IF NOT EXISTS mock_exams (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    difficulty TEXT NOT NULL DEFAULT '综合',
+    question_ids TEXT NOT NULL,
+    total INTEGER NOT NULL DEFAULT 0,
+    duration_sec INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'ongoing',
+    correct INTEGER,
+    score REAL,
+    answers TEXT,
+    used_sec INTEGER,
+    started_at TEXT DEFAULT (datetime('now','localtime')),
+    submitted_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_mock_exams_user ON mock_exams(user_id, status);
+
   CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
   CREATE INDEX IF NOT EXISTS idx_point_logs_user ON point_logs(user_id);
   CREATE INDEX IF NOT EXISTS idx_invites_inviter ON invites(inviter_id);

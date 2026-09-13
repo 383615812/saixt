@@ -1297,7 +1297,7 @@ onMounted(load)
 .pf-check input { accent-color: var(--accent); width: 15px; height: 15px; }
 .pf-err { color: var(--red); font-size: 0.8rem; margin: 2px 0 10px; }
 .pf-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.pf-batch { margin: 4px 0 6px; padding: 12px; border: 1px dashed var(--line, #2a2f3a); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
+.pf-batch { margin: 4px 0 6px; padding: 12px; border: 1px dashed var(--rule); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
 .pf-hint { font-size: 0.76rem; color: var(--muted-2); margin: 8px 0 0; line-height: 1.5; }
 .pf-hint b { color: var(--ink); }
 .batch-editor { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -1305,16 +1305,16 @@ onMounted(load)
 .batch-row .tool-input { flex: 1; }
 .batch-count { max-width: 110px; min-width: 80px; }
 .batch-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 12px 0; }
-.batch-stat { padding: 10px 12px; border: 1px solid var(--line, #2a2f3a); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
+.batch-stat { padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg-soft, rgba(255,255,255,0.02)); }
 .batch-stat-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
 .batch-name { font-size: 0.82rem; font-weight: 600; color: var(--ink); }
 .batch-sub { font-size: 0.72rem; color: var(--muted-2); }
-.batch-bar { height: 6px; border-radius: 4px; background: var(--line, #2a2f3a); overflow: hidden; }
+.batch-bar { height: 6px; border-radius: 4px; background: var(--rule); overflow: hidden; }
 .batch-bar i { display: block; height: 100%; background: var(--accent, #4f8cff); border-radius: 4px; transition: width .3s ease; }
 .gb-amount { margin-left: 6px; font-size: 0.74rem; }
 .gb-pay-box { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 10px; }
 .gb-qr { width: 190px; height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid var(--line, #2a2f3a); border-radius: 12px; background: #fff; padding: 10px; text-align: center; }
+  border: 1px solid var(--rule); border-radius: 12px; background: #fff; padding: 10px; text-align: center; }
 .gb-qr img { width: 100%; height: 100%; object-fit: contain; }
 .gb-qr-empty { background: var(--bg-soft, rgba(255,255,255,0.02)); color: var(--muted); font-size: 0.8rem; height: auto; padding: 16px; }
 .gb-qr-empty b { color: var(--ink); }
