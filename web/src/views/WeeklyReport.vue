@@ -154,6 +154,41 @@
         <div v-else class="empty-mini">本周没有明显薄弱点，继续保持！</div>
       </div>
 
+      <!-- 模拟考试 -->
+      <div class="card mock-card">
+        <h3>模拟考试</h3>
+        <div v-if="mockExam.count" class="mock-ov">
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ mockExam.count }}</div>
+            <div class="mock-ov-lbl">本周场次</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ mockExam.best }}</div>
+            <div class="mock-ov-lbl">最高分</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ mockExam.avgAccuracy }}%</div>
+            <div class="mock-ov-lbl">平均正确率</div>
+          </div>
+          <div class="mock-ov-item">
+            <div class="mock-ov-num">{{ mockExam.avgScore }}</div>
+            <div class="mock-ov-lbl">平均分</div>
+          </div>
+        </div>
+        <div v-if="mockExam.bySubject.length" class="mock-sub">
+          <div v-for="s in mockExam.bySubject" :key="s.subject" class="mock-sub-row">
+            <span class="mock-sub-name">{{ s.subject }}</span>
+            <span class="mock-sub-meta">{{ s.count }} 场 · 最高 {{ s.best }} 分</span>
+            <div class="mock-sub-track"><div class="mock-sub-fill" :style="{ width: s.accuracy + '%' }"></div></div>
+            <span class="mock-sub-num">{{ s.accuracy }}%</span>
+          </div>
+        </div>
+        <div v-if="mockExam.count" class="mock-go">
+          <router-link class="mock-link" to="/mock-exam">去再来一场模考 →</router-link>
+        </div>
+        <div v-else class="empty-mini">本周还没参加模拟考试，<router-link class="mock-link" to="/mock-exam">来一场全真模考</router-link>检验实力吧</div>
+      </div>
+
       <!-- AI 周报配额：与生成共用 AI 分析配额，消耗后随 ai-quota-refresh 同步 -->
       <QuotaBar kind="analysis" label="AI 周报" />
 
@@ -271,6 +306,23 @@
             <div v-else class="empty-mini">该周没有明显薄弱点</div>
           </div>
 
+          <div class="hm-sec" v-if="hmMockExam.count">
+            <h4>模拟考试</h4>
+            <div class="hm-mock-ov">
+              <span><b>{{ hmMockExam.count }}</b> 场</span>
+              <span>最高 <b>{{ hmMockExam.best }}</b> 分</span>
+              <span>平均正确率 <b>{{ hmMockExam.avgAccuracy }}%</b></span>
+            </div>
+            <div v-if="hmMockExam.bySubject.length" class="hm-mock-sub">
+              <div v-for="s in hmMockExam.bySubject" :key="s.subject" class="hm-mock-sub-row">
+                <span class="hm-mock-name">{{ s.subject }}</span>
+                <span class="hm-mock-meta">{{ s.count }} 场 · 最高 {{ s.best }} 分</span>
+                <div class="hm-mock-track"><div class="hm-mock-fill" :style="{ width: s.accuracy + '%' }"></div></div>
+                <span class="hm-mock-num">{{ s.accuracy }}%</span>
+              </div>
+            </div>
+          </div>
+
           <div class="hm-sec">
             <div class="hm-ai-head">
               <h4>AI 总结</h4>
@@ -306,7 +358,7 @@ import QuotaBar from '../components/QuotaBar.vue'
 const { text: aiText, typing: aiTyping, type: typeAi } = useTypewriter()
 const { text: histAiText, typing: histAiTyping, type: typeHistAi } = useTypewriter()
 
-const data = ref({ trend: [], total: 0, accuracy: 0, bySubject: [], weak: [], exams: [], checkinDays: 0, lastWeek: { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 } })
+const data = ref({ trend: [], total: 0, accuracy: 0, bySubject: [], weak: [], exams: [], mockExam: { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] }, checkinDays: 0, lastWeek: { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 } })
 const loading = ref(true)
 const loadFailed = ref(false)
 const aiReply = ref('')
@@ -318,6 +370,8 @@ const historyView = ref(null)
 const histAiLoading = ref(false)
 
 const lastWeek = computed(() => data.value.lastWeek || { total: 0, accuracy: 0, checkinDays: 0, examCount: 0 })
+
+const mockExam = computed(() => data.value.mockExam || { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] })
 
 // 本周薄弱标签（格式："科目·章节（xx%）"）解析为可跳转 AI 专项补强的链接
 const weakTags = computed(() => data.value.weak.map(w => {
@@ -385,6 +439,8 @@ const histAiBlocks = computed(() => {
 })
 
 const hmMaxTotal = computed(() => Math.max(1, ...(historyView.value?.trend || []).map(t => t.total)))
+
+const hmMockExam = computed(() => historyView.value?.mockExam || { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] })
 
 function hmBar(n) {
   return Math.max(6, Math.round((n / hmMaxTotal.value) * 90)) + 'px'
@@ -491,6 +547,11 @@ function exportPdf() {
     ? d.exams.map(e => `<div class="exam-row"><span class="d">${escHtml((e.created_at || '').replace('T', ' ').slice(0, 16))}</span><span class="s">${e.score} 分</span></div>`).join('')
     : '<p class="muted">本周暂无模拟考试</p>'
 
+  const mk = d.mockExam || { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, bySubject: [] }
+  const mockSummary = mk.count
+    ? `<p class="mock-sum">本周完成 <b>${mk.count}</b> 场模拟考试，最高 <b>${mk.best}</b> 分，平均分 <b>${mk.avgScore}</b>，平均正确率 <b>${mk.avgAccuracy}%</b>${mk.bySubject.length ? '（' + mk.bySubject.slice(0, 4).map(s => `${escHtml(s.subject)}最高${s.best}分`).join('、') + '）' : ''}。</p>`
+    : '<p class="muted">本周暂无模拟考试记录</p>'
+
   const aiText = aiReply.value
     ? aiReply.value.split('\n').map(line => {
         const t = line.trim()
@@ -541,6 +602,8 @@ function exportPdf() {
   .exam-row { display: flex; gap: 16px; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; font-size: 13px; }
   .exam-row .d { color: #6b7280; }
   .exam-row .s { font-weight: 700; color: #4f5ff0; margin-left: auto; }
+  .mock-sum { font-size: 13px; margin: 0 0 12px; color: #374151; }
+  .mock-sum b { color: #4f5ff0; }
   .ai-body h4 { font-size: 14px; color: #4f5ff0; margin: 12px 0 6px; }
   .ai-body p { font-size: 13px; margin-bottom: 4px; }
   .ai-body .bullet { padding-left: 14px; position: relative; }
@@ -596,6 +659,7 @@ function exportPdf() {
 
   <div class="sec">
     <h2>模拟考试</h2>
+    ${mockSummary}
     ${examRows}
   </div>
 
@@ -725,6 +789,41 @@ onMounted(() => {
 .weak-tag.actionable:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); background: var(--accent-soft); color: var(--accent); }
 .weak-go { margin-left: 6px; font-size: 0.78rem; font-weight: 700; opacity: 0.85; }
 
+/* 模拟考试卡片 */
+.trend-card, .sub-card, .weak-card, .mock-card { padding: 22px 26px; margin-bottom: 16px; }
+.mock-ov { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.mock-ov-item { text-align: center; padding: 12px 4px; position: relative; }
+.mock-ov-item::after {
+  content: ''; position: absolute; right: 0; top: 14%; bottom: 14%; width: 1px;
+  background: linear-gradient(180deg, transparent, var(--rule), transparent);
+}
+.mock-ov-item:last-child::after { display: none; }
+.mock-ov-num {
+  font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: var(--grad-accent); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.mock-ov-lbl { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+.mock-sub { display: flex; flex-direction: column; gap: 12px; }
+.mock-sub-row { display: flex; align-items: center; gap: 12px; }
+.mock-sub-name { width: 80px; font-size: 0.9rem; font-weight: 600; flex-shrink: 0; }
+.mock-sub-meta { width: 150px; font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+.mock-sub-track { flex: 1; height: 10px; border-radius: 999px; background: var(--rule); overflow: hidden; }
+.mock-sub-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4f5ff0, #6b58e8); }
+.mock-sub-num { width: 44px; text-align: right; font-weight: 700; color: var(--accent); }
+.mock-go { margin-top: 14px; text-align: center; }
+.mock-link { color: var(--accent); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+.mock-link:hover { text-decoration: underline; }
+.hm-mock-ov { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.85rem; color: var(--muted); }
+.hm-mock-ov b { color: var(--accent); font-size: 1rem; }
+.hm-mock-sub { display: flex; flex-direction: column; gap: 10px; }
+.hm-mock-sub-row { display: flex; align-items: center; gap: 10px; }
+.hm-mock-name { width: 76px; font-size: 0.88rem; font-weight: 600; flex-shrink: 0; }
+.hm-mock-meta { width: 130px; font-size: 0.8rem; color: var(--muted); flex-shrink: 0; }
+.hm-mock-track { flex: 1; height: 9px; border-radius: 999px; background: var(--rule); overflow: hidden; }
+.hm-mock-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+.hm-mock-num { width: 40px; text-align: right; font-weight: 700; color: var(--accent); }
+
 .empty-mini { color: var(--muted); font-size: 0.88rem; padding: 12px 0; }
 .hist-retry { margin-left: 8px; padding: 2px 10px; font-size: 0.8rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; background: transparent; cursor: pointer; }
 .wk-error { text-align: center; padding: 48px 20px; }
@@ -838,6 +937,12 @@ onMounted(() => {
   .sub-name { width: 64px; font-size: 0.82rem; }
   .sub-num { width: 38px; font-size: 0.84rem; }
   .sub-count { width: 44px; font-size: 0.78rem; }
+  .mock-ov { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mock-ov-num { font-size: 1.35rem; }
+  .mock-ov-lbl { font-size: 0.8rem; }
+  .mock-sub-row { gap: 8px; }
+  .mock-sub-name { width: 60px; font-size: 0.82rem; }
+  .mock-sub-meta { width: 116px; font-size: 0.78rem; }
   .weak-tag { padding: 6px 12px; font-size: 0.82rem; min-height: 36px; display: inline-flex; align-items: center; }
   .ai-text { overflow-wrap: break-word; word-break: break-word; }
   .ai-body { font-size: 0.88rem; }

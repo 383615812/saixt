@@ -61,6 +61,31 @@ function cleanAi(text) {
   return String(text || '').replace(/<[^>]*>/g, '').replace(/[<>]/g, '').trim();
 }
 
+// 聚合某时间段内的模拟考试成绩（从 mock_exams 取丰富维度：场次/最佳分/平均正确率/分科）
+function computeMockExamSummary(uid, startDay, endDay) {
+  const rows = db.prepare(`
+    SELECT subject, total, correct, score FROM mock_exams
+    WHERE user_id = ? AND status = 'submitted'
+      AND date(submitted_at) >= ? AND date(submitted_at) <= ?
+  `).all(uid, startDay, endDay) || [];
+  if (!rows.length) return { count: 0, best: 0, avgScore: 0, avgAccuracy: 0, totalQuestions: 0, bySubject: [] };
+  const best = Math.max(...rows.map(r => r.score || 0));
+  const avgScore = Math.round(rows.reduce((s, r) => s + (r.score || 0), 0) / rows.length * 10) / 10;
+  const totalQuestions = rows.reduce((s, r) => s + (r.total || 0), 0);
+  const totalCorrect = rows.reduce((s, r) => s + (r.correct || 0), 0);
+  const avgAccuracy = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+  const bySub = {};
+  for (const r of rows) {
+    const s = bySub[r.subject] || (bySub[r.subject] = { subject: r.subject, count: 0, best: 0, totalQ: 0, correctQ: 0 });
+    s.count++; s.totalQ += r.total || 0; s.correctQ += r.correct || 0;
+    if ((r.score || 0) > s.best) s.best = r.score;
+  }
+  const bySubject = Object.values(bySub)
+    .map(s => ({ subject: s.subject, count: s.count, best: s.best, accuracy: s.totalQ ? Math.round((s.correctQ / s.totalQ) * 100) : 0 }))
+    .sort((a, b) => b.best - a.best);
+  return { count: rows.length, best, avgScore, avgAccuracy, totalQuestions, bySubject };
+}
+
 // 计算某自然周的学习数据快照
 function computeWeekData(uid, weekStart, weekEnd) {
   const trend = db.prepare(`
@@ -127,6 +152,7 @@ function computeWeekData(uid, weekStart, weekEnd) {
     bySubject,
     weak,
     exams,
+    mockExam: computeMockExamSummary(uid, weekStart, weekEnd),
     aiSessions: {
       count: aiSessions.c || 0,
       total: aiSessions.total || 0,
@@ -225,6 +251,10 @@ router.get('/report/weekly', requireAuth, (req, res) => {
 
   const lastWeek = { total: lastTotal, accuracy: lastAccuracy, checkinDays: lastCheckin, examCount: lastExams };
 
+  // 近 7 天模拟考试统计（从 mock_exams 聚合丰富维度）
+  const r7 = db.prepare("SELECT date('now','localtime','-6 days') s, date('now','localtime') e").get();
+  const mockExam = computeMockExamSummary(uid, r7.s, r7.e);
+
   // 按需生成当前自然周快照，供历史周报使用（幂等）
   try {
     const { weekStart, weekEnd } = currentWeekRange();
@@ -241,6 +271,7 @@ router.get('/report/weekly', requireAuth, (req, res) => {
       bySubject,
       weak,
       exams,
+      mockExam,
       aiSessions: {
         count: aiSessions.c || 0,
         total: aiSessions.total || 0,
@@ -294,6 +325,9 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
     ORDER BY id DESC LIMIT 3
   `).all(uid);
 
+  const me7 = db.prepare("SELECT date('now','localtime','-6 days') s, date('now','localtime') e").get();
+  const mk = computeMockExamSummary(uid, me7.s, me7.e);
+
   const checkinDays = db.prepare(`
     SELECT COUNT(*) AS c FROM checkins WHERE user_id = ? AND date >= date('now','localtime','-6 days')
   `).get(uid).c || 0;
@@ -305,7 +339,7 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
 - 各科目：${bySubject.map(s => `${s.subject} ${s.total}题/${s.total ? Math.round((s.correct || 0) / s.total * 100) : 0}%`).join('、') || '无'}
 - 薄弱知识点：${weak.length ? weak.join('、') : '暂无'}
 ${weakKnowledge ? `\n薄弱章节对应的考纲要点（请在建议中据此点出具体考点）：\n${weakKnowledge}\n` : ''}
-- 模拟考试：${exams.map(e => `${e.score}分`).join('、') || '暂无'}
+- 模拟考试：${mk.count ? `本周完成 ${mk.count} 场，最高 ${mk.best} 分，平均正确率 ${mk.avgAccuracy}%（${mk.bySubject.slice(0, 3).map(s => `${s.subject}最高${s.best}分`).join('、')}）` : '暂无'}${exams.length ? `（最近：${exams.map(e => e.score + '分').join('、')}）` : ''}
 - 打卡 ${checkinDays} 天
 
 要求输出（简体中文，结构清晰）：
