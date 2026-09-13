@@ -43,7 +43,7 @@ function buildParams(order, method) {
     timestamp: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
     version: '1.0',
     notify_url: `${config.baseUrl}/api/membership/pay/notify/alipay`,
-    return_url: `${config.baseUrl}/#/vip?order=${order.order_no}`,
+    return_url: `${config.baseUrl}/vip?order=${order.order_no}`,
     biz_content: JSON.stringify({
       out_trade_no: order.order_no,
       total_amount: Number(order.amount).toFixed(2),
