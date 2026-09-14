@@ -84,6 +84,26 @@
             <div class="lbl">冲刺正确率</div>
           </div>
         </div>
+        <div v-if="d.wrongTrend.series.length" class="wt-block">
+          <div class="wt-head">
+            <span class="wt-title">近 {{ d.wrongTrend.days }} 天错题清除</span>
+            <span class="wt-sum">
+              <em class="wt-add">+{{ d.wrongTrend.added }}</em>
+              <em class="wt-mst">-{{ d.wrongTrend.mastered }}</em>
+            </span>
+          </div>
+          <div class="wt-bars">
+            <div
+              v-for="p in d.wrongTrend.series"
+              :key="p.date"
+              class="wt-col"
+              :title="p.date + '：待巩固 ' + p.pending + ' 道（新增 ' + p.added + ' / 清除 ' + p.mastered + '）'"
+            >
+              <span class="wt-bar" :style="{ height: wtPct(p.pending) + '%' }"></span>
+            </div>
+          </div>
+          <p class="wt-note">柱高=当日待巩固错题数，整体走低说明错题在稳步清除</p>
+        </div>
         <div class="sp-foot">
           <span class="sp-note">{{ sprintNote }}</span>
           <router-link to="/wrong-book" class="btn btn-sm sp-btn">去错题冲刺 →</router-link>
@@ -162,6 +182,7 @@ const d = ref({
   exam: { examCount: 0, lastExamAt: null, daysSinceLast: null },
   dueToday: 0,
   wrongBook: { pending: 0, mastered: 0 },
+  wrongTrend: { days: 30, series: [], added: 0, mastered: 0, net: 0 },
   sprint: { count: 0, total: 0, correct: 0, accuracy: 0, week: { count: 0, total: 0, correct: 0, accuracy: 0 } },
   suggestions: []
 })
@@ -192,6 +213,14 @@ const sprintNote = computed(() => {
   if (d.value.wrongBook.pending > 0) return `近 7 天还没做错题冲刺，集中清一波吧`
   return '错题本暂无待巩固题目，保持得不错'
 })
+
+const wtMax = computed(() => {
+  const arr = d.value.wrongTrend.series || []
+  return Math.max(1, ...arr.map(p => p.pending))
+})
+function wtPct(v) {
+  return Math.round((v / wtMax.value) * 100)
+}
 
 async function load() {
   loading.value = true
@@ -247,6 +276,19 @@ onMounted(load)
 .sp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rule, #e7e9f0); }
 .sp-note { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
 .sp-btn { flex-shrink: 0; white-space: nowrap; }
+
+/* 错题清除趋势 */
+.wt-block { margin-top: 14px; }
+.wt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.wt-title { font-size: 0.84rem; font-weight: 600; color: var(--ink-soft); }
+.wt-sum { display: flex; gap: 10px; font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wt-sum em { font-style: normal; }
+.wt-add { color: var(--red, #e11d48); }
+.wt-mst { color: var(--green, #0da678); }
+.wt-bars { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
+.wt-col { flex: 1; display: flex; align-items: flex-end; height: 100%; min-width: 0; }
+.wt-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; background: var(--accent, #4f5ff0); opacity: 0.75; transition: height 0.5s var(--ease); }
+.wt-note { margin-top: 8px; font-size: 0.76rem; color: var(--muted-2); }
 
 /* 科目 */
 .subj-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }

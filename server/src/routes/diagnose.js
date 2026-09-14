@@ -114,6 +114,55 @@ router.get('/diagnose', requireAuth, (req, res) => {
   const sprintAll = sprintOf('', []);
   const sprintWeek = sprintOf("AND date(created_at) >= date('now','localtime','-6 days')", []);
 
+  // —— 近 30 天错题清除趋势 ——
+  // 重建每日「待巩固错题」数量：pending(D) = 首次答错日 ≤ D 的题目数 − 其中已移出日 ≤ D 的题目数
+  // （与 /practice/wrong 的「答错且未移出」口径一致；移出后再次答错也仍视为已移出）
+  const WT_DAYS = 30;
+  const fwRows = db.prepare(
+    `SELECT question_id, MIN(date(created_at)) AS d
+     FROM practice_records WHERE user_id = ? AND is_correct = 0 GROUP BY question_id`
+  ).all(uid);
+  const mstRows = db.prepare(
+    `SELECT question_id, MIN(date(created_at)) AS d
+     FROM wrong_mastered WHERE user_id = ? GROUP BY question_id`
+  ).all(uid);
+
+  const wtIndex = new Map();
+  const wtSeries = [];
+  for (let i = WT_DAYS - 1; i >= 0; i--) {
+    const dt = new Date();
+    dt.setDate(dt.getDate() - i);
+    const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    wtIndex.set(key, wtSeries.length);
+    wtSeries.push({ date: key, added: 0, mastered: 0, pending: 0 });
+  }
+  const wtStart = wtSeries[0].date;
+  const fwSet = new Set(fwRows.map(r => r.question_id));
+  let cumFW = 0;   // 窗口前已首次答错的题目数
+  let cumMst = 0;  // 窗口前已移出（且曾答错）的题目数
+  const addByDay = new Array(WT_DAYS).fill(0);
+  const mstByDay = new Array(WT_DAYS).fill(0);
+  for (const r of fwRows) {
+    const idx = wtIndex.get(r.d);
+    if (idx === undefined) { if (r.d < wtStart) cumFW++; continue; }
+    addByDay[idx]++;
+  }
+  for (const r of mstRows) {
+    if (!fwSet.has(r.question_id)) continue; // 无答错记录的移出不计入错题本口径
+    const idx = wtIndex.get(r.d);
+    if (idx === undefined) { if (r.d < wtStart) cumMst++; continue; }
+    mstByDay[idx]++;
+  }
+  for (let i = 0; i < WT_DAYS; i++) {
+    cumFW += addByDay[i];
+    cumMst += mstByDay[i];
+    wtSeries[i].added = addByDay[i];
+    wtSeries[i].mastered = mstByDay[i];
+    wtSeries[i].pending = Math.max(0, cumFW - cumMst);
+  }
+  const wtAdded = addByDay.reduce((a, b) => a + b, 0);
+  const wtMastered = mstByDay.reduce((a, b) => a + b, 0);
+
   // —— 合成今日建议（按优先级排序，level: warn/info/success）——
   const suggestions = [];
   if (examCount === 0) {
@@ -137,7 +186,9 @@ router.get('/diagnose', requireAuth, (req, res) => {
   }
   // 正向建议（仅在无明显待办时鼓励）
   if (suggestions.every(s => s.level === 'success') || suggestions.length === 0) {
-    if (accuracy >= 75 && total >= 20) {
+    if (wtMastered >= 3) {
+      suggestions.push({ level: 'success', text: `近 30 天已清除 ${wtMastered} 道错题，错题本正在变薄，继续保持`, action: { label: '去错题本', to: '/wrong-book' } });
+    } else if (accuracy >= 75 && total >= 20) {
       suggestions.push({ level: 'success', text: `整体正确率 ${accuracy}%，保持得不错，继续按计划推进`, action: { label: '去刷题', to: '/practice' } });
     } else if (total === 0) {
       suggestions.push({ level: 'info', text: '还没有练习数据，从在线刷题或一套模考开始吧', action: { label: '去刷题', to: '/practice' } });
@@ -156,6 +207,13 @@ router.get('/diagnose', requireAuth, (req, res) => {
       exam: { examCount, lastExamAt: examRow.lastAt || null, daysSinceLast },
       dueToday,
       wrongBook: { pending: wrongBookPending, mastered: masteredCount },
+      wrongTrend: {
+        days: WT_DAYS,
+        series: wtSeries,
+        added: wtAdded,
+        mastered: wtMastered,
+        net: wtMastered - wtAdded
+      },
       sprint: { ...sprintAll, week: sprintWeek },
       suggestions
     }
