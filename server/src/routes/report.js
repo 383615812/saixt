@@ -89,9 +89,10 @@ function computeMockExamSummary(uid, startDay, endDay) {
 // 计算某自然周的学习数据快照
 function computeWeekData(uid, weekStart, weekEnd) {
   const trend = db.prepare(`
-    SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records WHERE user_id = ? AND date(created_at) >= ? AND date(created_at) <= ?
-    GROUP BY date(created_at) ORDER BY d
+    SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= ? AND date(r.created_at) <= ?
+    GROUP BY date(r.created_at) ORDER BY d
   `).all(uid, weekStart, weekEnd);
 
   const total = trend.reduce((s, r) => s + r.total, 0);
@@ -101,7 +102,7 @@ function computeWeekData(uid, weekStart, weekEnd) {
   const bySubject = db.prepare(`
     SELECT q.subject, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= ? AND date(r.created_at) <= ?
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= ? AND date(r.created_at) <= ?
     GROUP BY q.subject
   `).all(uid, weekStart, weekEnd).map(s => ({
     subject: s.subject,
@@ -113,7 +114,7 @@ function computeWeekData(uid, weekStart, weekEnd) {
   const weak = db.prepare(`
     SELECT q.subject, q.chapter, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= ? AND date(r.created_at) <= ?
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= ? AND date(r.created_at) <= ?
     GROUP BY q.subject, q.chapter
   `).all(uid, weekStart, weekEnd)
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)
@@ -195,9 +196,10 @@ router.get('/report/weekly', requireAuth, (req, res) => {
   const uid = req.userId;
 
   const trend = db.prepare(`
-    SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records WHERE user_id = ? AND date(created_at) >= date('now','localtime','-6 days')
-    GROUP BY date(created_at) ORDER BY d
+    SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
+    GROUP BY date(r.created_at) ORDER BY d
   `).all(uid);
 
   const total = trend.reduce((s, r) => s + r.total, 0);
@@ -207,7 +209,7 @@ router.get('/report/weekly', requireAuth, (req, res) => {
   const bySubject = db.prepare(`
     SELECT q.subject, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= date('now','localtime','-6 days')
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
     GROUP BY q.subject
   `).all(uid).map(s => ({
     subject: s.subject,
@@ -219,7 +221,7 @@ router.get('/report/weekly', requireAuth, (req, res) => {
   const weak = db.prepare(`
     SELECT q.subject, q.chapter, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= date('now','localtime','-6 days')
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
     GROUP BY q.subject, q.chapter
   `).all(uid)
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)
@@ -258,9 +260,10 @@ router.get('/report/weekly', requireAuth, (req, res) => {
 
   // 上周（前 7 天）对比数据
   const lastTrend = db.prepare(`
-    SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records WHERE user_id = ? AND date(created_at) >= date('now','localtime','-13 days') AND date(created_at) < date('now','localtime','-6 days')
-    GROUP BY date(created_at) ORDER BY d
+    SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-13 days') AND date(r.created_at) < date('now','localtime','-6 days')
+    GROUP BY date(r.created_at) ORDER BY d
   `).all(uid);
   const lastTotal = lastTrend.reduce((s, r) => s + r.total, 0);
   const lastCorrect = lastTrend.reduce((s, r) => s + (r.correct || 0), 0);
@@ -324,9 +327,10 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
   if (!c.ok) return res.status(403).json({ code: 403, message: '今日免费 AI 次数已用完，开通 VIP 会员可无限使用', data: { quotaExceeded: true } });
 
   const trend = db.prepare(`
-    SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records WHERE user_id = ? AND date(created_at) >= date('now','localtime','-6 days')
-    GROUP BY date(created_at) ORDER BY d
+    SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
+    GROUP BY date(r.created_at) ORDER BY d
   `).all(uid);
   const total = trend.reduce((s, r) => s + r.total, 0);
   const correct = trend.reduce((s, r) => s + (r.correct || 0), 0);
@@ -335,14 +339,14 @@ router.post('/report/weekly/ai', requireAuth, async (req, res) => {
   const bySubject = db.prepare(`
     SELECT q.subject, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= date('now','localtime','-6 days')
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
     GROUP BY q.subject
   `).all(uid);
 
   const weak = db.prepare(`
     SELECT q.subject, q.chapter, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ? AND date(r.created_at) >= date('now','localtime','-6 days')
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= date('now','localtime','-6 days')
     GROUP BY q.subject, q.chapter
   `).all(uid)
     .filter(m => m.total >= 2 && (m.correct / m.total) < 0.6)

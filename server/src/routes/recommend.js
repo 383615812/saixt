@@ -102,7 +102,7 @@ router.get('/', requireAuth, (req, res) => {
     const bySubject = db.prepare(
       `SELECT q.subject, COUNT(*) AS total, SUM(r.is_correct) AS correct
        FROM practice_records r JOIN questions q ON q.id = r.question_id
-       WHERE r.user_id = ? GROUP BY q.subject`
+       WHERE r.user_id = ? AND q.type != 'subjective' GROUP BY q.subject`
     ).all(uid);
     const rate = (s) => (s?.correct || 0) / Math.max(1, s?.total || 1);
     const vocational = Math.round(150 * rate(bySubject.find(s => s.subject === '信息技术')) +

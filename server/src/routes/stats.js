@@ -64,8 +64,9 @@ function computePlatformDashboard() {
 router.get('/me', requireAuth, (req, res) => {
   const uid = req.userId;
 
-  const total = db.prepare('SELECT COUNT(*) AS c FROM practice_records WHERE user_id = ?').get(uid).c;
-  const correct = db.prepare('SELECT COUNT(*) AS c FROM practice_records WHERE user_id = ? AND is_correct = 1').get(uid).c;
+  // 正确率统计仅计客观题：主观题无标准答案、由模考自评折算，不计入个人正确率/总数
+  const total = db.prepare('SELECT COUNT(*) AS c FROM practice_records r JOIN questions q ON q.id = r.question_id WHERE r.user_id = ? AND q.type != \'subjective\'').get(uid).c;
+  const correct = db.prepare('SELECT COUNT(*) AS c FROM practice_records r JOIN questions q ON q.id = r.question_id WHERE r.user_id = ? AND q.type != \'subjective\' AND r.is_correct = 1').get(uid).c;
   const wrong = total - correct;
   const accuracy = total ? Math.round((correct / total) * 100) : 0;
 
@@ -75,7 +76,7 @@ router.get('/me', requireAuth, (req, res) => {
   const bySubject = db.prepare(
     `SELECT q.subject, COUNT(*) AS total, SUM(r.is_correct) AS correct
      FROM practice_records r JOIN questions q ON q.id = r.question_id
-     WHERE r.user_id = ? GROUP BY q.subject`
+     WHERE r.user_id = ? AND q.type != 'subjective' GROUP BY q.subject`
   ).all(uid).map(s => ({ subject: s.subject, total: s.total, correct: s.correct || 0 }));
 
   // 预测得分（职业技能 300 分制）：按综合正确率估算
@@ -124,7 +125,7 @@ router.get('/mastery', requireAuth, (req, res) => {
            SUM(r.is_correct) AS correct
     FROM practice_records r
     JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ?
+    WHERE r.user_id = ? AND q.type != 'subjective'
     GROUP BY q.subject, q.chapter
     ORDER BY q.subject, q.chapter
   `).all(req.userId);
@@ -147,9 +148,10 @@ router.get('/mastery', requireAuth, (req, res) => {
 router.get('/trend', requireAuth, (req, res) => {
   const days = 14;
   const rows = db.prepare(`
-    SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records WHERE user_id = ? AND created_at >= date('now','localtime', ?)
-    GROUP BY date(created_at) ORDER BY d
+    SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND r.created_at >= date('now','localtime', ?)
+    GROUP BY date(r.created_at) ORDER BY d
   `).all(req.userId, `-${days - 1} days`);
 
   const byDate = {};
@@ -186,7 +188,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
     SELECT q.subject, COUNT(*) AS total, SUM(r.is_correct) AS correct
     FROM practice_records r
     JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ?
+    WHERE r.user_id = ? AND q.type != 'subjective'
     GROUP BY q.subject
   `).all(uid);
 
@@ -212,7 +214,7 @@ router.get('/dashboard', requireAuth, (req, res) => {
            SUM(r.is_correct) AS correct
     FROM practice_records r
     JOIN questions q ON q.id = r.question_id
-    WHERE r.user_id = ?
+    WHERE r.user_id = ? AND q.type != 'subjective'
     GROUP BY q.subject, q.chapter
     ORDER BY q.subject, q.chapter
   `).all(uid);
@@ -266,16 +268,16 @@ router.get('/dashboard', requireAuth, (req, res) => {
 
   // 本周练习数据
   const thisWeekPractice = db.prepare(`
-    SELECT COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records
-    WHERE user_id = ? AND date(created_at) >= ?
+    SELECT COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= ?
   `).get(uid, thisWeekStartStr);
 
   // 上周练习数据
   const lastWeekPractice = db.prepare(`
-    SELECT COUNT(*) AS total, SUM(is_correct) AS correct
-    FROM practice_records
-    WHERE user_id = ? AND date(created_at) >= ? AND date(created_at) <= ?
+    SELECT COUNT(*) AS total, SUM(r.is_correct) AS correct
+    FROM practice_records r JOIN questions q ON q.id = r.question_id
+    WHERE r.user_id = ? AND q.type != 'subjective' AND date(r.created_at) >= ? AND date(r.created_at) <= ?
   `).get(uid, lastWeekStartStr, lastWeekEndStr);
 
   // 本周打卡天数

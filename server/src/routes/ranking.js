@@ -24,7 +24,8 @@ router.get('/', requireAuth, (req, res) => {
             SUM(r.is_correct) AS correct
      FROM practice_records r
      JOIN users u ON u.id = r.user_id
-     WHERE 1=1${dateClause}
+     JOIN questions q ON q.id = r.question_id
+     WHERE q.type != 'subjective' ${dateClause}
      GROUP BY u.id
      HAVING total > 0
      ORDER BY correct DESC, total ASC`
@@ -56,7 +57,7 @@ router.get('/', requireAuth, (req, res) => {
   // 当前用户排名：答对数严格多于我的用户数 + 1（并列同名次）
   const myRow = db.prepare(
     `SELECT COUNT(r.id) AS total, SUM(r.is_correct) AS correct
-     FROM practice_records r WHERE r.user_id = ? AND 1=1${dateClause}`
+     FROM practice_records r JOIN questions q ON q.id = r.question_id WHERE q.type != 'subjective' AND r.user_id = ? ${dateClause}`
   ).get(req.userId);
   let mine = null;
   if (myRow && myRow.total > 0) {
