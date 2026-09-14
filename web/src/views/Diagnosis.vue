@@ -92,6 +92,22 @@
               <em class="wt-mst">-{{ d.wrongTrend.mastered }}</em>
             </span>
           </div>
+          <div v-if="wtSubjects.length > 1" class="wt-filter">
+            <button
+              class="wt-chip"
+              :class="{ on: !wtSubject }"
+              :disabled="wtLoading"
+              @click="pickSubject('')"
+            >全部</button>
+            <button
+              v-for="s in wtSubjects"
+              :key="s.subject"
+              class="wt-chip"
+              :class="{ on: wtSubject === s.subject }"
+              :disabled="wtLoading"
+              @click="pickSubject(s.subject)"
+            >{{ s.subject }} <i>{{ s.pending }}</i></button>
+          </div>
           <div class="wt-bars">
             <div
               v-for="p in d.wrongTrend.series"
@@ -106,7 +122,7 @@
           <div class="wt-legend">
             <span class="lg"><i class="lg-dot lg-pending"></i>待巩固</span>
             <span class="lg"><i class="lg-dot lg-mst"></i>已清除</span>
-            <span class="wt-note">绿色段越长、红色段越薄，说明错题清得越干净</span>
+            <span class="wt-note">{{ wtSubject ? '当前仅看「' + wtSubject + '」' : '绿色段越长、红色段越薄，说明错题清得越干净' }}</span>
           </div>
         </div>
         <div class="sp-foot">
@@ -179,6 +195,8 @@ import { toast } from '../toast'
 import RadarChart from '../components/RadarChart.vue'
 
 const loading = ref(true)
+const wtSubject = ref('')
+const wtLoading = ref(false)
 const d = ref({
   overall: { total: 0, correct: 0, wrong: 0, accuracy: 0 },
   bySubject: [],
@@ -187,7 +205,7 @@ const d = ref({
   exam: { examCount: 0, lastExamAt: null, daysSinceLast: null },
   dueToday: 0,
   wrongBook: { pending: 0, mastered: 0 },
-  wrongTrend: { days: 30, series: [], added: 0, mastered: 0, net: 0 },
+  wrongTrend: { days: 30, series: [], added: 0, mastered: 0, net: 0, subject: '', subjects: [] },
   sprint: { count: 0, total: 0, correct: 0, accuracy: 0, week: { count: 0, total: 0, correct: 0, accuracy: 0 } },
   suggestions: []
 })
@@ -225,6 +243,26 @@ const wtMax = computed(() => {
 })
 function wtPct(v) {
   return Math.round((v / wtMax.value) * 100)
+}
+
+// 科目筛选：科目列表来自后端（当前有待巩固错题的科目）
+const wtSubjects = computed(() => d.value.wrongTrend.subjects || [])
+
+async function pickSubject(sub) {
+  if (sub === wtSubject.value) return
+  const prev = wtSubject.value
+  wtSubject.value = sub
+  wtLoading.value = true
+  try {
+    const r = await api.get('/diagnose' + (sub ? '?subject=' + encodeURIComponent(sub) : ''))
+    // 仅替换趋势维度，其余维度保持（避免整页闪烁）
+    d.value = { ...d.value, wrongTrend: r.wrongTrend }
+  } catch (e) {
+    wtSubject.value = prev
+    toast(e.message || '切换科目失败', 'error')
+  } finally {
+    wtLoading.value = false
+  }
 }
 
 async function load() {
@@ -281,6 +319,19 @@ onMounted(load)
 .sp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rule, #e7e9f0); }
 .sp-note { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
 .sp-btn { flex-shrink: 0; white-space: nowrap; }
+
+/* 科目筛选 chips */
+.wt-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.wt-chip {
+  border: 1px solid var(--rule, #e7e9f0); background: var(--surface); color: var(--ink-soft);
+  font-size: 0.76rem; padding: 3px 10px; border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; transition: all 0.18s var(--ease);
+}
+.wt-chip i { font-style: normal; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wt-chip:hover:not(:disabled) { border-color: var(--accent, #4f5ff0); color: var(--accent, #4f5ff0); }
+.wt-chip.on { background: var(--accent, #4f5ff0); border-color: var(--accent, #4f5ff0); color: #fff; }
+.wt-chip.on i { color: rgba(255, 255, 255, 0.85); }
+.wt-chip:disabled { opacity: 0.55; cursor: default; }
 
 /* 错题清除趋势 */
 .wt-block { margin-top: 14px; }

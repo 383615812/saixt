@@ -117,54 +117,84 @@ router.get('/diagnose', requireAuth, (req, res) => {
   // —— 近 30 天错题清除趋势 ——
   // 重建每日「待巩固错题」数量：pending(D) = 首次答错日 ≤ D 的题目数 − 其中已移出日 ≤ D 的题目数
   // （与 /practice/wrong 的「答错且未移出」口径一致；移出后再次答错也仍视为已移出）
+  // subject 为空 = 全体汇总；否则仅统计该科目（用于按科目查看清除进度）
   const WT_DAYS = 30;
-  const fwRows = db.prepare(
-    `SELECT question_id, MIN(date(created_at)) AS d
-     FROM practice_records WHERE user_id = ? AND is_correct = 0 GROUP BY question_id`
-  ).all(uid);
-  const mstRows = db.prepare(
-    `SELECT question_id, MIN(date(created_at)) AS d
-     FROM wrong_mastered WHERE user_id = ? GROUP BY question_id`
-  ).all(uid);
+  const wtSubject = String(req.query?.subject || '').trim().slice(0, 50);
 
-  const wtIndex = new Map();
-  const wtSeries = [];
-  for (let i = WT_DAYS - 1; i >= 0; i--) {
-    const dt = new Date();
-    dt.setDate(dt.getDate() - i);
-    const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-    wtIndex.set(key, wtSeries.length);
-    wtSeries.push({ date: key, added: 0, mastered: 0, pending: 0, masteredTotal: 0, total: 0 });
+  function buildWrongTrend(subject = '') {
+    const subJoin = subject ? 'JOIN questions q ON q.id = pr.question_id AND q.subject = ?' : '';
+    const subArgs = subject ? [subject] : [];
+    const subJoinM = subject ? 'JOIN questions q ON q.id = wm.question_id AND q.subject = ?' : '';
+
+    const fwRows = db.prepare(
+      `SELECT pr.question_id AS question_id, MIN(date(pr.created_at)) AS d
+       FROM practice_records pr ${subJoin}
+       WHERE pr.user_id = ? AND pr.is_correct = 0 GROUP BY pr.question_id`
+    ).all(...subArgs, uid);
+    const mstRows = db.prepare(
+      `SELECT wm.question_id AS question_id, MIN(date(wm.created_at)) AS d
+       FROM wrong_mastered wm ${subJoinM}
+       WHERE wm.user_id = ? GROUP BY wm.question_id`
+    ).all(...subArgs, uid);
+
+    const idxMap = new Map();
+    const series = [];
+    for (let i = WT_DAYS - 1; i >= 0; i--) {
+      const dt = new Date();
+      dt.setDate(dt.getDate() - i);
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      idxMap.set(key, series.length);
+      series.push({ date: key, added: 0, mastered: 0, pending: 0, masteredTotal: 0, total: 0 });
+    }
+    const start = series[0].date;
+    const fwSet = new Set(fwRows.map(r => r.question_id));
+    let cumFW = 0;   // 窗口前已首次答错的题目数
+    let cumMst = 0;  // 窗口前已移出（且曾答错）的题目数
+    const addByDay = new Array(WT_DAYS).fill(0);
+    const mstByDay = new Array(WT_DAYS).fill(0);
+    for (const r of fwRows) {
+      const idx = idxMap.get(r.d);
+      if (idx === undefined) { if (r.d < start) cumFW++; continue; }
+      addByDay[idx]++;
+    }
+    for (const r of mstRows) {
+      if (!fwSet.has(r.question_id)) continue; // 无答错记录的移出不计入错题本口径
+      const idx = idxMap.get(r.d);
+      if (idx === undefined) { if (r.d < start) cumMst++; continue; }
+      mstByDay[idx]++;
+    }
+    for (let i = 0; i < WT_DAYS; i++) {
+      cumFW += addByDay[i];
+      cumMst += mstByDay[i];
+      series[i].added = addByDay[i];
+      series[i].mastered = mstByDay[i];
+      // cumMst 只统计「曾答错过的题目」的移出，故 cumMst ⊆ cumFW，总错题量恒为 cumFW
+      series[i].masteredTotal = cumMst;
+      series[i].total = cumFW;
+      series[i].pending = Math.max(0, cumFW - cumMst);
+    }
+    return {
+      days: WT_DAYS,
+      subject: subject || '',
+      series,
+      added: addByDay.reduce((a, b) => a + b, 0),
+      mastered: mstByDay.reduce((a, b) => a + b, 0),
+      net: mstByDay.reduce((a, b) => a + b, 0) - addByDay.reduce((a, b) => a + b, 0),
+      pendingNow: series[series.length - 1].pending,
+      totalNow: series[series.length - 1].total
+    };
   }
-  const wtStart = wtSeries[0].date;
-  const fwSet = new Set(fwRows.map(r => r.question_id));
-  let cumFW = 0;   // 窗口前已首次答错的题目数
-  let cumMst = 0;  // 窗口前已移出（且曾答错）的题目数
-  const addByDay = new Array(WT_DAYS).fill(0);
-  const mstByDay = new Array(WT_DAYS).fill(0);
-  for (const r of fwRows) {
-    const idx = wtIndex.get(r.d);
-    if (idx === undefined) { if (r.d < wtStart) cumFW++; continue; }
-    addByDay[idx]++;
-  }
-  for (const r of mstRows) {
-    if (!fwSet.has(r.question_id)) continue; // 无答错记录的移出不计入错题本口径
-    const idx = wtIndex.get(r.d);
-    if (idx === undefined) { if (r.d < wtStart) cumMst++; continue; }
-    mstByDay[idx]++;
-  }
-  for (let i = 0; i < WT_DAYS; i++) {
-    cumFW += addByDay[i];
-    cumMst += mstByDay[i];
-    wtSeries[i].added = addByDay[i];
-    wtSeries[i].mastered = mstByDay[i];
-    // cumMst 只统计「曾答错过的题目」的移出，故 cumMst ⊆ cumFW，总错题量恒为 cumFW
-    wtSeries[i].masteredTotal = cumMst;
-    wtSeries[i].total = cumFW;
-    wtSeries[i].pending = Math.max(0, cumFW - cumMst);
-  }
-  const wtAdded = addByDay.reduce((a, b) => a + b, 0);
-  const wtMastered = mstByDay.reduce((a, b) => a + b, 0);
+
+  const wrongTrend = buildWrongTrend(wtSubject);
+  // 可选科目：当前错题本中有待巩固错题的科目（便于前端给出筛选下拉）
+  const wtSubjects = db.prepare(
+    `SELECT q.subject AS subject, COUNT(DISTINCT q.id) AS pending
+     FROM practice_records r JOIN questions q ON q.id = r.question_id
+     WHERE r.user_id = ? AND r.is_correct = 0
+       AND NOT EXISTS (SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = r.user_id AND wm.question_id = q.id)
+     GROUP BY q.subject ORDER BY pending DESC`
+  ).all(uid).map(s => ({ subject: s.subject, pending: s.pending }));
+
 
   // —— 合成今日建议（按优先级排序，level: warn/info/success）——
   const suggestions = [];
@@ -189,9 +219,9 @@ router.get('/diagnose', requireAuth, (req, res) => {
   }
   // 正向建议（仅在无明显待办时鼓励）
   if (suggestions.every(s => s.level === 'success') || suggestions.length === 0) {
-    if (wtMastered >= 3) {
-      suggestions.push({ level: 'success', text: `近 30 天已清除 ${wtMastered} 道错题，错题本正在变薄，继续保持`, action: { label: '去错题本', to: '/wrong-book' } });
-    } else if (accuracy >= 75 && total >= 20) {
+  if (wrongTrend.mastered >= 3) {
+    suggestions.push({ level: 'success', text: `近 30 天已清除 ${wrongTrend.mastered} 道错题，错题本正在变薄，继续保持`, action: { label: '去错题本', to: '/wrong-book' } });
+  } else if (accuracy >= 75 && total >= 20) {
       suggestions.push({ level: 'success', text: `整体正确率 ${accuracy}%，保持得不错，继续按计划推进`, action: { label: '去刷题', to: '/practice' } });
     } else if (total === 0) {
       suggestions.push({ level: 'info', text: '还没有练习数据，从在线刷题或一套模考开始吧', action: { label: '去刷题', to: '/practice' } });
@@ -210,13 +240,7 @@ router.get('/diagnose', requireAuth, (req, res) => {
       exam: { examCount, lastExamAt: examRow.lastAt || null, daysSinceLast },
       dueToday,
       wrongBook: { pending: wrongBookPending, mastered: masteredCount },
-      wrongTrend: {
-        days: WT_DAYS,
-        series: wtSeries,
-        added: wtAdded,
-        mastered: wtMastered,
-        net: wtMastered - wtAdded
-      },
+      wrongTrend: { ...wrongTrend, subjects: wtSubjects },
       sprint: { ...sprintAll, week: sprintWeek },
       suggestions
     }
