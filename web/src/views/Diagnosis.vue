@@ -58,6 +58,38 @@
         </div>
       </div>
 
+      <!-- 错题本 & 冲刺 -->
+      <div class="card sprint-card">
+        <div class="card-head">
+          <h3>错题本 &amp; 冲刺</h3>
+          <span class="card-tag">近 7 天</span>
+        </div>
+        <div class="sp-grid">
+          <div class="sp-stat">
+            <div class="num" :style="{ color: d.wrongBook.pending > 0 ? 'var(--red, #e11d48)' : 'var(--green, #0da678)' }">{{ d.wrongBook.pending }}</div>
+            <div class="lbl">待巩固错题</div>
+          </div>
+          <div class="sp-stat">
+            <div class="num" style="color: var(--green, #0da678)">{{ d.wrongBook.mastered }}</div>
+            <div class="lbl">累计移出</div>
+          </div>
+          <div class="sp-stat">
+            <div class="num">{{ d.sprint.week.count }}</div>
+            <div class="lbl">冲刺轮数</div>
+          </div>
+          <div class="sp-stat">
+            <div class="num" :style="{ color: d.sprint.week.total ? accColor(d.sprint.week.accuracy) : 'var(--muted)' }">
+              {{ d.sprint.week.total ? d.sprint.week.accuracy + '%' : '—' }}
+            </div>
+            <div class="lbl">冲刺正确率</div>
+          </div>
+        </div>
+        <div class="sp-foot">
+          <span class="sp-note">{{ sprintNote }}</span>
+          <router-link to="/wrong-book" class="btn btn-sm sp-btn">去错题冲刺 →</router-link>
+        </div>
+      </div>
+
       <!-- 科目掌握 -->
       <div class="card subj-card">
         <div class="card-head">
@@ -129,6 +161,8 @@ const d = ref({
   trend: [],
   exam: { examCount: 0, lastExamAt: null, daysSinceLast: null },
   dueToday: 0,
+  wrongBook: { pending: 0, mastered: 0 },
+  sprint: { count: 0, total: 0, correct: 0, accuracy: 0, week: { count: 0, total: 0, correct: 0, accuracy: 0 } },
   suggestions: []
 })
 
@@ -151,6 +185,13 @@ const radarData = computed(() =>
     color: accColor(s.accuracy)
   }))
 )
+
+const sprintNote = computed(() => {
+  const w = d.value.sprint.week
+  if (w.total) return `本周冲刺 ${w.total} 题，答对 ${w.correct} 题`
+  if (d.value.wrongBook.pending > 0) return `近 7 天还没做错题冲刺，集中清一波吧`
+  return '错题本暂无待巩固题目，保持得不错'
+})
 
 async function load() {
   loading.value = true
@@ -198,6 +239,15 @@ onMounted(load)
 .sg-text { flex: 1; font-size: 0.9rem; color: var(--ink-soft); line-height: 1.5; }
 .sg-btn { flex-shrink: 0; white-space: nowrap; }
 
+/* 错题本 & 冲刺 */
+.sp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; }
+.sp-stat { display: flex; flex-direction: column; gap: 4px; padding: 6px; }
+.sp-stat .num { font-size: 1.5rem; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sp-stat .lbl { font-size: 0.78rem; color: var(--muted); }
+.sp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--rule, #e7e9f0); }
+.sp-note { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+.sp-btn { flex-shrink: 0; white-space: nowrap; }
+
 /* 科目 */
 .subj-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
 .subj-radar { min-width: 0; }
@@ -237,6 +287,8 @@ onMounted(load)
 @media (max-width: 720px) {
   .subj-body { grid-template-columns: 1fr; }
   .ov-card { grid-template-columns: repeat(2, 1fr); gap: 14px 10px; }
+  .sp-grid { grid-template-columns: repeat(2, 1fr); gap: 14px 10px; }
+  .sp-foot { flex-direction: column; align-items: flex-start; }
 }
 @media (max-width: 480px) {
   .card { padding: 16px 14px; }

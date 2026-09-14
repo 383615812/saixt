@@ -89,6 +89,31 @@ router.get('/diagnose', requireAuth, (req, res) => {
      )`
   ).get(uid, todayStr()).c || 0;
 
+  // —— 错题本（当前待巩固 = 答错且未移出的去重题目）+ 累计移出 ——
+  const wrongBookPending = db.prepare(
+    `SELECT COUNT(DISTINCT q.id) AS c
+     FROM practice_records r JOIN questions q ON q.id = r.question_id
+     WHERE r.user_id = ? AND r.is_correct = 0
+       AND NOT EXISTS (SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = r.user_id AND wm.question_id = q.id)`
+  ).get(uid).c || 0;
+  const masteredCount = db.prepare('SELECT COUNT(*) AS c FROM wrong_mastered WHERE user_id = ?').get(uid).c || 0;
+
+  // —— 错题冲刺（mode='sprint' 的完赛会话，与周报同口径）——
+  const sprintOf = (where, args) => {
+    const r = db.prepare(
+      `SELECT COUNT(*) AS c, COALESCE(SUM(total),0) AS total, COALESCE(SUM(correct),0) AS correct
+       FROM practice_sessions WHERE user_id = ? AND mode = 'sprint' ${where}`
+    ).get(uid, ...args);
+    return {
+      count: r.c || 0,
+      total: r.total || 0,
+      correct: r.correct || 0,
+      accuracy: r.total ? Math.round((r.correct / r.total) * 100) : 0
+    };
+  };
+  const sprintAll = sprintOf('', []);
+  const sprintWeek = sprintOf("AND date(created_at) >= date('now','localtime','-6 days')", []);
+
   // —— 合成今日建议（按优先级排序，level: warn/info/success）——
   const suggestions = [];
   if (examCount === 0) {
@@ -101,6 +126,14 @@ router.get('/diagnose', requireAuth, (req, res) => {
   }
   if (dueToday > 0) {
     suggestions.push({ level: 'info', text: `有 ${dueToday} 道错题到了复习时间，及时复习记得更牢`, action: { label: '去复习', to: '/review' } });
+  }
+  // 错题本待巩固较多，且近 7 天没做过冲刺 → 建议集中清除
+  if (wrongBookPending >= 10 && sprintWeek.count === 0) {
+    suggestions.push({
+      level: 'info',
+      text: `错题本还有 ${wrongBookPending} 道待巩固，来一轮「错题冲刺」连续清除更高效`,
+      action: { label: '去错题冲刺', to: '/wrong-book' }
+    });
   }
   // 正向建议（仅在无明显待办时鼓励）
   if (suggestions.every(s => s.level === 'success') || suggestions.length === 0) {
@@ -122,6 +155,8 @@ router.get('/diagnose', requireAuth, (req, res) => {
       trend,
       exam: { examCount, lastExamAt: examRow.lastAt || null, daysSinceLast },
       dueToday,
+      wrongBook: { pending: wrongBookPending, mastered: masteredCount },
+      sprint: { ...sprintAll, week: sprintWeek },
       suggestions
     }
   });
