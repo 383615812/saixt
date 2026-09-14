@@ -23,7 +23,9 @@ export function verifyToken(token) {
   const [payload, sig] = token.split('.');
   if (!payload || !sig) return null;
   const expect = crypto.createHmac('sha256', SECRET).update(payload).digest('base64url');
-  if (expect !== sig) return null;
+  const a = Buffer.from(expect);
+  const b = Buffer.from(sig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
     if (data.exp < Date.now()) return null;
@@ -53,7 +55,11 @@ export function verifyPassword(pwd, stored) {
     const a = Buffer.from(hash, 'hex');
     return a.length === calc.length && crypto.timingSafeEqual(a, calc);
   }
-  return crypto.createHash('sha256').update(pwd + SECRET).digest('hex') === stored;
+  const calc = crypto.createHash('sha256').update(pwd + SECRET).digest('hex');
+  const a = Buffer.from(calc);
+  const b = Buffer.from(stored);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  return true;
 }
 
 // 是否为旧版 SHA256 哈希（需要升级）

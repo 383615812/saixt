@@ -42,9 +42,12 @@ function computePlatformDashboard() {
   for (const r of typeRows) typeDist[r.type] = r.cnt;
 
   const days = 14;
+  // 平台大屏趋势正确率仅计客观题，与用户级口径一致：排除主观题（无标准答案、由模考自评折算）
   const trendRows = db.prepare(
-    `SELECT date(created_at) AS d, COUNT(*) AS total, SUM(is_correct) AS correct
-     FROM practice_records WHERE created_at >= date('now','localtime', ?) GROUP BY date(created_at) ORDER BY d`
+    `SELECT date(r.created_at) AS d, COUNT(*) AS total, SUM(r.is_correct) AS correct
+     FROM practice_records r JOIN questions q ON q.id = r.question_id
+     WHERE q.type != 'subjective' AND r.created_at >= date('now','localtime', ?)
+     GROUP BY date(r.created_at) ORDER BY d`
   ).all(`-${days - 1} days`);
   const byDate = {};
   for (const r of trendRows) byDate[r.d] = { total: r.total, correct: r.correct || 0 };

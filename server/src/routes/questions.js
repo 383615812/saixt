@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
-import { withImages } from '../utils.js';
+import { withImages, safeJson } from '../utils.js';
 
 const router = Router();
 
@@ -33,7 +33,7 @@ router.get('/', (req, res) => {
     `SELECT id, subject, chapter, type, difficulty, stem, options, source, image, images
      FROM questions ${where} ORDER BY id LIMIT ? OFFSET ?`
   ).all(...args, safeLimit, safeOffset);
-  res.json({ code: 0, data: { total, list: rows.map(r => withImages({ ...r, options: JSON.parse(r.options) })) } });
+  res.json({ code: 0, data: { total, list: rows.map(r => withImages({ ...r, options: safeJson(r.options) })) } });
 });
 
 // 知识点关联图谱
@@ -259,7 +259,7 @@ router.get('/count', (req, res) => {
 router.get('/:id', requireAuth, (req, res) => {
   const row = db.prepare('SELECT * FROM questions WHERE id = ?').get(Number(req.params.id));
   if (!row) return res.status(404).json({ code: 404, message: '题目不存在' });
-  res.json({ code: 0, data: withImages({ ...row, options: JSON.parse(row.options) }) });
+  res.json({ code: 0, data: withImages({ ...row, options: safeJson(row.options) }) });
 });
 
 export default router;

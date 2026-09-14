@@ -1,7 +1,7 @@
 ﻿import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
-import { withImages, todayStr, addDays, gradeAnswer } from '../utils.js';
+import { withImages, todayStr, addDays, gradeAnswer, safeJson } from '../utils.js';
 import { tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
 import PDFDocument from 'pdfkit';
@@ -75,7 +75,7 @@ router.post('/submit', requireAuth, submitLimiter, (req, res) => {
       correct,
       answer: q.answer,
       analysis: q.analysis,
-      options: JSON.parse(q.options)
+      options: safeJson(q.options)
     }
   });
 });
@@ -180,7 +180,7 @@ router.get('/wrong', requireAuth, (req, res) => {
      ${where} GROUP BY q.id ORDER BY MAX(r.id) DESC`;
   if (hasPage) sql += ' LIMIT ? OFFSET ?';
   const rows = hasPage ? db.prepare(sql).all(...params, safeLimit, safeOffset) : db.prepare(sql).all(...params);
-  const list = rows.map(r => withImages({ ...r, options: JSON.parse(r.options) }));
+  const list = rows.map(r => withImages({ ...r, options: safeJson(r.options) }));
   list.total = total;
   list.page = hasPage ? Math.floor(safeOffset / safeLimit) + 1 : 1;
   list.pageSize = hasPage ? safeLimit : total;
@@ -284,7 +284,7 @@ router.get('/wrong/export', requireAuth, (req, res) => {
       // 选项
       if (q.options) {
         try {
-          const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          const opts = typeof q.options === 'string' ? safeJson(q.options) : (q.options || []);
           if (Array.isArray(opts) && opts.length) {
             for (const opt of opts) {
               const cleanOpt = String(opt).replace(/<[^>]+>/g, '');
@@ -344,7 +344,7 @@ router.get('/wrong/mastered', requireAuth, (req, res) => {
   if (subject) { sql += ' AND q.subject = ?'; params.push(subject); }
   sql += ' ORDER BY wm.created_at DESC, q.id DESC';
   const rows = db.prepare(sql).all(...params);
-  const list = rows.map(r => withImages({ ...r, options: JSON.parse(r.options || '[]') }));
+  const list = rows.map(r => withImages({ ...r, options: safeJson(r.options) }));
   res.json({ code: 0, data: list });
 });
 
@@ -370,7 +370,7 @@ router.get('/blind-box/draw', requireAuth, drawLimiter, (req, res) => {
     ORDER BY d.id DESC LIMIT 1
   `).get(uid);
   if (pending) {
-    const opts = pending.options ? JSON.parse(pending.options) : [];
+    const opts = safeJson(pending.options);
     const { answer, analysis, rarity_score, ...safeQuestion } = pending;
     const rarity = rarities.find(r => r.score === rarity_score) || rarities[0];
     return res.json({
@@ -434,7 +434,7 @@ router.get('/blind-box/draw', requireAuth, drawLimiter, (req, res) => {
   }
 
   // 解析 options
-  const opts = question.options ? JSON.parse(question.options) : [];
+  const opts = safeJson(question.options);
 
   // 服务端固化本次抽题的稀有度分数，提交时据此计分，防止客户端篡改
   db.prepare('INSERT INTO blind_box_draws (user_id, question_id, rarity_score) VALUES (?,?,?)')
@@ -600,7 +600,7 @@ router.get('/review', requireAuth, (req, res) => {
   res.json({
     code: 0,
     data: {
-      due: due.map(r => withImages({ ...r, options: JSON.parse(r.options) })),
+      due: due.map(r => withImages({ ...r, options: safeJson(r.options) })),
       dueToday,
       dueTomorrow,
       dueWeek,
@@ -660,7 +660,7 @@ router.post('/review/submit', requireAuth, submitLimiter, (req, res) => {
       correct,
       answer: q.answer,
       analysis: q.analysis,
-      options: JSON.parse(q.options),
+      options: safeJson(q.options),
       stage,
       mastered,
       next_due: mastered ? null : addDays(REVIEW_INTERVALS[stage])
@@ -711,7 +711,7 @@ router.get('/sessions/:id', requireAuth, (req, res) => {
      FROM practice_records r JOIN questions q ON q.id = r.question_id
      WHERE r.user_id = ? AND r.session_id = ? ORDER BY r.id`
   ).all(req.userId, session.id);
-  res.json({ code: 0, data: { ...session, records: records.map(r => withImages({ ...r, options: JSON.parse(r.options) })) } });
+  res.json({ code: 0, data: { ...session, records: records.map(r => withImages({ ...r, options: safeJson(r.options) })) } });
 });
 
 export default router;

@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { requireAuth } from '../auth.js';
+import { safeJson } from '../utils.js';
 import { db } from '../db.js';
 import { tryConsumeAi, refundAi, aiQuota, isVip, tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
@@ -462,7 +463,7 @@ router.post('/explain', requireAuth, aiLimiter, async (req, res) => {
   const c = tryConsumeAi(req.userId, 'explain');
   if (!c.ok) return quotaExceeded(res, 'explain');
 
-  const options = JSON.parse(q.options).join('\n');
+  const options = safeJson(q.options, []).join('\n');
   const kh = knowledgeHint(q.subject, q.chapter);
   const prompt = `请针对下面这道我做错的${q.subject}题目，给出详细的错题讲解。要求包含：
 1. 【题目】原题重现

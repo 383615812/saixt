@@ -1,7 +1,7 @@
 ﻿import { Router } from 'express';
 import { db } from '../db.js';
 import { verifyToken } from '../auth.js';
-import { withImages } from '../utils.js';
+import { withImages, safeJson } from '../utils.js';
 
 const router = Router();
 const DAILY_COUNT = 5;
@@ -62,7 +62,7 @@ router.get('/', (req, res) => {
     data: {
       date: today,
       count: qs.length,
-      questions: qs.map(q => withImages({ ...q, options: JSON.parse(q.options) }))
+      questions: qs.map(q => withImages({ ...q, options: safeJson(q.options) }))
     }
   });
 });

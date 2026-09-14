@@ -17,6 +17,14 @@ export function withImages(row) {
   return out;
 }
 
+// 安全 JSON 解析：库内/外部字段（如题目 options）若损坏为非 JSON 字符串，
+// 直接 JSON.parse 会让题目列表/收藏/错题本/复习/AI 组卷等多个接口抛 500 影响全体用户。
+// 此处对 null/undefined 与解析异常都回退默认值，保证单条脏数据不会拖垮整个接口。
+export function safeJson(s, fallback = []) {
+  if (s === null || s === undefined) return fallback;
+  try { return JSON.parse(s); } catch { return fallback; }
+}
+
 export function mapQuestions(rows) {
   return rows.map(withImages);
 }

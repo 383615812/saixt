@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../auth.js';
 import { db } from '../db.js';
-import { withImages } from '../utils.js';
+import { withImages, safeJson } from '../utils.js';
 
 const router = Router();
 
@@ -31,7 +31,7 @@ router.get('/favorites', requireAuth, (req, res) => {
     ORDER BY f.created_at DESC
   `).all(req.userId);
 
-  const list = rows.map(q => withImages({ ...q, options: JSON.parse(q.options) }));
+  const list = rows.map(q => withImages({ ...q, options: safeJson(q.options) }));
   res.json({ code: 0, data: list });
 });
 
