@@ -33,7 +33,9 @@ function requireAdmin(req, res, next) {
 function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  // 本地日期格式化：toISOString 取 UTC 日期，本地凌晨会漂移一天
+  const p = x => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 // 参数取整并夹取到 [min,max]，非法回退 def
@@ -270,7 +272,7 @@ router.get('/admin/orders/export', requireAuth, requireAdmin, (req, res) => {
 
   const statusTxt = { paid: '已支付', pending: '待支付', cancelled: '已取消' };
   const methodTxt = { wechat: '微信支付', alipay: '支付宝' };
-  const esc = s => { const v = s == null ? '' : String(s); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const esc = s => { const v = s == null ? '' : String(s); const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v; return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe; };
   const header = ['订单号', '用户昵称', '手机号', '商品', '金额', '状态', '支付方式', '支付时间', '创建时间'];
   const lines = rows.map(o => [
     o.order_no, o.nickname, o.phone, o.product_name, o.amount,

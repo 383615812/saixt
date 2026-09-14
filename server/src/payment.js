@@ -33,13 +33,15 @@ export async function handleNotify(req) {
 
 // 回调成功/失败的响应格式（微信/支付宝要求特定格式）
 export function notifyOk(res) {
-  if (PAY_PROVIDER === 'wechat') return res.json({ code: 'SUCCESS', message: '成功' });
+  // 微信支付 v3 要求 HTTP 200 且响应体为字面 SUCCESS（或空串），JSON 会被判为失败并无限重试
+  if (PAY_PROVIDER === 'wechat') return res.type('text/plain').send('SUCCESS');
   if (PAY_PROVIDER === 'alipay') return res.send('success');
   return res.json({ code: 0, message: '支付成功' });
 }
 
 export function notifyFail(res) {
-  if (PAY_PROVIDER === 'wechat') return res.status(500).json({ code: 'FAIL', message: '处理失败' });
+  // 微信失败应答同样要求字面 FAIL（非 JSON），并返回 4xx/5xx 触发微信重试
+  if (PAY_PROVIDER === 'wechat') return res.status(500).type('text/plain').send('FAIL');
   if (PAY_PROVIDER === 'alipay') return res.send('failure');
   return res.status(400).json({ code: 400, message: '回调处理失败' });
 }

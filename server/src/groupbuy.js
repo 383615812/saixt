@@ -29,7 +29,7 @@ export function genPayNo() {
   const ts = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
   let no;
   do {
-    no = `GB${ts}${String(crypto.randomInt(10000)).padStart(4, '0')}`;
+    no = `GB${ts}${String(crypto.randomInt(100000000)).padStart(8, '0')}`;
   } while (db.prepare('SELECT id FROM group_buys WHERE pay_no = ?').get(no));
   return no;
 }
@@ -71,14 +71,18 @@ export function listPartners({ type, status, keyword } = {}) {
 }
 
 // ---------- 团购方案（含统计） ----------
+// 状态派生：未兑换但已超过过期时间的码按已过期计（状态字段仅在兑换尝试时惰性更新，统计时需按 expire_at 折算）
+const EXPIRED_SQL = "status = 'expired' OR (status = 'unused' AND expire_at IS NOT NULL AND expire_at <= datetime('now','localtime'))";
+const UNUSED_SQL = "status = 'unused' AND (expire_at IS NULL OR expire_at > datetime('now','localtime'))";
+
 function attachStats(gb) {
   if (!gb) return gb;
   const r = db.prepare(
     `SELECT
        COUNT(*) AS total,
-       SUM(CASE WHEN status = 'unused' THEN 1 ELSE 0 END) AS unused,
+       SUM(CASE WHEN ${UNUSED_SQL} THEN 1 ELSE 0 END) AS unused,
        SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) AS redeemed,
-       SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS expired
+       SUM(CASE WHEN ${EXPIRED_SQL} THEN 1 ELSE 0 END) AS expired
      FROM group_buy_codes WHERE group_buy_id = ?`
   ).get(gb.id);
   gb.codes_total = r.total || 0;
@@ -249,9 +253,9 @@ export function groupBuyBatchStats(gbId) {
     `SELECT
        COALESCE(batch_label, '（未分组）') AS batch_label,
        COUNT(*) AS total,
-       SUM(CASE WHEN status = 'unused' THEN 1 ELSE 0 END) AS unused,
+       SUM(CASE WHEN ${UNUSED_SQL} THEN 1 ELSE 0 END) AS unused,
        SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) AS redeemed,
-       SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) AS expired
+       SUM(CASE WHEN ${EXPIRED_SQL} THEN 1 ELSE 0 END) AS expired
      FROM group_buy_codes WHERE group_buy_id = ? GROUP BY batch_label ORDER BY batch_label`
   ).all(gbId);
   return rows.map(r => ({

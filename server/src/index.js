@@ -34,7 +34,13 @@ import searchRoutes from './routes/search.js';
 import { startScheduler, stopScheduler } from './scheduler.js';
 import { PAY_PROVIDER, providerReady } from './payment.js';
 
-// 生产环境禁止 demo 支付模式：demo 下任意登录用户可自开通 VIP，属高危漏洞
+// demo 支付仅允许显式开启（PAY_DEMO_ALLOWED=1）：不依赖 NODE_ENV 约定，
+// 防止生产漏配 NODE_ENV 时 demo 回调被任意登录用户免支付自开会员（高危）
+if (PAY_PROVIDER === 'demo' && process.env.PAY_DEMO_ALLOWED !== '1') {
+  console.error('[saixt-server] 严重错误: demo 支付模式必须显式开启（设置 PAY_DEMO_ALLOWED=1）。生产环境请设置 PAY_PROVIDER=wechat 或 alipay 并配置对应参数。');
+  process.exit(1);
+}
+// 双保险：生产环境一律禁止 demo 支付（即使显式开启）
 if (PAY_PROVIDER === 'demo' && process.env.NODE_ENV === 'production') {
   console.error('[saixt-server] 严重错误: 生产环境禁止使用 demo 支付模式（任意登录用户可免费开通 VIP）。请设置 PAY_PROVIDER=wechat 或 alipay 并配置对应参数。');
   process.exit(1);

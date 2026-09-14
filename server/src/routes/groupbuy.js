@@ -8,8 +8,16 @@ import {
   listGroupBuyCodes, listGroupBuyBatchLabels, redeemCode, groupBuyStats
 } from '../groupbuy.js';
 import { createPayment, PAY_PROVIDER } from '../payment.js';
+import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
+
+// 兑换码接口限流：防脚本批量兑换/撞库（兑换即开通会员，必须限制频率）
+const redeemLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: '兑换过于频繁，请稍后再试'
+});
 
 // 管理员鉴权：以 admins 表为准（role = main / admin）
 function requireAdmin(req, res, next) {
@@ -135,7 +143,7 @@ router.get('/groupbuy/groupbuys/:id/codes/export', requireAuth, requireAdmin, (r
   const idName = new Map(db.prepare('SELECT id, nickname FROM users').all().map(u => [u.id, u.nickname]));
   const idPhone = new Map(db.prepare('SELECT id, phone FROM users').all().map(u => [u.id, u.phone]));
   const statusTxt = { unused: '未兑换', redeemed: '已兑换', expired: '已过期' };
-  const esc = s => { const v = s == null ? '' : String(s); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const esc = s => { const v = s == null ? '' : String(s); const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v; return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe; };
   const header = ['兑换码', '批次', '商品编码', '时长(月)', '状态', '兑换用户', '手机号', '兑换时间', '过期时间'];
   const lines = r.list.map(c => [
     c.code, c.batch_label || '', c.product_code, c.months, statusTxt[c.status] || c.status,
@@ -208,7 +216,7 @@ router.post('/groupbuy/groupbuys/:id/cancel', requireAuth, requireAdmin, (req, r
 });
 
 // ---------- 学生端：团购码兑换 ----------
-router.post('/groupbuy/redeem', requireAuth, async (req, res) => {
+router.post('/groupbuy/redeem', requireAuth, redeemLimiter, async (req, res) => {
   const { code } = req.body || {};
   const r = redeemCode(code, req.userId);
   if (!r.ok) return res.status(r.code || 400).json({ code: r.code || 400, message: r.message, data: r.data });

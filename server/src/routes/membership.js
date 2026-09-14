@@ -44,9 +44,9 @@ router.post('/membership/order', requireAuth, async (req, res) => {
   tx(() => {
     db.prepare(`UPDATE orders SET status = 'cancelled' WHERE user_id = ? AND status = 'pending'`)
       .run(req.userId);
-    db.prepare(`INSERT INTO orders (order_no, user_id, product_code, product_name, amount, status)
-                VALUES (?,?,?,?,?,'pending')`)
-      .run(orderNo, req.userId, product_code, product.name, product.price);
+    db.prepare(`INSERT INTO orders (order_no, user_id, product_code, product_name, amount, kind, months, status)
+                VALUES (?,?,?,?,?,?,?,'pending')`)
+      .run(orderNo, req.userId, product_code, product.name, product.price, product.kind || 'vip', product.months || 1);
   });
 
   const order = db.prepare('SELECT * FROM orders WHERE order_no = ?').get(orderNo);

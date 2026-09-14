@@ -14,7 +14,15 @@ const authLimiter = rateLimit({
   keyFn: req => `ip:${req.ip}`
 });
 
-router.post('/register', authLimiter, (req, res) => {
+// 登录/注册按手机号限流（跨 IP 聚合）：防轮换代理 IP 对同一手机号分布式爆破
+const phoneLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: '该手机号尝试过于频繁，请 10 分钟后再试',
+  keyFn: req => `phone:${String((req.body || {}).phone || '').trim()}`
+});
+
+router.post('/register', authLimiter, phoneLimiter, (req, res) => {
   const { phone, password, nickname, invite_code } = req.body || {};
   if (!phone || !/^1\d{10}$/.test(phone)) return res.status(400).json({ code: 400, message: '请输入正确的手机号' });
   if (!password || password.length < 6) return res.status(400).json({ code: 400, message: '密码至少6位' });
@@ -39,7 +47,7 @@ router.post('/register', authLimiter, (req, res) => {
   res.json({ code: 0, data: { token: signToken(uid), user: { id: uid, phone, nickname: nickname || `考生${phone.slice(-4)}` } } });
 });
 
-router.post('/login', authLimiter, (req, res) => {
+router.post('/login', authLimiter, phoneLimiter, (req, res) => {
   const { phone, password } = req.body || {};
   if (!phone || !password) return res.status(400).json({ code: 400, message: '请输入手机号和密码' });
   const user = db.prepare('SELECT * FROM users WHERE phone = ?').get(phone);

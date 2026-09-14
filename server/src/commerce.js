@@ -68,14 +68,30 @@ export function isVip(uid) {
   return !!(m && m.status === 'active');
 }
 
+// 本地时间格式化（全库时间均用 datetime('now','localtime')，会员到期时间必须同为本地时区，否则 UTC+8 下提前 8 小时失效）
+function localDateTime(d) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// 按自然月顺延并做月末钳制：1/31 + 1 月 → 2/28（setMonth 直接加会溢出回滚到 3/3，多给 1~3 天）
+function addMonthsClamped(base, months) {
+  const res = new Date(base);
+  const day = res.getDate();
+  res.setDate(1);
+  res.setMonth(res.getMonth() + months);
+  const lastDay = new Date(res.getFullYear(), res.getMonth() + 1, 0).getDate();
+  res.setDate(Math.min(day, lastDay));
+  return res;
+}
+
 // 开通/续费会员：expire_at 若晚于当前到期则顺延
 export function grantMembership(uid, { level = 'vip', months = 1, source = 'order' } = {}) {
   const now = new Date();
   const cur = getMembership(uid);
   let base = cur && cur.status === 'active' && cur.expire_at ? new Date(cur.expire_at) : now;
   if (base < now) base = now;
-  base.setMonth(base.getMonth() + months);
-  const expireAt = base.toISOString().slice(0, 19).replace('T', ' ');
+  const expireAt = localDateTime(addMonthsClamped(base, months));
   db.prepare(`INSERT INTO memberships (user_id, level, status, start_at, expire_at, source)
               VALUES (?,?,?,datetime('now','localtime'),?,?)
               ON CONFLICT(user_id) DO UPDATE SET
@@ -155,7 +171,8 @@ export function genOrderNo() {
   const d = new Date();
   const p = n => String(n).padStart(2, '0');
   const ts = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-  return `CZ${ts}${String(crypto.randomInt(10000)).padStart(4, '0')}`;
+  // 随机位 8 位：4 位在同秒 1 万个订单内即碰撞，8 位将碰撞率降到可忽略
+  return `CZ${ts}${String(crypto.randomInt(100000000)).padStart(8, '0')}`;
 }
 
 // 订单支付成功回调（真实支付渠道回调时调用）
@@ -169,12 +186,13 @@ export function markOrderPaid(orderNo, payMethod = 'wechat') {
     if (!info.changes) return;
     order = db.prepare('SELECT * FROM orders WHERE order_no = ?').get(orderNo);
     // 按商品类型分发权益：仅 vip 商品开通会员，其他类型商品不自动开通（避免误发会员）
-    const product = getProduct(order.product_code);
-    if (product?.kind === 'vip') {
-      const months = product.months || 1;
+    // 权益一律按下单快照（kind/months）发放，防止回调前后台修改商品配置导致错发/漏发
+    const kind = order.kind || getProduct(order.product_code)?.kind;
+    if (kind === 'vip') {
+      const months = order.months ?? getProduct(order.product_code)?.months ?? 1;
       grantMembership(order.user_id, { months, source: 'order' });
     } else {
-      console.warn(`[pay] 非会员商品已支付但未开通会员: order=${orderNo} kind=${product?.kind}`);
+      console.warn(`[pay] 非会员商品已支付但未开通会员: order=${orderNo} kind=${kind}`);
     }
   });
   return order;

@@ -401,6 +401,9 @@ try { db.exec("ALTER TABLE plans ADD COLUMN oral TEXT DEFAULT '否'"); } catch (
 try { db.exec('ALTER TABLE users ADD COLUMN reg_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE invites ADD COLUMN redeem_ip TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE memberships ADD COLUMN source_ref TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+// 订单权益快照：下单时固化商品 kind/months，支付回调按快照发放，防止后台改价改权益影响已支付订单
+try { db.exec('ALTER TABLE orders ADD COLUMN kind TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+try { db.exec('ALTER TABLE orders ADD COLUMN months INTEGER'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE group_buy_codes ADD COLUMN batch_label TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('CREATE INDEX IF NOT EXISTS idx_group_buy_codes_batch ON group_buy_codes(group_buy_id, batch_label)'); } catch (e) { /* 索引已存在则忽略 */ }
 try { db.exec('ALTER TABLE group_buys ADD COLUMN pay_no TEXT'); } catch (e) { /* 列已存在则忽略 */ }
@@ -413,6 +416,8 @@ try { db.exec('ALTER TABLE user_profiles ADD COLUMN remind_exam INTEGER DEFAULT 
 try { db.exec('ALTER TABLE mock_exams ADD COLUMN subjective_ids TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE mock_exams ADD COLUMN self_grades TEXT'); } catch (e) { /* 列已存在则忽略 */ }
 try { db.exec('ALTER TABLE mock_exams ADD COLUMN graded_at TEXT'); } catch (e) { /* 列已存在则忽略 */ }
+// 交卷时回写对应的 practice_sessions.id，自评据此精确定位会话，避免误更新其他模考
+try { db.exec('ALTER TABLE mock_exams ADD COLUMN session_id INTEGER'); } catch (e) { /* 列已存在则忽略 */ }
 
 // ---- 种子数据 ----
 function seedIfEmpty(table, file, mapper) {

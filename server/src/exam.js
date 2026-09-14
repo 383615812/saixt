@@ -215,7 +215,12 @@ export function submitExam(userId, examId, answers) {
   const objIds = ids.filter(id => !subjSet.has(Number(id)));
   let correct = 0, answered = 0;
   const detail = [];
-  const sessionId = tx(() => {
+  let sessionId;
+  try {
+    sessionId = tx(() => {
+    // 幂等守卫：事务内条件更新状态，并发重复交卷时第二个请求影响 0 行 → 抛错回滚
+    const flip = db.prepare("UPDATE mock_exams SET status = 'submitted' WHERE id = ? AND status = 'ongoing'").run(ex.id);
+    if (!flip.changes) throw Object.assign(new Error('该试卷已交卷'), { code: 409 });
     const info = db.prepare('INSERT INTO practice_sessions (user_id, subject, mode, total, correct, score) VALUES (?,?,?,?,?,?)')
       .run(userId, ex.subject, 'exam', ids.length, 0, 0);
     const sid = Number(info.lastInsertRowid);
@@ -235,12 +240,15 @@ export function submitExam(userId, examId, answers) {
     const score = objIds.length ? Math.round((correct / objIds.length) * 100 * 10) / 10 : 0;
     db.prepare('UPDATE practice_sessions SET total = ?, correct = ?, score = ? WHERE id = ?').run(objIds.length, correct, score, sid);
     db.prepare(
-      `UPDATE mock_exams SET status = 'submitted', correct = ?, score = ?, answers = ?, used_sec = ?,
+      `UPDATE mock_exams SET correct = ?, score = ?, answers = ?, used_sec = ?, session_id = ?,
                              submitted_at = datetime('now','localtime')
        WHERE id = ?`
-    ).run(correct, score, JSON.stringify(map), used, ex.id);
+    ).run(correct, score, JSON.stringify(map), used, sid, ex.id);
     return sid;
-  });
+    });
+  } catch (e) {
+    return { ok: false, code: e.code || 500, message: e.message || '交卷失败，请稍后重试' };
+  }
 
   const score = objIds.length ? Math.round((correct / objIds.length) * 100 * 10) / 10 : 0;
   return {
@@ -293,24 +301,32 @@ export function gradeSubjective(userId, examId, grades) {
   }
   const selfScore = subjIds.reduce((a, qid) => a + (SELF_GRADES[sMap[String(qid)]] || 0), 0);
 
-  const denom = objIds.length + subjIds.length;
+  // 主观题作加分项：最终分 = (客观题答对数 + 自评折算分) / 客观题数 * 100，满分可超 100
+  const denom = objIds.length;
   const score = denom ? Math.round(((objCorrect + selfScore) / denom) * 100 * 10) / 10 : 0;
 
   tx(() => {
-    // 修正主观题的 practice_records：会/部分会记为掌握，不会记为未掌握
-    const upd = db.prepare('UPDATE practice_records SET is_correct = ? WHERE user_id = ? AND question_id = ? AND id = (SELECT MAX(id) FROM practice_records WHERE user_id = ? AND question_id = ?)');
-    const rec = db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct) VALUES (?,?,?,?)');
+    const sid = ex.session_id || null;
+    // 修正本卷主观题的 practice_records（优先按交卷会话精确匹配，避免误改其他练习记录）
+    const upd = sid
+      ? db.prepare('UPDATE practice_records SET is_correct = ? WHERE session_id = ? AND question_id = ?')
+      : db.prepare('UPDATE practice_records SET is_correct = ? WHERE user_id = ? AND question_id = ? AND id = (SELECT MAX(id) FROM practice_records WHERE user_id = ? AND question_id = ?)');
+    const rec = db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct, session_id) VALUES (?,?,?,?,?)');
     for (const qid of subjIds) {
       const ok = SELF_GRADES[sMap[String(qid)]] >= 0.5;
-      const changed = upd.run(ok ? 1 : 0, userId, qid, userId, qid);
-      if (!changed.changes) rec.run(userId, qid, String(answers[String(qid)] ?? ''), ok ? 1 : 0);
+      const changed = sid
+        ? upd.run(ok ? 1 : 0, sid, qid)
+        : upd.run(ok ? 1 : 0, userId, qid, userId, qid);
+      if (!changed.changes) rec.run(userId, qid, String(answers[String(qid)] ?? ''), ok ? 1 : 0, sid);
       // 自评为「不会」的主观题纳入错题本（无复习计划，避免主观题进遗忘曲线）
     }
-    // 会话精确定位：优先用该试卷交卷时写入的 session_id，避免误更新同一用户的其他模考会话
-    const ps = ex.submitted_at
-      ? db.prepare("SELECT id FROM practice_sessions WHERE user_id = ? AND mode = 'exam' ORDER BY id DESC LIMIT 1").get(userId)
-      : null;
-    if (ps) db.prepare('UPDATE practice_sessions SET correct = ?, score = ? WHERE id = ?').run(objCorrect + selfScore, score, ps.id);
+    // 会话精确定位：用交卷时写入的 session_id，避免误更新同一用户的其他模考会话
+    const ps = sid
+      ? db.prepare('SELECT id FROM practice_sessions WHERE id = ? AND user_id = ?').get(sid, userId)
+      : (ex.submitted_at
+        ? db.prepare("SELECT id FROM practice_sessions WHERE user_id = ? AND mode = 'exam' ORDER BY id DESC LIMIT 1").get(userId)
+        : null);
+    if (ps) db.prepare('UPDATE practice_sessions SET correct = ?, score = ? WHERE id = ?').run(objCorrect, score, ps.id);
     // 客观题答对数保持 correct 不变；合并总分写回 score，供历史记录/成绩页展示
     db.prepare("UPDATE mock_exams SET score = ?, self_grades = ?, graded_at = datetime('now','localtime') WHERE id = ?")
       .run(score, JSON.stringify(sMap), ex.id);

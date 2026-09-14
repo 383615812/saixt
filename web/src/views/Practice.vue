@@ -601,7 +601,7 @@ async function submitOne() {
   if (submitting.value) return
   submitting.value = true
   try {
-    const data = await api.post('/practice/submit', { question_id: currentQuestion.value.id, answer: userAnswer() })
+    const data = await api.post('/practice/submit', { question_id: currentQuestion.value.id, answer: userAnswer(), record: mode.value !== 'exam' })
     isCorrect.value = data.correct
     currentQuestion.value.answer = data.answer
     currentQuestion.value.analysis = data.analysis

@@ -36,9 +36,9 @@ function scheduleReview(uid, qid) {
   }
 }
 
-// 提交单题作答
+// 提交单题作答（record=false 时仅判分返回、不落库：考试模式每题作答在交卷时统一经 /session 落库）
 router.post('/submit', requireAuth, submitLimiter, (req, res) => {
-  const { question_id, answer, selfCorrect } = req.body || {};
+  const { question_id, answer, selfCorrect, record = true } = req.body || {};
   const qid = Number(question_id);
   if (!Number.isInteger(qid) || qid <= 0) return res.status(400).json({ code: 400, message: '无效的题目 ID' });
   const q = db.prepare('SELECT * FROM questions WHERE id = ?').get(qid);
@@ -51,14 +51,21 @@ router.post('/submit', requireAuth, submitLimiter, (req, res) => {
     }
   }
   const correct = gradeAnswer(q, ans, selfCorrect);
-  tx(() => {
-    db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct) VALUES (?,?,?,?)')
-      .run(req.userId, q.id, ans, correct ? 1 : 0);
-    if (!correct) scheduleReview(req.userId, q.id);
-    // 若该题是用户抽中的盲盒题，标记已作答，防止再经 /blind-box/submit 重复计分
+  if (record) {
+    tx(() => {
+      db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct) VALUES (?,?,?,?)')
+        .run(req.userId, q.id, ans, correct ? 1 : 0);
+      // 主观题不进入遗忘曲线复习计划（无客观标准答案，逐遍自评），避免污染复习队列
+      if (!correct && q.type !== 'subjective') scheduleReview(req.userId, q.id);
+      // 若该题是用户抽中的盲盒题，标记已作答，防止再经 /blind-box/submit 重复计分
+      db.prepare('UPDATE blind_box_draws SET used = 1 WHERE user_id = ? AND question_id = ? AND used = 0')
+        .run(req.userId, q.id);
+    });
+  } else {
+    // 考试模式：仅标记盲盒题已作答，练习明细与复习计划统一由 /session 交卷处理
     db.prepare('UPDATE blind_box_draws SET used = 1 WHERE user_id = ? AND question_id = ? AND used = 0')
       .run(req.userId, q.id);
-  });
+  }
   res.json({
     code: 0,
     data: {

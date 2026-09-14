@@ -5,13 +5,20 @@ export function isConfigured() {
   return !!(config.alipay.appId && config.alipay.privateKey && config.alipay.publicKey);
 }
 
-// 待签名内容：除 sign 外所有非空参数按 key 升序拼接 k=v&...
+// 待签名内容：除 sign、sign_type 外所有非空参数按 key 升序拼接 k=v&（支付宝规范要求两者均不参与签名/验签）
 function buildSignContent(params) {
   return Object.keys(params)
-    .filter(k => k !== 'sign' && params[k] !== '' && params[k] !== null && params[k] !== undefined)
+    .filter(k => k !== 'sign' && k !== 'sign_type' && params[k] !== '' && params[k] !== null && params[k] !== undefined)
     .sort()
     .map(k => `${k}=${params[k]}`)
     .join('&');
+}
+
+// 支付宝要求 yyyy-MM-dd HH:mm:ss 补零格式（toLocaleString 不补零且分隔符不固定，不可用）
+function alipayTimestamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 function sign(params) {
@@ -40,7 +47,7 @@ function buildParams(order, method) {
     format: 'JSON',
     charset: 'utf-8',
     sign_type: 'RSA2',
-    timestamp: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'),
+    timestamp: alipayTimestamp(),
     version: '1.0',
     notify_url: `${config.baseUrl}/api/membership/pay/notify/alipay`,
     return_url: `${config.baseUrl}/vip?order=${order.order_no}`,
