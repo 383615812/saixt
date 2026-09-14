@@ -28,6 +28,9 @@ const REVIEW_INTERVALS = [1, 2, 4, 7, 15, 30];
 
 // 答错时创建/重置遗忘曲线复习计划
 function scheduleReview(uid, qid) {
+  // 根因防护：主观题没有客观标准答案，永不进入遗忘曲线复习计划
+  const t = db.prepare('SELECT type FROM questions WHERE id = ?').get(qid);
+  if (!t || t.type === 'subjective') return;
   const existing = db.prepare('SELECT id FROM review_schedule WHERE user_id = ? AND question_id = ?').get(uid, qid);
   if (existing) {
     db.prepare('UPDATE review_schedule SET stage = 0, next_due = ? WHERE id = ?').run(addDays(1), existing.id);
@@ -538,12 +541,16 @@ router.get('/review/summary', requireAuth, (req, res) => {
     SELECT COUNT(*) AS c FROM review_schedule rs
     WHERE rs.user_id = ? AND rs.next_due <= ? AND NOT EXISTS (
       SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = rs.user_id AND wm.question_id = rs.question_id
+    ) AND NOT EXISTS (
+      SELECT 1 FROM questions qx WHERE qx.id = rs.question_id AND qx.type = 'subjective'
     )
   `).get(uid, today).c || 0;
   const dueWeek = db.prepare(`
     SELECT COUNT(*) AS c FROM review_schedule rs
     WHERE rs.user_id = ? AND rs.next_due <= ? AND NOT EXISTS (
       SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = rs.user_id AND wm.question_id = rs.question_id
+    ) AND NOT EXISTS (
+      SELECT 1 FROM questions qx WHERE qx.id = rs.question_id AND qx.type = 'subjective'
     )
   `).get(uid, addDays(7)).c || 0;
   res.json({ code: 0, data: { dueToday, dueWeek } });
@@ -557,7 +564,7 @@ router.get('/review', requireAuth, (req, res) => {
   const due = db.prepare(`
     SELECT q.id, q.subject, q.chapter, q.stem, q.options, q.answer, q.analysis, q.source, q.image, q.images,
            rs.stage, rs.next_due, rs.created_at AS first_wrong
-    FROM review_schedule rs JOIN questions q ON q.id = rs.question_id
+    FROM review_schedule rs JOIN questions q ON q.id = rs.question_id AND q.type != 'subjective'
     WHERE rs.user_id = ? AND rs.next_due <= ? AND NOT EXISTS (
       SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = rs.user_id AND wm.question_id = q.id
     )
@@ -573,6 +580,8 @@ router.get('/review', requireAuth, (req, res) => {
     SELECT rs.next_due AS d, COUNT(*) AS c FROM review_schedule rs
     WHERE rs.user_id = ? AND rs.next_due BETWEEN ? AND ? AND NOT EXISTS (
       SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = rs.user_id AND wm.question_id = rs.question_id
+    ) AND NOT EXISTS (
+      SELECT 1 FROM questions qx WHERE qx.id = rs.question_id AND qx.type = 'subjective'
     )
     GROUP BY rs.next_due
   `).all(uid, addDays(-7), addDays(6));

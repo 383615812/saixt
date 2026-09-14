@@ -26,6 +26,9 @@ function safeJson(s) {
 }
 
 function scheduleReview(uid, qid) {
+  // 根因防护：主观题没有客观标准答案，永不进入遗忘曲线复习计划
+  const t = db.prepare('SELECT type FROM questions WHERE id = ?').get(qid);
+  if (!t || t.type === 'subjective') return;
   const existing = db.prepare('SELECT id FROM review_schedule WHERE user_id = ? AND question_id = ?').get(uid, qid);
   if (existing) db.prepare('UPDATE review_schedule SET stage = 0, next_due = ? WHERE id = ?').run(addDays(1), existing.id);
   else db.prepare('INSERT INTO review_schedule (user_id, question_id, stage, next_due) VALUES (?,?,0,?)').run(uid, qid, addDays(1));
