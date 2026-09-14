@@ -203,6 +203,14 @@
 
         <!-- 主观题 -->
         <div v-else-if="qtype === 'subjective'" class="subjective-box">
+          <!-- 部分主观题为「多小问」结构，末尾小问是选择式，其选项来自 options 字段，
+               展示出来作为作答参考，避免真实题干内容被隐藏 -->
+          <div v-if="currentQuestion.options && currentQuestion.options.length" class="subj-options">
+            <p class="subj-options-hint">本题含选择式小问，备选项如下（作答时请一并写出所选字母）：</p>
+            <ul>
+              <li v-for="(o, i) in currentQuestion.options" :key="i">{{ o }}</li>
+            </ul>
+          </div>
           <textarea
             v-model="subjectiveAnswer"
             :disabled="answered"
@@ -987,6 +995,10 @@ onBeforeUnmount(() => clearInterval(examTimer))
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; }
 
 .subjective-box { display: flex; flex-direction: column; gap: 12px; }
+.subj-options { background: var(--bg-soft); border-radius: var(--radius-sm); padding: 12px 14px; }
+.subj-options-hint { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
+.subj-options ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.subj-options li { font-size: 0.88rem; line-height: 1.6; color: var(--ink-soft); }
 .subjective-box textarea {
   width: 100%; padding: 14px; border: 1px solid var(--rule); border-radius: var(--radius-sm);
   font-size: 0.95rem; line-height: 1.7; resize: vertical; outline: none;

@@ -162,6 +162,10 @@
         </div>
 
         <div v-if="qtype === 'subjective'" class="subjective-box">
+          <div v-if="currentQuestion.options && currentQuestion.options.length" class="subj-options">
+            <p class="subj-options-hint">本题含选择式小问，备选项：</p>
+            <ul><li v-for="(o, i) in currentQuestion.options" :key="i">{{ o }}</li></ul>
+          </div>
           <div class="detail-ans"><span class="tag tag-green">参考答案：{{ currentQuestion.answer }}</span></div>
           <div class="analysis"><strong>解析：</strong>{{ currentQuestion.analysis }}</div>
           <template v-if="!answered">
@@ -585,6 +589,10 @@ onMounted(load)
 .opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: 999px; flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-top: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
+.subj-options { background: var(--bg-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+.subj-options-hint { font-size: 0.76rem; color: var(--muted); margin-bottom: 6px; }
+.subj-options ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.subj-options li { font-size: 0.86rem; line-height: 1.6; color: var(--ink-soft); }
 .subjective-box .detail-ans { margin-bottom: 0; }
 .subjective-choice { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .subjective-choice > strong { font-size: 0.9rem; font-weight: 700; color: var(--ink); }

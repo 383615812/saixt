@@ -97,6 +97,8 @@ router.post('/session', requireAuth, submitLimiter, (req, res) => {
       seen.add(qid);
       const q = db.prepare('SELECT id, answer, type FROM questions WHERE id = ?').get(qid);
       if (!q) continue;
+      // 主观题无自动判分能力：整卷提交路径直接跳过，避免恒判为错并污染正确率
+      if (q.type === 'subjective') continue;
       const userAns = String(a.answer ?? '').slice(0, 50);
       const ok = gradeAnswer(q, userAns);
       if (ok) correct++;

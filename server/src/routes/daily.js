@@ -5,6 +5,8 @@ import { withImages } from '../utils.js';
 
 const router = Router();
 const DAILY_COUNT = 5;
+// 每日一练只抽客观题：主观题无自动判分能力，混入会污染正确率并占用遗忘曲线
+const OBJECTIVE_TYPES = "('single','multiple','judge')";
 
 // 每日推荐：登录用户优先薄弱章节，未登录随机
 router.get('/', (req, res) => {
@@ -17,7 +19,7 @@ router.get('/', (req, res) => {
     const rows = db.prepare(`
       SELECT q.subject, q.chapter, COUNT(r.id) AS total, SUM(r.is_correct) AS correct
       FROM practice_records r JOIN questions q ON q.id = r.question_id
-      WHERE r.user_id = ?
+      WHERE r.user_id = ? AND q.type IN ${OBJECTIVE_TYPES}
       GROUP BY q.subject, q.chapter
     `).all(uid);
     const weak = rows.filter(m => m.total >= 2 && (m.correct / m.total) < 0.6);
@@ -26,7 +28,8 @@ router.get('/', (req, res) => {
       for (const w of weak) {
         const picked = db.prepare(
           `SELECT id, subject, chapter, type, difficulty, stem, options, source, image, images
-           FROM questions WHERE subject = ? AND chapter = ? ORDER BY RANDOM() LIMIT ?`
+           FROM questions WHERE subject = ? AND chapter = ? AND type IN ${OBJECTIVE_TYPES}
+           ORDER BY RANDOM() LIMIT ?`
         ).all(w.subject, w.chapter, per);
         qs.push(...picked);
       }
@@ -42,12 +45,12 @@ router.get('/', (req, res) => {
       const ph = ids.map(() => '?').join(',');
       extra = db.prepare(
         `SELECT id, subject, chapter, type, difficulty, stem, options, source, image, images
-         FROM questions WHERE id NOT IN (${ph}) ORDER BY RANDOM() LIMIT ?`
+         FROM questions WHERE id NOT IN (${ph}) AND type IN ${OBJECTIVE_TYPES} ORDER BY RANDOM() LIMIT ?`
       ).all(...ids, need);
     } else {
       extra = db.prepare(
         `SELECT id, subject, chapter, type, difficulty, stem, options, source, image, images
-         FROM questions ORDER BY RANDOM() LIMIT ?`
+         FROM questions WHERE type IN ${OBJECTIVE_TYPES} ORDER BY RANDOM() LIMIT ?`
       ).all(need);
     }
     qs.push(...extra);

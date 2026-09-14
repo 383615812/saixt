@@ -90,6 +90,10 @@
         <!-- 重练模式 -->
         <div v-if="practiceId === q.id" class="re-practice">
           <div v-if="qtypeOf(q) === 'subjective'" class="subjective-box">
+            <div v-if="q.options && q.options.length" class="subj-options">
+              <p class="subj-options-hint">本题含选择式小问，备选项：</p>
+              <ul><li v-for="(o, i) in q.options" :key="i">{{ o }}</li></ul>
+            </div>
             <div class="detail-ans"><span class="tag tag-green">参考答案：{{ q.answer }}</span></div>
             <div class="analysis"><strong>解析：</strong>{{ q.analysis }}</div>
             <div class="subjective-self">
@@ -201,6 +205,10 @@
         </div>
 
         <div v-if="isSubjective(cur)" class="subjective-box">
+          <div v-if="cur.options && cur.options.length" class="subj-options">
+            <p class="subj-options-hint">本题含选择式小问，备选项：</p>
+            <ul><li v-for="(o, i) in cur.options" :key="i">{{ o }}</li></ul>
+          </div>
           <div class="detail-ans"><span class="tag tag-green">参考答案：{{ cur.answer }}</span></div>
           <div class="analysis"><strong>解析：</strong>{{ cur.analysis }}</div>
           <div class="re-actions">
@@ -772,6 +780,10 @@ onMounted(load)
 .opt-miss { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 8px; border-radius: var(--radius-full); flex: 0 0 auto; }
 .multi-hint { font-size: 0.82rem; color: var(--amber); font-weight: 600; margin-bottom: 8px; }
 .subjective-box { display: flex; flex-direction: column; gap: 10px; }
+.subj-options { background: var(--bg-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+.subj-options-hint { font-size: 0.76rem; color: var(--muted); margin-bottom: 6px; }
+.subj-options ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.subj-options li { font-size: 0.86rem; line-height: 1.6; color: var(--ink-soft); }
 .subjective-box .btn { align-self: flex-start; }
 .subjective-self { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
 .ss-title { font-size: 0.9rem; font-weight: 700; color: var(--ink); }
