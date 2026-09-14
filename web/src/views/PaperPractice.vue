@@ -157,7 +157,7 @@
           <span class="tag tag-blue">{{ curQ.subject }}</span>
           <span class="tag tag-purple">{{ curQ.chapter }}</span>
           <span class="tag" :class="typeTagClass(curQ.type)">{{ typeLabel(curQ.type) }}</span>
-          <span v-if="curQ.type === 'multi'" class="multi-hint">多选题 · 全部选对才算对</span>
+          <span v-if="curQ.type === 'multiple'" class="multi-hint">多选题 · 全部选对才算对</span>
           <span v-if="curQ.type === 'judge'" class="judge-hint">判断题 · 判断陈述真伪</span>
         </div>
         <h3 class="q-stem">{{ curQ.stem }}</h3>
@@ -176,7 +176,7 @@
           >
             <span class="opt-letter">{{ opt[0] }}</span>
             <span class="opt-text">{{ optText(opt) }}</span>
-            <span v-if="answered && curQ.type === 'multi' && isCorrectOpt(opt[0]) && !isSelected(opt[0])" class="opt-miss">漏选</span>
+            <span v-if="answered && curQ.type === 'multiple' && isCorrectOpt(opt[0]) && !isSelected(opt[0])" class="opt-miss">漏选</span>
           </button>
         </div>
 
@@ -347,7 +347,7 @@ const curSectionLabel = computed(() => {
 
 const canSubmit = computed(() => {
   const t = curQ.value.type
-  if (t === 'multi') return Array.isArray(selected.value) && selected.value.length > 0
+  if (t === 'multiple') return Array.isArray(selected.value) && selected.value.length > 0
   return !!selected.value
 })
 
@@ -361,10 +361,10 @@ const timerText = computed(() => {
 })
 
 function typeLabel(t) {
-  return ({ single: '单选题', multiple: '多选题', multi: '多选题', judge: '判断题' })[t] || '单选题'
+  return ({ single: '单选题', multiple: '多选题', judge: '判断题' })[t] || '单选题'
 }
 function typeTagClass(t) {
-  return t === 'judge' ? 'tag-amber' : t === 'multi' || t === 'multiple' ? 'tag-purple' : 'tag-blue'
+  return t === 'judge' ? 'tag-amber' : t === 'multiple' ? 'tag-purple' : 'tag-blue'
 }
 function optText(opt) {
   // 选项形如 "A. 文本"，剥离字母前缀
@@ -493,14 +493,14 @@ function backToSetup() {
 function startAnswer() {
   answering.value = true
   current.value = 0
-  selected.value = curQ.value.type === 'multi' ? [] : ''
+  selected.value = curQ.value.type === 'multiple' ? [] : ''
   answered.value = false
   startTimer()
 }
 
 function isSelected(letter) {
   const t = curQ.value.type
-  if (t === 'multi') return Array.isArray(selected.value) && selected.value.includes(letter)
+  if (t === 'multiple') return Array.isArray(selected.value) && selected.value.includes(letter)
   return selected.value === letter
 }
 function isCorrectOpt(letter) { return String(curQ.value.answer || '').includes(letter) }
@@ -509,7 +509,7 @@ function isWrongOpt(letter) { return isSelected(letter) && !isCorrectOpt(letter)
 function choose(letter) {
   if (answered.value || submitting.value) return
   const t = curQ.value.type
-  if (t === 'multi') {
+  if (t === 'multiple') {
     const arr = Array.isArray(selected.value) ? [...selected.value] : []
     const i = arr.indexOf(letter)
     if (i >= 0) arr.splice(i, 1)
@@ -524,7 +524,7 @@ async function submit() {
   if (submitting.value) return
   submitting.value = true
   const t = curQ.value.type
-  const userAns = t === 'multi'
+  const userAns = t === 'multiple'
     ? (Array.isArray(selected.value) ? selected.value.join('') : '')
     : (selected.value || '')
   try {
@@ -554,14 +554,14 @@ async function submit() {
 
 function next() {
   current.value++
-  selected.value = curQ.value.type === 'multi' ? [] : ''
+  selected.value = curQ.value.type === 'multiple' ? [] : ''
   answered.value = false
   resetTick.value++
 }
 function jumpTo(i) {
   if (i <= answeredCount.value && i <= current.value + 1) {
     current.value = i
-    selected.value = curQ.value.type === 'multi' ? [] : ''
+    selected.value = curQ.value.type === 'multiple' ? [] : ''
     answered.value = false
     resetTick.value++
   }

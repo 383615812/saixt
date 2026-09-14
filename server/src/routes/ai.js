@@ -178,12 +178,12 @@ async function generateSection({ subject, chapter, count = 3, difficulty = '中�
   }
   const n = Math.min(Math.max(Number(count) || 3, 1), 5);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
-  const qtype = ['single', 'multi', 'judge'].includes(type) ? type : 'single';
+  const qtype = ['single', 'multiple', 'judge'].includes(type) ? type : 'single';
   // 为章节注入考纲知识要点，确保专项套卷题目紧扣真实考点
   const kh = safeChapter ? knowledgeHint(subject, safeChapter, 2200) : '';
   const formatHint = {
     single: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"A","analysis":"解析"}]',
-    multi: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
+    multiple: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
     judge: '[{"stem":"陈述句","options":["A.正确","B.错误"],"answer":"A","analysis":"解析"}]'
   }[qtype];
 
@@ -197,7 +197,7 @@ ${kh ? `\n【该章节考纲知识要点】以下是从云南合格考讲义提�
 要求：
 1. 每道题包含：题干、选项、正确答案、简要解析。
 2. 题目要真实、严谨，知识点准确，不要编造不存在的概念。
-3. ${qtype === 'multi' ? '多选题正确答案必须包含 2-3 个字母且按字母顺序排列，如 ABD。' : `${qtype === 'judge' ? '判断题选项固定为「A.正确 / B.错误」，答案取 A 或 B。' : ''}`}
+3. ${qtype === 'multiple' ? '多选题正确答案必须包含 2-3 个字母且按字母顺序排列，如 ABD。' : `${qtype === 'judge' ? '判断题选项固定为「A.正确 / B.错误」，答案取 A 或 B。' : ''}`}
 4. 严格按以下 JSON 数组格式输出，不要输出其他内容：
 ${formatHint}`;
 
@@ -303,7 +303,7 @@ router.post('/paper', requireAuth, aiLimiter, async (req, res) => {
   if (!c.ok) return quotaExceeded(res, 'generate');
 
   // 各节轮换题型，让套卷更丰富：单选 / 判断 / 多选
-  const typeCycle = ['single', 'judge', 'multi'];
+  const typeCycle = ['single', 'judge', 'multiple'];
   const sections = [];
   const errors = [];
   for (let i = 0; i < weak.length; i++) {
@@ -515,7 +515,7 @@ router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
   }
   const n = Math.min(Math.max(Number(count) || 3, 1), 5);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
-  const qtype = ['single', 'multi', 'judge'].includes(type) ? type : 'single';
+  const qtype = ['single', 'multiple', 'judge'].includes(type) ? type : 'single';
 
   if (!isAiConfigured()) return notConfigured(res);
   const c = tryConsumeAi(req.userId, 'generate');
@@ -528,13 +528,13 @@ router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
 
   const typeDesc = {
     single: '单选题（4 个选项，只有一个正确答案）',
-    multi: '多选题（4 个选项，有 2-3 个正确答案，答案用字母组合表示）',
+    multiple: '多选题（4 个选项，有 2-3 个正确答案，答案用字母组合表示）',
     judge: '判断题（给出一个陈述句，判断正确或错误）'
   }[qtype];
   const kh = safeChapter ? knowledgeHint(subject, safeChapter, 2200) : '';
   const formatHint = {
     single: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"A","analysis":"解析"}]',
-    multi: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
+    multiple: '[{"stem":"题干","options":["A.xxx","B.xxx","C.xxx","D.xxx"],"answer":"ABD","analysis":"解析"}]',
     judge: '[{"stem":"陈述句","options":["A.正确","B.错误"],"answer":"A","analysis":"解析"}]'
   }[qtype];
 
@@ -548,7 +548,7 @@ ${kh ? `\n【该章节考纲知识要点】以下是从云南合格考讲义提�
 要求：
 1. 每道题包含：题干、选项、正确答案、简要解析。
 2. 题目要真实、严谨，知识点准确，不要编造不存在的概念。
-3. ${qtype === 'multi' ? '多选题正确答案必须包含 2-3 个字母且按字母顺序排列，如 ABD。' : `${qtype === 'judge' ? '判断题选项固定为「A.正确 / B.错误」，答案取 A 或 B。' : ''}`}
+3. ${qtype === 'multiple' ? '多选题正确答案必须包含 2-3 个字母且按字母顺序排列，如 ABD。' : `${qtype === 'judge' ? '判断题选项固定为「A.正确 / B.错误」，答案取 A 或 B。' : ''}`}
 4. 严格按以下 JSON 数组格式输出，不要输出其他内容：
 ${formatHint}`;
 

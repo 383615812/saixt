@@ -12,7 +12,20 @@ function escapeLike(s) {
 
 // 题库列表（不返回答案与解析）
 router.get('/', (req, res) => {
-  const { subject, chapter, keyword, type, limit = 20, offset = 0 } = req.query;
+  const { subject, chapter, keyword, type, limit = 20, offset = 0, ids } = req.query;
+
+  // 按指定 id 精确拉取（用于考试断点续考，保证题目集与原始一致、answers 不错位）
+  if (ids) {
+    const idList = String(ids).split(',').map(s => parseInt(s, 10)).filter(n => Number.isInteger(n) && n > 0).slice(0, 200);
+    if (idList.length) {
+      const rows = db.prepare(
+        `SELECT id, subject, chapter, type, difficulty, stem, options, source, image, images
+         FROM questions WHERE id IN (${idList.map(() => '?').join(',')})`
+      ).all(...idList);
+      return res.json({ code: 0, data: { total: rows.length, list: rows.map(r => withImages({ ...r, options: safeJson(r.options) })) } });
+    }
+  }
+
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   const safeOffset = Math.max(Number(offset) || 0, 0);
   const conds = [];

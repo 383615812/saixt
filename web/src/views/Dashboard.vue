@@ -480,8 +480,8 @@
                 <div class="rv-opts">
                   <div v-for="opt in r.options" :key="opt[0]" class="rv-opt"
                     :class="{
-                      right: opt[0] === r.right_answer,
-                      wrong: opt[0] === r.user_answer && opt[0] !== r.right_answer
+                      right: String(r.right_answer || '').includes(opt[0]),
+                      wrong: String(r.user_answer || '').includes(opt[0]) && !String(r.right_answer || '').includes(opt[0])
                     }">
                     <span class="rv-letter">{{ opt[0] }}</span>
                     <span class="rv-text">{{ opt.slice(2) }}</span>

@@ -413,7 +413,7 @@ function masterDate(s) {
 function qtypeOf(q) { return q.type || 'single' }
 
 function isSelected(letter) {
-  if (qtypeOf(currentPractice) === 'multiple') return Array.isArray(practiceSel.value) && practiceSel.value.includes(letter)
+  if (qtypeOf(currentPractice.value) === 'multiple') return Array.isArray(practiceSel.value) && practiceSel.value.includes(letter)
   return practiceSel.value === letter
 }
 

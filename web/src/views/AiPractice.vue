@@ -110,7 +110,7 @@
       <div class="card question-card">
         <div class="q-meta">
           <span class="q-no">第 {{ current + 1 }} / {{ questions.length }} 题</span>
-          <span v-if="type === 'multi'" class="multi-hint">多选题 · 可多选</span>
+          <span v-if="type === 'multiple'" class="multi-hint">多选题 · 可多选</span>
         </div>
         <h3 class="q-stem">{{ currentQuestion.stem }}</h3>
         <div class="options">
@@ -128,7 +128,7 @@
           >
             <span class="opt-letter">{{ opt[0] }}</span>
             <span class="opt-text">{{ opt.slice(2) }}</span>
-            <span v-if="answered && type === 'multi' && isCorrectOpt(opt[0]) && !isSelected(opt[0])" class="opt-miss">漏选</span>
+            <span v-if="answered && type === 'multiple' && isCorrectOpt(opt[0]) && !isSelected(opt[0])" class="opt-miss">漏选</span>
           </button>
         </div>
 
@@ -212,7 +212,7 @@ const subjects = ref([])
 const difficulties = ['基础', '中等', '较难']
 const types = [
   { value: 'single', label: '单选题' },
-  { value: 'multi', label: '多选题' },
+  { value: 'multiple', label: '多选题' },
   { value: 'judge', label: '判断题' }
 ]
 const subject = ref('')
@@ -282,7 +282,7 @@ async function loadChapters() {
 }
 
 const typeTip = computed(() => {
-  if (type.value === 'multi') return '多选题有 2-3 个正确答案，需全部选对才算对'
+  if (type.value === 'multiple') return '多选题有 2-3 个正确答案，需全部选对才算对'
   if (type.value === 'judge') return '判断题判断陈述正确或错误，考查概念辨析'
   return '单选题只有一个正确答案，贴近春招真题'
 })
@@ -293,12 +293,12 @@ const typeLabel = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  if (type.value === 'multi') return Array.isArray(selected.value) && selected.value.length > 0
+  if (type.value === 'multiple') return Array.isArray(selected.value) && selected.value.length > 0
   return !!selected.value
 })
 
 function isSelected(letter) {
-  if (type.value === 'multi') return Array.isArray(selected.value) && selected.value.includes(letter)
+  if (type.value === 'multiple') return Array.isArray(selected.value) && selected.value.includes(letter)
   return selected.value === letter
 }
 
@@ -312,7 +312,7 @@ function isWrongOpt(letter) {
 
 function choose(letter) {
   if (answered.value) return
-  if (type.value === 'multi') {
+  if (type.value === 'multiple') {
     const arr = Array.isArray(selected.value) ? [...selected.value] : []
     const i = arr.indexOf(letter)
     if (i >= 0) arr.splice(i, 1)
@@ -326,7 +326,7 @@ function choose(letter) {
 async function submit() {
   if (submitting.value) return
   submitting.value = true
-  const userAns = type.value === 'multi'
+  const userAns = type.value === 'multiple'
     ? (Array.isArray(selected.value) ? selected.value.join('') : '')
     : (selected.value || '')
   try {
@@ -364,7 +364,7 @@ async function submit() {
 
 function next() {
   current.value++
-  selected.value = type.value === 'multi' ? [] : ''
+  selected.value = type.value === 'multiple' ? [] : ''
   answered.value = false
 }
 
@@ -386,10 +386,10 @@ function stripHtml(s) {
   return String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
 }
 function wrongTypeLabel(t) {
-  return ({ single: '单选题', multi: '多选题', judge: '判断题' })[t] || '单选题'
+  return ({ single: '单选题', multiple: '多选题', judge: '判断题' })[t] || '单选题'
 }
 function wrongTypeClass(t) {
-  return t === 'judge' ? 'tag-amber' : t === 'multi' ? 'tag-purple' : 'tag-blue'
+  return t === 'judge' ? 'tag-amber' : t === 'multiple' ? 'tag-purple' : 'tag-blue'
 }
 
 const totalQuestions = computed(() => (subjects.value || []).reduce((s, x) => s + (x.count || 0), 0))
@@ -412,7 +412,7 @@ async function generate() {
     })
     questions.value = data.questions
     current.value = 0
-    selected.value = type.value === 'multi' ? [] : ''
+    selected.value = type.value === 'multiple' ? [] : ''
     answered.value = false
     correctCount.value = 0
     window.dispatchEvent(new Event('ai-quota-refresh'))

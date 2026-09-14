@@ -481,16 +481,19 @@ function restoreExamState() {
     const elapsed = Math.floor((Date.now() - state.startTime) / 1000)
     const remaining = state.initialTimeLeft - elapsed
     if (remaining <= 0) { clearExamState(); return false }
+    const ids = Array.isArray(state.questionIds) ? state.questionIds : []
+    if (!ids.length) { clearExamState(); return false }
+    const answers = Array.isArray(state.answers) ? state.answers : []
     examTimeLeft.value = remaining
-    examAnswers.value = state.answers || []
-    current.value = state.current || 0
+    examAnswers.value = answers
+    current.value = Math.min(Math.max(Number(state.current) || 0, 0), ids.length - 1)
     mode.value = 'exam'
     subject.value = state.subject || ''
     started.value = true
     selected.value = ''
     subjectiveAnswer.value = ''
-    answered.value = state.answers.some(a => a.question_id === state.questionIds[state.current])
-    return true
+    answered.value = answers.some(a => a.question_id === ids[current.value])
+    return { ...state, questionIds: ids, answers }
   } catch { clearExamState(); return false }
 }
 
