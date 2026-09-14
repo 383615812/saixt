@@ -134,7 +134,7 @@ router.get('/diagnose', requireAuth, (req, res) => {
     dt.setDate(dt.getDate() - i);
     const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     wtIndex.set(key, wtSeries.length);
-    wtSeries.push({ date: key, added: 0, mastered: 0, pending: 0 });
+    wtSeries.push({ date: key, added: 0, mastered: 0, pending: 0, masteredTotal: 0, total: 0 });
   }
   const wtStart = wtSeries[0].date;
   const fwSet = new Set(fwRows.map(r => r.question_id));
@@ -158,6 +158,9 @@ router.get('/diagnose', requireAuth, (req, res) => {
     cumMst += mstByDay[i];
     wtSeries[i].added = addByDay[i];
     wtSeries[i].mastered = mstByDay[i];
+    // cumMst 只统计「曾答错过的题目」的移出，故 cumMst ⊆ cumFW，总错题量恒为 cumFW
+    wtSeries[i].masteredTotal = cumMst;
+    wtSeries[i].total = cumFW;
     wtSeries[i].pending = Math.max(0, cumFW - cumMst);
   }
   const wtAdded = addByDay.reduce((a, b) => a + b, 0);

@@ -97,12 +97,17 @@
               v-for="p in d.wrongTrend.series"
               :key="p.date"
               class="wt-col"
-              :title="p.date + '：待巩固 ' + p.pending + ' 道（新增 ' + p.added + ' / 清除 ' + p.mastered + '）'"
+              :title="p.date + '：待巩固 ' + p.pending + ' 道（累计清除 ' + p.masteredTotal + ' / 当日新增 ' + p.added + ' / 当日清除 ' + p.mastered + '）'"
             >
-              <span class="wt-bar" :style="{ height: wtPct(p.pending) + '%' }"></span>
+              <span class="wt-bar-pending" :style="{ height: wtPct(p.pending) + '%' }"></span>
+              <span class="wt-bar-mst" :style="{ height: wtPct(p.masteredTotal) + '%' }"></span>
             </div>
           </div>
-          <p class="wt-note">柱高=当日待巩固错题数，整体走低说明错题在稳步清除</p>
+          <div class="wt-legend">
+            <span class="lg"><i class="lg-dot lg-pending"></i>待巩固</span>
+            <span class="lg"><i class="lg-dot lg-mst"></i>已清除</span>
+            <span class="wt-note">绿色段越长、红色段越薄，说明错题清得越干净</span>
+          </div>
         </div>
         <div class="sp-foot">
           <span class="sp-note">{{ sprintNote }}</span>
@@ -216,7 +221,7 @@ const sprintNote = computed(() => {
 
 const wtMax = computed(() => {
   const arr = d.value.wrongTrend.series || []
-  return Math.max(1, ...arr.map(p => p.pending))
+  return Math.max(1, ...arr.map(p => p.total || p.pending + (p.masteredTotal || 0)))
 })
 function wtPct(v) {
   return Math.round((v / wtMax.value) * 100)
@@ -286,9 +291,15 @@ onMounted(load)
 .wt-add { color: var(--red, #e11d48); }
 .wt-mst { color: var(--green, #0da678); }
 .wt-bars { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
-.wt-col { flex: 1; display: flex; align-items: flex-end; height: 100%; min-width: 0; }
-.wt-bar { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; background: var(--accent, #4f5ff0); opacity: 0.75; transition: height 0.5s var(--ease); }
-.wt-note { margin-top: 8px; font-size: 0.76rem; color: var(--muted-2); }
+.wt-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; min-width: 0; }
+.wt-bar-pending { width: 100%; min-height: 1px; background: var(--red, #e11d48); opacity: 0.8; transition: height 0.5s var(--ease); }
+.wt-bar-mst { width: 100%; min-height: 1px; background: var(--green, #0da678); opacity: 0.8; border-radius: 3px 3px 0 0; transition: height 0.5s var(--ease); }
+.wt-legend { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 0.76rem; color: var(--muted); }
+.wt-legend .lg { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.wt-legend .lg-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.lg-pending { background: var(--red, #e11d48); }
+.lg-mst { background: var(--green, #0da678); }
+.wt-note { margin-left: auto; font-size: 0.74rem; color: var(--muted-2); }
 
 /* 科目 */
 .subj-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
