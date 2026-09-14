@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../auth.js';
 import { rateLimit } from '../rateLimit.js';
-import { examMeta, examChapters, startExam, submitExam, getExam, listExams, ongoingExam } from '../exam.js';
+import { examMeta, examChapters, startExam, submitExam, gradeSubjective, getExam, listExams, ongoingExam } from '../exam.js';
 
 const router = Router();
 
@@ -56,6 +56,13 @@ router.get('/exam/:id', requireAuth, (req, res) => {
 // 交卷（支持超时自动交卷），服务端评分
 router.post('/exam/:id/submit', requireAuth, examLimiter, (req, res) => {
   const r = submitExam(req.userId, Number(req.params.id), (req.body || {}).answers);
+  if (!r.ok) return res.status(r.code || 400).json({ code: r.code || 400, message: r.message });
+  res.json({ code: 0, data: r.data });
+});
+
+// 主观题自评（方案 A）：交卷后对每道主观题给出 会/部分会/不会，合并重算总分；只允许一次
+router.post('/exam/:id/grade', requireAuth, examLimiter, (req, res) => {
+  const r = gradeSubjective(req.userId, Number(req.params.id), (req.body || {}).grades);
   if (!r.ok) return res.status(r.code || 400).json({ code: r.code || 400, message: r.message });
   res.json({ code: 0, data: r.data });
 });

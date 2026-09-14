@@ -2,8 +2,13 @@ import { db } from './db.js';
 import { tx } from './commerce.js';
 import { gradeAnswer, withImages, addDays } from './utils.js';
 
-// 套卷模拟考试：仅取可自动评分的客观题组卷；答案为服务端评分，考试中不下发
+// 套卷模拟考试：客观题自动评分，主观题不进自动判分分母、交卷后由用户自评（方案 A）
 const EXAM_TYPES = ['single', 'multiple', 'judge'];
+const SUBJECTIVE_TYPES = ['subjective', 'essay', 'short_answer'];
+// 自评档位 → 得分系数
+export const SELF_GRADES = { full: 1, half: 0.5, none: 0 };
+// 三档自评标识（'full'=会 / 'half'=部分会 / 'none'=不会）
+function isSelfGrade(v) { return Object.prototype.hasOwnProperty.call(SELF_GRADES, String(v)); }
 
 // 题量 / 时长预设（时长单位：秒）
 export const EXAM_PRESETS = [
@@ -26,15 +31,21 @@ function scheduleReview(uid, qid) {
   else db.prepare('INSERT INTO review_schedule (user_id, question_id, stage, next_due) VALUES (?,?,0,?)').run(uid, qid, addDays(1));
 }
 
-// 可组卷的科目与题量（供前端选择）
+// 可组卷的科目与题量（供前端选择）；主观题单独给出可选项，便于前端提示
 export function examMeta() {
   const subjects = db.prepare(
     `SELECT subject, COUNT(*) AS c FROM questions
      WHERE type IN ('single','multiple','judge') AND subject IS NOT NULL AND subject <> ''
      GROUP BY subject ORDER BY c DESC`
   ).all();
+  const subjS = db.prepare(
+    `SELECT subject, COUNT(*) AS c FROM questions
+     WHERE type IN (${SUBJECTIVE_TYPES.map(() => '?').join(',')}) AND subject IS NOT NULL AND subject <> ''
+     GROUP BY subject`
+  ).all(...SUBJECTIVE_TYPES);
+  const sMap = new Map(subjS.map(s => [s.subject, s.c]));
   return {
-    subjects: subjects.map(s => ({ subject: s.subject, count: s.c })),
+    subjects: subjects.map(s => ({ subject: s.subject, count: s.c, subjective: sMap.get(s.subject) || 0 })),
     presets: EXAM_PRESETS,
     difficulties: Object.keys(DIFF_MAP)
   };
@@ -76,6 +87,17 @@ function pickQuestionIds(subject, size, difficulty, chapters = []) {
   return ids;
 }
 
+// 抽取主观题（与客观题分开抽，避免挤占客观题名额）
+function pickSubjectiveIds(subject, size, chapters = []) {
+  if (!size) return [];
+  const cw = chapterClause(chapters);
+  const ph = SUBJECTIVE_TYPES.map(() => '?').join(',');
+  return db.prepare(
+    `SELECT id FROM questions WHERE subject = ? AND type IN (${ph})${cw.sql}
+     ORDER BY RANDOM() LIMIT ?`
+  ).all(subject, ...SUBJECTIVE_TYPES, ...cw.params, size).map(r => r.id);
+}
+
 function rowToQuestion(q, { withAnswer = false } = {}) {
   const out = {
     id: q.id, subject: q.subject, chapter: q.chapter, type: q.type, difficulty: q.difficulty,
@@ -89,36 +111,47 @@ export function getExam(userId, examId) {
   const ex = db.prepare('SELECT * FROM mock_exams WHERE id = ? AND user_id = ?').get(examId, userId);
   if (!ex) return null;
   const ids = safeJson(ex.question_ids);
+  const subjSet = new Set(safeJson(ex.subjective_ids).map(Number));
   const rows = ids.length
     ? db.prepare(`SELECT * FROM questions WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids)
     : [];
   const byId = new Map(rows.map(r => [r.id, r]));
   const submitted = ex.status === 'submitted';
   const answers = submitted && ex.answers ? safeJson(ex.answers) : {};
+  const selfGrades = ex.self_grades ? safeJson(ex.self_grades) : {};
   const questions = [];
   const detail = [];
   for (const id of ids) {
     const q = byId.get(id);
     if (!q) continue;
+    const isSubj = subjSet.has(Number(id));
     if (!submitted) {
       questions.push(rowToQuestion(q)); // 考试中：不下发答案
     } else {
       const mine = String(answers[String(id)] ?? answers[id] ?? '');
-      const ok = mine !== '' && gradeAnswer({ type: q.type, answer: q.answer }, mine);
+      // 主观题不自动判分：会/部分会视为掌握，未自评时按未掌握处理
+      const sg = selfGrades[String(id)];
+      const ok = isSubj ? (!!sg && SELF_GRADES[sg] >= 0.5) : (mine !== '' && gradeAnswer({ type: q.type, answer: q.answer }, mine));
       questions.push(rowToQuestion(q));
-      detail.push({ id: q.id, your: mine, answer: q.answer, correct: ok, analysis: q.analysis, type: q.type });
+      detail.push({
+        id: q.id, your: mine, answer: isSubj ? null : q.answer, correct: ok, analysis: q.analysis, type: q.type,
+        subjective: isSubj, selfGrade: sg || null
+      });
     }
   }
   return {
     id: ex.id, subject: ex.subject, difficulty: ex.difficulty, total: ex.total,
     duration_sec: ex.duration_sec, status: ex.status, score: ex.score, correct: ex.correct,
     used_sec: ex.used_sec, started_at: ex.started_at, submitted_at: ex.submitted_at,
+    objTotal: ids.length - subjSet.size, subjTotal: subjSet.size,
+    graded: !!ex.graded_at, pendingSelfGrade: submitted && subjSet.size > 0 && !ex.graded_at,
     questions, detail
   };
 }
 
 // 开始一场模考：组卷 → 落库（ongoing）；chapters 可选，传入章节名数组则定向组卷
-export function startExam(userId, { subject, size, durationSec, difficulty, chapters } = {}) {
+// includeSubjective=true 时追加主观题（其分值不计入客观题自动判分，交卷后自评）
+export function startExam(userId, { subject, size, durationSec, difficulty, chapters, includeSubjective } = {}) {
   const subj = String(subject || '').trim();
   if (!subj) throw new Error('请选择考试科目');
   const preset = EXAM_PRESETS.find(p => p.size === Number(size));
@@ -139,10 +172,18 @@ export function startExam(userId, { subject, size, durationSec, difficulty, chap
   const ids = pickQuestionIds(subj, Math.min(n, avail), diff, chs);
   if (ids.length < 5) throw new Error(chs.length ? '所选章节可用题目不足，请减少章节数量或调整范围' : '该科目可用客观题不足，暂无法组卷');
 
+  // 主观题：默认每卷最多 3 题（占总题量约 1/3 以内），不足则静默不追加
+  let subjIds = [];
+  if (includeSubjective) {
+    const want = Math.min(3, Math.max(1, Math.floor(ids.length / 3)));
+    subjIds = pickSubjectiveIds(subj, want, chs);
+  }
+  const allIds = [...ids, ...subjIds];
+
   const info = db.prepare(
-    `INSERT INTO mock_exams (user_id, subject, difficulty, question_ids, total, duration_sec, status)
-     VALUES (?,?,?,?,?,?,'ongoing')`
-  ).run(userId, subj, diff, JSON.stringify(ids), ids.length, dur);
+    `INSERT INTO mock_exams (user_id, subject, difficulty, question_ids, total, duration_sec, status, subjective_ids)
+     VALUES (?,?,?,?,?,?,'ongoing',?)`
+  ).run(userId, subj, diff, JSON.stringify(allIds), allIds.length, dur, JSON.stringify(subjIds));
   return getExam(userId, Number(info.lastInsertRowid));
 }
 
@@ -153,6 +194,8 @@ export function submitExam(userId, examId, answers) {
   if (ex.status === 'submitted') return { ok: false, code: 409, message: '该试卷已交卷' };
 
   const ids = safeJson(ex.question_ids);
+  const subjIds = safeJson(ex.subjective_ids);
+  const subjSet = new Set(subjIds.map(Number));
   const map = {};
   if (Array.isArray(answers)) {
     for (const a of answers) {
@@ -168,6 +211,8 @@ export function submitExam(userId, examId, answers) {
     : [];
   const byId = new Map(rows.map(r => [r.id, r]));
 
+  // 客观题分母：仅客观题参与自动判分；主观题交卷后由用户自评（方案 A）
+  const objIds = ids.filter(id => !subjSet.has(Number(id)));
   let correct = 0, answered = 0;
   const detail = [];
   const sessionId = tx(() => {
@@ -179,15 +224,16 @@ export function submitExam(userId, examId, answers) {
       const q = byId.get(qid);
       if (!q) continue;
       const mine = map[String(qid)] ?? '';
-      const ok = mine !== '' && gradeAnswer({ type: q.type, answer: q.answer }, mine);
-      if (ok) correct++;
-      if (mine !== '') answered++;
+      const isSubj = subjSet.has(Number(qid));
+      // 主观题：先记为未掌握（is_correct=0）但不进复习计划，待自评后再修正
+      const ok = isSubj ? false : (mine !== '' && gradeAnswer({ type: q.type, answer: q.answer }, mine));
+      if (!isSubj) { if (ok) correct++; if (mine !== '') answered++; }
       rec.run(userId, qid, mine, ok ? 1 : 0, sid);
-      if (!ok && mine !== '') scheduleReview(userId, qid);
-      detail.push({ id: qid, your: mine, answer: q.answer, correct: ok, analysis: q.analysis, type: q.type });
+      if (!isSubj && !ok && mine !== '') scheduleReview(userId, qid);
+      detail.push({ id: qid, your: mine, answer: isSubj ? null : q.answer, correct: ok, analysis: q.analysis, type: q.type, subjective: isSubj });
     }
-    const score = ids.length ? Math.round((correct / ids.length) * 100 * 10) / 10 : 0;
-    db.prepare('UPDATE practice_sessions SET total = ?, correct = ?, score = ? WHERE id = ?').run(ids.length, correct, score, sid);
+    const score = objIds.length ? Math.round((correct / objIds.length) * 100 * 10) / 10 : 0;
+    db.prepare('UPDATE practice_sessions SET total = ?, correct = ?, score = ? WHERE id = ?').run(objIds.length, correct, score, sid);
     db.prepare(
       `UPDATE mock_exams SET status = 'submitted', correct = ?, score = ?, answers = ?, used_sec = ?,
                              submitted_at = datetime('now','localtime')
@@ -196,14 +242,81 @@ export function submitExam(userId, examId, answers) {
     return sid;
   });
 
-  const score = ids.length ? Math.round((correct / ids.length) * 100 * 10) / 10 : 0;
+  const score = objIds.length ? Math.round((correct / objIds.length) * 100 * 10) / 10 : 0;
   return {
     ok: true,
     data: {
-      id: ex.id, session_id: sessionId, total: ids.length, correct, score, answered,
+      id: ex.id, session_id: sessionId, total: objIds.length, objTotal: objIds.length,
+      subjTotal: subjIds.length, pendingSelfGrade: subjIds.length > 0,
+      correct, score, answered,
       used_sec: used, duration_sec: ex.duration_sec, detail
     }
   };
+}
+
+// 主观题自评：grades = { [questionId]: 'full'|'half'|'none' }，合并后重算总分
+// 自评只允许一次（graded_at 为空时）；最终分 = (客观题答对数 + 自评折算分) / 客观题数 * 100（主观题作加分项）
+export function gradeSubjective(userId, examId, grades) {
+  const ex = db.prepare('SELECT * FROM mock_exams WHERE id = ? AND user_id = ?').get(examId, userId);
+  if (!ex) return { ok: false, code: 404, message: '考试不存在' };
+  if (ex.status !== 'submitted') return { ok: false, code: 409, message: '请先交卷再自评' };
+  if (ex.graded_at) return { ok: false, code: 409, message: '该试卷已完成自评' };
+
+  const subjIds = safeJson(ex.subjective_ids).map(Number);
+  if (!subjIds.length) return { ok: false, code: 400, message: '本卷没有主观题' };
+
+  const sMap = {};
+  if (grades && typeof grades === 'object') {
+    for (const qid of subjIds) {
+      const v = grades[String(qid)] ?? grades[qid];
+      if (isSelfGrade(v)) sMap[String(qid)] = String(v);
+    }
+  }
+  // 必须对全部主观题给出自评，避免漏评刷分
+  if (Object.keys(sMap).length !== subjIds.length) {
+    return { ok: false, code: 400, message: '请为每道主观题完成自评' };
+  }
+
+  const ids = safeJson(ex.question_ids).map(Number);
+  const objIds = ids.filter(id => !subjIds.includes(id));
+  const answers = ex.answers ? safeJson(ex.answers) : {};
+
+  const rows = db.prepare(`SELECT id, type, answer FROM questions WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  const byId = new Map(rows.map(r => [r.id, r]));
+
+  let objCorrect = 0;
+  for (const qid of objIds) {
+    const q = byId.get(qid);
+    if (!q) continue;
+    const mine = String(answers[String(qid)] ?? '');
+    if (mine !== '' && gradeAnswer({ type: q.type, answer: q.answer }, mine)) objCorrect++;
+  }
+  const selfScore = subjIds.reduce((a, qid) => a + (SELF_GRADES[sMap[String(qid)]] || 0), 0);
+
+  const denom = objIds.length + subjIds.length;
+  const score = denom ? Math.round(((objCorrect + selfScore) / denom) * 100 * 10) / 10 : 0;
+
+  tx(() => {
+    // 修正主观题的 practice_records：会/部分会记为掌握，不会记为未掌握
+    const upd = db.prepare('UPDATE practice_records SET is_correct = ? WHERE user_id = ? AND question_id = ? AND id = (SELECT MAX(id) FROM practice_records WHERE user_id = ? AND question_id = ?)');
+    const rec = db.prepare('INSERT INTO practice_records (user_id, question_id, answer, is_correct) VALUES (?,?,?,?)');
+    for (const qid of subjIds) {
+      const ok = SELF_GRADES[sMap[String(qid)]] >= 0.5;
+      const changed = upd.run(ok ? 1 : 0, userId, qid, userId, qid);
+      if (!changed.changes) rec.run(userId, qid, String(answers[String(qid)] ?? ''), ok ? 1 : 0);
+      // 自评为「不会」的主观题纳入错题本（无复习计划，避免主观题进遗忘曲线）
+    }
+    // 会话精确定位：优先用该试卷交卷时写入的 session_id，避免误更新同一用户的其他模考会话
+    const ps = ex.submitted_at
+      ? db.prepare("SELECT id FROM practice_sessions WHERE user_id = ? AND mode = 'exam' ORDER BY id DESC LIMIT 1").get(userId)
+      : null;
+    if (ps) db.prepare('UPDATE practice_sessions SET correct = ?, score = ? WHERE id = ?').run(objCorrect + selfScore, score, ps.id);
+    // 客观题答对数保持 correct 不变；合并总分写回 score，供历史记录/成绩页展示
+    db.prepare("UPDATE mock_exams SET score = ?, self_grades = ?, graded_at = datetime('now','localtime') WHERE id = ?")
+      .run(score, JSON.stringify(sMap), ex.id);
+  });
+
+  return { ok: true, data: { id: ex.id, objCorrect, selfScore, subjTotal: subjIds.length, score } };
 }
 
 // 历史模考记录（已交卷）
