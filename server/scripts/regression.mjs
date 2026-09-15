@@ -64,7 +64,7 @@ async function main() {
   let qId = firstQ?.id;
   let rightAnswer;
   if (qId) {
-    const qDetail = await P(`/questions/${qId}`);
+    const qDetail = await P(`/questions/${qId}`, token);
     rightAnswer = qDetail.data?.data?.answer;
     R('GET /questions/:id', okResp(qDetail));
   }
@@ -88,8 +88,15 @@ async function main() {
   R('POST /practice/review/submit (答对推进)', okResp(await P('/practice/review/submit', token, { question_id: qId, answer: rightAnswer }, 'POST')));
 
   // ---- 7. 模拟考试 ----
-  const exam = await P('/practice/session', token, { subject: subj, mode: 'exam', answers: [{ question_id: qId, answer: rightAnswer }] }, 'POST');
-  R('POST /practice/session (交卷计分)', okResp(exam) && exam.data?.data?.correct === 1 && Number(exam.data?.data?.score) === 100, `correct=${exam.data?.data?.correct} score=${exam.data?.data?.score}`);
+  // 取 5 道单选组成整卷（exam 模式至少 5 题，且客观题可自动判分、答案确定）
+  const singleQs = await P('/questions?type=single&limit=5', token);
+  const examAnswers = [];
+  for (const sq of singleQs.data?.data?.list || []) {
+    const sd = await P(`/questions/${sq.id}`, token);
+    examAnswers.push({ question_id: sq.id, answer: sd.data?.data?.answer });
+  }
+  const exam = await P('/practice/session', token, { subject: subj, mode: 'exam', answers: examAnswers }, 'POST');
+  R('POST /practice/session (交卷计分)', okResp(exam) && exam.data?.data?.correct === 5 && Number(exam.data?.data?.score) === 100, `correct=${exam.data?.data?.correct} score=${exam.data?.data?.score}`);
   const sess = await P('/practice/sessions', token);
   const examId = sess.data?.data?.[0]?.id;
   if (examId) R('GET /practice/sessions/:id', okResp(await P(`/practice/sessions/${examId}`, token)));
@@ -99,7 +106,7 @@ async function main() {
   R('GET /practice/blind-box/draw (不下发答案)', okResp(blind) && blind.data?.data?.question && blind.data?.data?.question?.answer === undefined, `稀有度=${blind.data?.data?.rarity?.name}`);
   const bqId = blind.data?.data?.question?.id;
   if (bqId) {
-    const bqDetail = await P(`/questions/${bqId}`);
+    const bqDetail = await P(`/questions/${bqId}`, token);
     const bqAnswer = bqDetail.data?.data?.answer;
     const bbSub = await P('/practice/blind-box/submit', token, { question_id: bqId, answer: bqAnswer, rarity_score: blind.data.data.rarity.score }, 'POST');
     R('POST /practice/blind-box/submit (答对返回答案)', okResp(bbSub) && bbSub.data?.data?.correct_answer === bqAnswer, `correct=${bbSub.data?.data?.is_correct} 返回答案=${bbSub.data?.data?.correct_answer}`);
