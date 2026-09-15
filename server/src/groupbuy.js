@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { db } from './db.js';
 import { tx, getProduct, getMembership, grantMembership } from './commerce.js';
+import { safeStr } from './utils.js';
 
 // 团购码字符集：去除易混淆字符（0/O/1/I/L）
 const GB_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -235,7 +236,9 @@ export function settleGroupBuy(id, { method = 'manual' } = {}) {
 
 // 按支付单号查团购方案（支付回调时用于区分个人订单）
 export function getGroupBuyByPayNo(payNo) {
-  return db.prepare('SELECT * FROM group_buys WHERE pay_no = ?').get(payNo);
+  const key = safeStr(payNo).trim();
+  if (!key) return null;
+  return db.prepare('SELECT * FROM group_buys WHERE pay_no = ?').get(key);
 }
 
 // 取消待支付的团购方案

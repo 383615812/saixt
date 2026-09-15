@@ -1,5 +1,5 @@
 import { db } from './db.js';
-import { todayStr } from './utils.js';
+import { todayStr, safeStr } from './utils.js';
 import crypto from 'node:crypto';
 
 // 事务辅助：支持嵌套（外层管理 BEGIN/COMMIT，内层直接执行）。
@@ -25,12 +25,16 @@ export function getBalance(uid) {
 
 export function addPoints(uid, change, reason, ref = null) {
   if (!change) return getBalance(uid);
+  // reason/ref 直接绑定进 SQLite，须归一为可绑定类型（对象/undefined 会抛
+  // ERR_INVALID_ARG_TYPE 打崩接口），ref 为空时落 null 而非 undefined
+  const rsn = safeStr(reason);
+  const r = ref === null || ref === undefined ? null : safeStr(ref);
   tx(() => {
     db.prepare(`INSERT INTO points (user_id, balance) VALUES (?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET balance = balance + excluded.balance`)
       .run(uid, change);
     db.prepare('INSERT INTO point_logs (user_id, change, reason, ref) VALUES (?,?,?,?)')
-      .run(uid, change, reason, ref);
+      .run(uid, change, rsn, r);
   });
   return getBalance(uid);
 }
@@ -38,13 +42,15 @@ export function addPoints(uid, change, reason, ref = null) {
 // 扣减积分（余额不足返回 null）：单条 SQL 原子检查+扣减，杜绝并发超扣
 export function spendPoints(uid, amount, reason, ref = null) {
   if (!amount || amount <= 0) return null;
+  const rsn = safeStr(reason);
+  const r = ref === null || ref === undefined ? null : safeStr(ref);
   let ok = false;
   tx(() => {
     const info = db.prepare('UPDATE points SET balance = balance - ? WHERE user_id = ? AND balance >= ?')
       .run(amount, uid, amount);
     if (info.changes > 0) {
       db.prepare('INSERT INTO point_logs (user_id, change, reason, ref) VALUES (?,?,?,?)')
-        .run(uid, -amount, reason, ref);
+        .run(uid, -amount, rsn, r);
       ok = true;
     }
   });
@@ -215,11 +221,15 @@ export function listProducts(includeInactive = false) {
 }
 
 // 获取单个商品（库与内置兼容）；下架商品返回 active=0 供业务拒单
+// code 统一经 safeStr 归一：undefined/null/对象直接绑定进 SQLite 会抛
+// ERR_INVALID_ARG_TYPE 打崩接口（空 body 下单即命中），此处兜底为空串后正常返回 null
 export function getProduct(code) {
-  const r = db.prepare('SELECT code, name, kind, price, months, active, sort FROM products WHERE code = ?').get(code);
+  const key = safeStr(code).trim();
+  if (!key) return null;
+  const r = db.prepare('SELECT code, name, kind, price, months, active, sort FROM products WHERE code = ?').get(key);
   if (r) return r;
-  const p = PRODUCTS[code];
-  return p ? { code, ...p, kind: 'vip', active: 1, sort: 0 } : null;
+  const p = PRODUCTS[key];
+  return p ? { code: key, ...p, kind: 'vip', active: 1, sort: 0 } : null;
 }
 
 // ---------- AI 配额 ----------
@@ -246,14 +256,17 @@ export function aiQuota(uid, kind) {
 
 // 积分兑换的次数包余额
 export function aiTopup(uid, kind) {
-  return db.prepare('SELECT count FROM ai_topup WHERE user_id = ? AND kind = ?').get(uid, kind)?.count || 0;
+  return db.prepare('SELECT count FROM ai_topup WHERE user_id = ? AND kind = ?').get(uid, safeStr(kind))?.count || 0;
 }
 
 export function addAiTopup(uid, kind, n) {
+  const k = safeStr(kind);
+  const num = Number.isFinite(Number(n)) ? Math.trunc(Number(n)) : 0;
+  if (!k || num <= 0) return aiTopup(uid, kind);
   db.prepare(`INSERT INTO ai_topup (user_id, kind, count) VALUES (?,?,?)
               ON CONFLICT(user_id, kind) DO UPDATE SET count = count + excluded.count`)
-    .run(uid, kind, n);
-  return aiTopup(uid, kind);
+    .run(uid, k, num);
+  return aiTopup(uid, k);
 }
 
 // 原子扣减次数包：仅当余额 > 0 时减 1，避免并发/越界扣成负数

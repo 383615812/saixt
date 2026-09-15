@@ -5,6 +5,7 @@ import { getMembership, genOrderNo, markOrderPaid, listProducts, getProduct, tx 
 import { createPayment, handleNotify, notifyOk, notifyFail, providerReady, PAY_PROVIDER, isDemo } from '../payment.js';
 import { getGroupBuyByPayNo, settleGroupBuy } from '../groupbuy.js';
 import { rateLimit } from '../rateLimit.js';
+import { asyncHandler, safeStr } from '../utils.js';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get('/membership/me', requireAuth, (req, res) => {
 });
 
 // 创建订单（同一用户旧的待支付订单作废，避免堆积）
-router.post('/membership/order', requireAuth, async (req, res) => {
+router.post('/membership/order', requireAuth, asyncHandler(async (req, res) => {
   const { product_code } = req.body || {};
   const product = getProduct(product_code);
   if (!product || !product.active) return res.status(400).json({ code: 400, message: '无效或已下架的商品' });
@@ -71,10 +72,10 @@ router.post('/membership/order', requireAuth, async (req, res) => {
       pay_error: payError || null
     }
   });
-});
+}));
 
 // 为已存在的待支付订单重新获取支付参数（刷新页面/二维码过期后重试）
-router.post('/membership/order/:orderNo/pay', requireAuth, async (req, res) => {
+router.post('/membership/order/:orderNo/pay', requireAuth, asyncHandler(async (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE order_no = ? AND user_id = ?')
     .get(req.params.orderNo, req.userId);
   if (!order) return res.status(404).json({ code: 404, message: '订单不存在' });
@@ -89,7 +90,7 @@ router.post('/membership/order/:orderNo/pay', requireAuth, async (req, res) => {
     console.error('[pay] 创建支付失败:', e.message);
   }
   res.json({ code: 0, data: { order_no: order.order_no, pay_provider: pay.provider, pay_url: pay.pay_url, qr_code: pay.qr_code, pay_error: payError || null } });
-});
+}));
 
 // 订单状态查询（前端支付后轮询确认结果）
 router.get('/membership/order/:orderNo', requireAuth, (req, res) => {
@@ -121,7 +122,7 @@ router.get('/membership/orders', requireAuth, (req, res) => {
 
 // 支付回调：微信/支付宝/演示统一入口
 // 微信/支付宝回调由支付平台调用，需验签后置订单为已支付（幂等）
-router.post('/membership/pay/notify/:method', notifyLimiter, async (req, res) => {
+router.post('/membership/pay/notify/:method', notifyLimiter, asyncHandler(async (req, res) => {
   const { method } = req.params;
   if (!['wechat', 'alipay', 'demo'].includes(method)) return notifyFail(res);
   try {
@@ -137,7 +138,7 @@ router.post('/membership/pay/notify/:method', notifyLimiter, async (req, res) =>
         // 团购方案支付：无个人订单归属，仅管理员可触发演示回调
         if (!isAdmin) return res.status(403).json({ code: 403, message: '无权操作该团购方案' });
       } else {
-        const order = db.prepare('SELECT user_id FROM orders WHERE order_no = ?').get((req.body || {}).order_no);
+        const order = db.prepare('SELECT user_id FROM orders WHERE order_no = ?').get(safeStr((req.body || {}).order_no));
         if (!order) return res.status(404).json({ code: 404, message: '订单不存在' });
         if (order.user_id !== uid && !isAdmin) return res.status(403).json({ code: 403, message: '无权操作该订单' });
       }
@@ -189,6 +190,6 @@ router.post('/membership/pay/notify/:method', notifyLimiter, async (req, res) =>
     console.error('[pay] 回调异常:', e.message);
     return notifyFail(res);
   }
-});
+}));
 
 export default router;

@@ -8,6 +8,7 @@ import {
   listGroupBuyCodes, listGroupBuyBatchLabels, redeemCode, groupBuyStats
 } from '../groupbuy.js';
 import { createPayment, PAY_PROVIDER } from '../payment.js';
+import { asyncHandler } from '../utils.js';
 import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
@@ -165,7 +166,7 @@ router.post('/groupbuy/groupbuys/:id/close', requireAuth, requireAdmin, (req, re
 });
 
 // 发起在线支付：为待收款方案创建支付参数（二维码 / 支付链接）
-router.post('/groupbuy/groupbuys/:id/pay', requireAuth, requireAdmin, async (req, res) => {
+router.post('/groupbuy/groupbuys/:id/pay', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const gb = getGroupBuy(Number(req.params.id));
   if (!gb) return res.status(404).json({ code: 404, message: '团购方案不存在' });
   if (gb.paid) return res.status(400).json({ code: 400, message: '方案已收款，无需重复支付' });
@@ -190,7 +191,7 @@ router.post('/groupbuy/groupbuys/:id/pay', requireAuth, requireAdmin, async (req
       pay_error: payError || null
     }
   });
-});
+}));
 
 // 确认收款 / 结算：线下转账人工确认，或支付回调统一入口；结算后生成兑换码
 router.post('/groupbuy/groupbuys/:id/settle', requireAuth, requireAdmin, (req, res) => {
@@ -216,11 +217,11 @@ router.post('/groupbuy/groupbuys/:id/cancel', requireAuth, requireAdmin, (req, r
 });
 
 // ---------- 学生端：团购码兑换 ----------
-router.post('/groupbuy/redeem', requireAuth, redeemLimiter, async (req, res) => {
+router.post('/groupbuy/redeem', requireAuth, redeemLimiter, asyncHandler(async (req, res) => {
   const { code } = req.body || {};
   const r = redeemCode(code, req.userId);
   if (!r.ok) return res.status(r.code || 400).json({ code: r.code || 400, message: r.message, data: r.data });
   res.json({ code: 0, data: r.data, message: r.message });
-});
+}));
 
 export default router;

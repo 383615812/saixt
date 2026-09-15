@@ -6,7 +6,7 @@ import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { tryConsumeAi, refundAi } from '../commerce.js';
 import { callDeepSeek, isAiConfigured } from '../aiClient.js';
-import { currentWeekRange } from '../utils.js';
+import { currentWeekRange, asyncHandler } from '../utils.js';
 
 const router = Router();
 const __dir = path.dirname(fileURLToPath(import.meta.url));
@@ -320,7 +320,7 @@ router.get('/report/weekly', requireAuth, (req, res) => {
 });
 
 // AI 周报总结
-router.post('/report/weekly/ai', requireAuth, async (req, res) => {
+router.post('/report/weekly/ai', requireAuth, asyncHandler(async (req, res) => {
   if (!isAiConfigured()) return res.json({ code: 0, data: { reply: null, configured: false } });
   const uid = req.userId;
   const c = tryConsumeAi(uid, 'analysis');
@@ -408,7 +408,7 @@ ${weakKnowledge ? `\n薄弱章节对应的考纲要点（请在建议中据此�
     console.error('[report] AI 周报异常:', err.message);
     res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
   }
-});
+}));
 
 // 历史周报列表
 router.get('/report/weekly/history', requireAuth, (req, res) => {
@@ -447,7 +447,7 @@ router.get('/report/weekly/:id', requireAuth, (req, res) => {
 });
 
 // 历史周报 AI 总结（按需生成并缓存）
-router.post('/report/weekly/:id/ai', requireAuth, async (req, res) => {
+router.post('/report/weekly/:id/ai', requireAuth, asyncHandler(async (req, res) => {
   if (!isAiConfigured()) return res.json({ code: 0, data: { reply: null, configured: false } });
   const row = db.prepare('SELECT * FROM weekly_reports WHERE id = ? AND user_id = ?').get(Number(req.params.id), req.userId);
   if (!row) return res.status(404).json({ code: 404, message: '周报不存在' });
@@ -490,6 +490,6 @@ router.post('/report/weekly/:id/ai', requireAuth, async (req, res) => {
     console.error('[report] AI 历史周报异常:', err.message);
     res.status(502).json({ code: 502, message: 'AI 服务连接失败，请稍后重试' });
   }
-});
+}));
 
 export default router;

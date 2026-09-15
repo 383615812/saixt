@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { requireAuth } from '../auth.js';
-import { safeJson, normalizeType, clampInt } from '../utils.js';
+import { safeJson, normalizeType, clampInt, asyncHandler } from '../utils.js';
 import { db } from '../db.js';
 import { tryConsumeAi, refundAi, aiQuota, isVip, tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
@@ -280,7 +280,7 @@ function topWeakChapters(uid, n) {
 }
 
 // 一键生成薄弱点专项套卷：自动取最薄弱 N 个章节，分节串行生成，整体仅消耗 1 次 generate 配额
-router.post('/paper', requireAuth, aiLimiter, async (req, res) => {
+router.post('/paper', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   const { count = 3, perSection = 3, difficulty = '中等' } = req.body || {};
   if (!isAiConfigured()) return notConfigured(res);
 
@@ -344,10 +344,10 @@ router.post('/paper', requireAuth, aiLimiter, async (req, res) => {
       quota: aiQuota(req.userId, 'generate')
     }
   });
-});
+}));
 
 // AI 对话
-router.post('/chat', requireAuth, aiLimiter, async (req, res) => {
+router.post('/chat', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   const { messages } = req.body || {};
   if (!Array.isArray(messages) || !messages.length) {
     return res.status(400).json({ code: 400, message: '缺少对话内容' });
@@ -380,7 +380,7 @@ router.post('/chat', requireAuth, aiLimiter, async (req, res) => {
     console.error('[ai] 请求异常:', err.message);
     aiFail(res, err);
   }
-});
+}));
 
 // 获取最近一次生成的学习计划
 router.get('/plan/latest', requireAuth, (req, res) => {
@@ -389,7 +389,7 @@ router.get('/plan/latest', requireAuth, (req, res) => {
 });
 
 // AI 个性化学习计划
-router.post('/plan', requireAuth, aiLimiter, async (req, res) => {
+router.post('/plan', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   if (!isAiConfigured()) return notConfigured(res);
   const c = tryConsumeAi(req.userId, 'plan');
   if (!c.ok) return quotaExceeded(res, 'plan');
@@ -449,10 +449,10 @@ ${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此细化每�
     console.error('[ai] 学习计划异常:', err.message);
     aiFail(res, err);
   }
-});
+}));
 
 // AI 错题讲解
-router.post('/explain', requireAuth, aiLimiter, async (req, res) => {
+router.post('/explain', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   const { question_id } = req.body || {};
   const qid = Number(question_id);
   if (!Number.isInteger(qid) || qid <= 0) return res.status(400).json({ code: 400, message: '无效的题目 ID' });
@@ -495,10 +495,10 @@ ${kh ? `\n【该章节考纲知识要点】请结合以下云南合格考考纲�
     console.error('[ai] 错题讲解异常:', err.message);
     aiFail(res, err);
   }
-});
+}));
 
 // AI 生成同类练习题（支持单选/多选/判断）
-router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
+router.post('/generate', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   const { subject, chapter, count = 3, difficulty = '中等', type = 'single' } = req.body || {};
   if (!subject) return res.status(400).json({ code: 400, message: '请选择科目' });
   const validSubjects = db.prepare('SELECT DISTINCT subject FROM questions WHERE subject IS NOT NULL AND subject != \'\'').all().map(r => r.subject);
@@ -636,10 +636,10 @@ ${formatHint}`;
     console.error('[ai] 生成练习题异常:', err.message);
     res.status(502).json({ code: 502, message: 'AI 生成失败，请重试' });
   }
-});
+}));
 
 // AI 学情分析
-router.post('/analysis', requireAuth, aiLimiter, async (req, res) => {
+router.post('/analysis', requireAuth, aiLimiter, asyncHandler(async (req, res) => {
   if (!isAiConfigured()) return notConfigured(res);
   const c = tryConsumeAi(req.userId, 'analysis');
   if (!c.ok) return quotaExceeded(res, 'analysis');
@@ -721,7 +721,7 @@ ${weakKnowledge ? `\n薄弱知识点对应的考纲要点（请据此点出最�
     console.error('[ai] 学情分析异常:', err.message);
     aiFail(res, err);
   }
-});
+}));
 
 // 常见问题（用于引导提问）
 router.get('/quick', (req, res) => {

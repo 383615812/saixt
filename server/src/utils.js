@@ -52,6 +52,27 @@ export function clampInt(v, min, max, fallback) {
   return Math.min(Math.max(n, min), max);
 }
 
+// 安全字符串解析：把任意用户输入（undefined / null / 对象 / 数组 / 数字）统一为字符串，
+// 供 SQLite 参数绑定使用。node:sqlite 只接受 null / number / string / bigint / Buffer，
+// 直接绑定 undefined 或对象会抛 ERR_INVALID_ARG_TYPE 导致接口 500
+// （如 getProduct(undefined)）。此处兜底为 ''，业务侧再按空值判非法即可。
+export function safeStr(v) {
+  if (typeof v === 'string') return v;
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint') return String(v);
+  return '';
+}
+
+// 异步路由包装器：Express 4 不会自动捕获 async handler 的 Promise 拒绝，
+// 一旦 async 处理器内部抛错（如 SQLite 绑定类型错误），请求将永远挂起无响应，
+// nginx 侧表现为 504 Gateway Time-out。此处统一 catch 并透传给错误中间件，
+// 保证任何异常都能转成规范的 4xx/5xx JSON 响应而非静默超时。
+export function asyncHandler(fn) {
+  return function wrapped(req, res, next) {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 // ---------- 日期工具：统一 YYYY-MM-DD 格式化 ----------
 
 export function formatDate(d) {
