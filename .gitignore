@@ -20,6 +20,14 @@ __pycache__/
 *.log
 *.out
 
+# ===== 远端手工部署备份（git 化前遗留，不入库） =====
+_bak*/
+backups/
+server/src.bak*/
+server/src.bak/
+web/dist.bak*/
+web/_bak/
+
 # ===== 敏感 / 环境 =====
 .env
 .env.*
