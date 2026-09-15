@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import { signToken, hashPassword, verifyPassword, needsRehash, requireAuth } from '../auth.js';
 import { ensureInviteCode, addPoints, bindInvite } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
-import { clampInt } from '../utils.js';
+import { clampInt, safeName } from '../utils.js';
 
 const router = Router();
 
@@ -30,8 +30,11 @@ router.post('/register', authLimiter, phoneLimiter, (req, res) => {
   const exists = db.prepare('SELECT id FROM users WHERE phone = ?').get(phone);
   if (exists) return res.status(409).json({ code: 409, message: '该手机号已注册' });
   const ip = req.ip;
+  // 昵称必须有长度上限：此前直接把入参落库，实测生产出现昵称长度 100000 的脏数据，
+  // 会让所有下发昵称的接口（排行榜/邀请/个人中心）响应膨胀并在前端撑破布局。
+  const nick = safeName(nickname) || `考生${phone.slice(-4)}`;
   const info = db.prepare('INSERT INTO users (phone, password, nickname, reg_ip) VALUES (?,?,?,?)')
-    .run(phone, hashPassword(password), nickname || `考生${phone.slice(-4)}`, ip);
+    .run(phone, hashPassword(password), nick, ip);
   const uid = Number(info.lastInsertRowid);
   db.prepare('INSERT OR IGNORE INTO user_profiles (user_id) VALUES (?)').run(uid);
   ensureInviteCode(uid);
@@ -45,7 +48,7 @@ router.post('/register', authLimiter, phoneLimiter, (req, res) => {
     }
   }
 
-  res.json({ code: 0, data: { token: signToken(uid), user: { id: uid, phone, nickname: nickname || `考生${phone.slice(-4)}` } } });
+  res.json({ code: 0, data: { token: signToken(uid), user: { id: uid, phone, nickname: nick } } });
 });
 
 router.post('/login', authLimiter, phoneLimiter, (req, res) => {

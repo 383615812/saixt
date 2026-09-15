@@ -63,6 +63,20 @@ export function safeStr(v) {
   return '';
 }
 
+// 昵称等「展示用短文本」归一：只接受字符串/数字，去控制字符与零宽字符、压缩空白、截断超长。
+// 仅靠 safeStr 不够——它不设长度上限，而昵称入参曾无任何校验：
+// 实测生产库里存在昵称长度 100000 的脏数据（register 直接落 `nickname || 默认值`），
+// 会让排行榜/邀请/个人中心等所有下发昵称的接口响应膨胀到上百 KB，并在前端撑破布局。
+// 非字符串（对象/数组/null/undefined）一律回落 ''，由调用方决定默认值，避免存进 "[object Object]"。
+export function safeName(v, max = 24) {
+  if (typeof v !== 'string' && typeof v !== 'number') return '';
+  return String(v)
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max);
+}
+
 // 异步路由包装器：Express 4 不会自动捕获 async handler 的 Promise 拒绝，
 // 一旦 async 处理器内部抛错（如 SQLite 绑定类型错误），请求将永远挂起无响应，
 // nginx 侧表现为 504 Gateway Time-out。此处统一 catch 并透传给错误中间件，
