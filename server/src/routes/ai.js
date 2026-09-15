@@ -250,7 +250,7 @@ ${formatHint}`;
   );
   // 整组题目入库放在同一事务内，避免中途失败留下半截脏数据
   const withIds = tx(() => normalized.map(q => {
-    const info = insertQ.run(subject, safeChapter || null, normalizeType(q.type), diffMap[level] || 2, q.stem, JSON.stringify(q.options), q.answer, q.analysis, 'AI生成');
+    const info = insertQ.run(subject, safeChapter || '综合', normalizeType(q.type), diffMap[level] || 2, q.stem, JSON.stringify(q.options), q.answer, q.analysis, 'AI生成');
     return { ...q, id: Number(info.lastInsertRowid) };
   }));
   return { questions: withIds, level, qtype };
@@ -618,7 +618,8 @@ ${formatHint}`;
     const withIds = tx(() => normalized.map(q => {
       const info = insertQ.run(
         subject,
-        safeChapter || null,
+        // 通科题（未指定章节/章节白名单外）兜底为「综合」，避免 NULL 章节导致章节浏览/薄弱分组/卷面标题异常
+        safeChapter || '综合',
         normalizeType(q.type),
         diffMap[level] || 2,
         q.stem,
