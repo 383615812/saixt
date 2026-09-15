@@ -139,13 +139,16 @@ export function checkInviteFraud(inviterId, inviteeId, ip) {
   if (inviteCountToday(inviterId) >= INVITE_DAILY_LIMIT) {
     return '今日邀请已达上限，请明天再试';
   }
+  // 回环地址（本机直连 / 本地回归测试）不代表真实独立用户，跳过同 IP 启发式，
+  // 否则本地联调与 CI 中所有请求同源自邀误判；生产经 nginx + TRUST_PROXY=1 时客户端 IP 必为公网地址，不受影响
+  const LOOPBACK = /^::1$|^127\.|^::ffff:127\./;
   // 同 IP 自邀检测：邀请人注册 IP 与被邀请人当前 IP 相同，视为自刷
   const inviter = db.prepare('SELECT reg_ip FROM users WHERE id = ?').get(inviterId);
-  if (ip && inviter?.reg_ip && ip === inviter.reg_ip) {
+  if (ip && inviter?.reg_ip && ip === inviter.reg_ip && !LOOPBACK.test(ip) && !LOOPBACK.test(inviter.reg_ip)) {
     return '不能邀请自己注册的账号';
   }
   // 同 IP 多账号：同一 IP 已为该邀请人绑定过其他账号，视为批量注册刷奖励
-  if (ip) {
+  if (ip && !LOOPBACK.test(ip)) {
     const sameIp = db.prepare(
       `SELECT 1 FROM invites i JOIN users u ON u.id = i.invitee_id
        WHERE i.inviter_id = ? AND u.reg_ip = ? LIMIT 1`
