@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../auth.js';
 import { rateLimit } from '../rateLimit.js';
 import { examMeta, examChapters, startExam, submitExam, gradeSubjective, getExam, listExams, ongoingExam } from '../exam.js';
+import { clampInt } from '../utils.js';
 
 const router = Router();
 
@@ -26,8 +27,8 @@ router.get('/exam/chapters', requireAuth, (req, res) => {
 
 // 历史模考记录
 router.get('/exam/history', requireAuth, (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const limit = clampInt(req.query.limit, 1, 100, 20);
+  const offset = clampInt(req.query.offset, 0, 1e6, 0);
   res.json({ code: 0, data: listExams(req.userId, limit, offset) });
 });
 

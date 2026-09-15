@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { schoolRegion } from '../utils.js';
+import { schoolRegion, clampInt } from '../utils.js';
 
 const router = Router();
 
 // 院校列表
 router.get('/', (req, res) => {
   const { keyword, sort = 'plans', limit = 50, offset = 0, type, region } = req.query;
-  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 200, 50);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   const conds = [];
   const args = [];
   if (keyword) { conds.push('(name LIKE ? OR code LIKE ?)'); args.push(`%${keyword}%`, `%${keyword}%`); }
@@ -49,8 +49,8 @@ router.get('/:code', (req, res) => {
 // 专业计划检索
 router.get('/plans/search', (req, res) => {
   const { keyword, school_code, limit = 100, offset = 0 } = req.query;
-  const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 200);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 200, 100);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   const conds = [];
   const args = [];
   if (keyword) { conds.push('(major_name LIKE ? OR school_name LIKE ?)'); args.push(`%${keyword}%`, `%${keyword}%`); }

@@ -1,7 +1,7 @@
 ﻿import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
-import { withImages, todayStr, addDays, gradeAnswer, safeJson } from '../utils.js';
+import { withImages, todayStr, addDays, gradeAnswer, safeJson, clampInt } from '../utils.js';
 import { tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
 import PDFDocument from 'pdfkit';
@@ -147,8 +147,8 @@ router.post('/sprint', requireAuth, submitLimiter, (req, res) => {
 // 我的练习记录
 router.get('/records', requireAuth, (req, res) => {
   const { limit = 50, offset = 0 } = req.query;
-  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 200, 50);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   const total = db.prepare('SELECT COUNT(*) AS c FROM practice_records WHERE user_id = ?').get(req.userId).c || 0;
   const rows = db.prepare(
     `SELECT r.id, r.question_id, r.answer, r.is_correct, r.created_at, q.subject, q.stem, q.answer AS right_answer, q.image, q.images
@@ -165,8 +165,8 @@ router.get('/records', requireAuth, (req, res) => {
 router.get('/wrong', requireAuth, (req, res) => {
   const { subject, chapter, limit, offset } = req.query;
   const hasPage = limit !== undefined || offset !== undefined;
-  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 200, 50);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   let where = `WHERE r.user_id = ? AND r.is_correct = 0
        AND NOT EXISTS (SELECT 1 FROM wrong_mastered wm WHERE wm.user_id = r.user_id AND wm.question_id = q.id)`;
   const params = [req.userId];
@@ -676,7 +676,7 @@ router.post('/ai-session', requireAuth, (req, res) => {
     "SELECT id, total FROM practice_sessions WHERE user_id = ? AND mode = 'ai' AND correct = 0 ORDER BY id DESC LIMIT 1"
   ).get(req.userId);
   if (!pending) return res.status(403).json({ code: 403, message: '无进行中的 AI 练习会话' });
-  const c = Math.min(Math.max(Number(correct) || 0, 0), pending.total);
+  const c = clampInt(correct, 0, pending.total, 0);
   const score = pending.total ? Math.round((c / pending.total) * 100 * 10) / 10 : 0;
   db.prepare('UPDATE practice_sessions SET correct = ?, score = ? WHERE id = ?').run(c, score, pending.id);
   res.json({ code: 0, data: { ok: true } });

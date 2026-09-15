@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
-import { withImages, safeJson } from '../utils.js';
+import { withImages, safeJson, clampInt } from '../utils.js';
 
 const router = Router();
 
@@ -26,8 +26,8 @@ router.get('/', (req, res) => {
     }
   }
 
-  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 100, 20);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   const conds = [];
   const args = [];
   if (subject) { conds.push('subject = ?'); args.push(subject); }

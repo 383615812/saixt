@@ -43,6 +43,15 @@ export function normalizeType(t) {
   return TYPE_ALIASES[key] || 'single';
 }
 
+// 安全整数解析（分页 limit/offset 等）：把用户输入钳制到 [min, max] 区间。
+// 关键防护：Number('1e309') === Infinity，若只用 Math.max(Number(x)||d, min) 会把
+// Infinity 直接绑进 SQLite 的 LIMIT/OFFSET → 抛错 500。此处用 Number.isFinite 兜底。
+export function clampInt(v, min, max, fallback) {
+  const n = Math.trunc(Number(v));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
 // ---------- 日期工具：统一 YYYY-MM-DD 格式化 ----------
 
 export function formatDate(d) {

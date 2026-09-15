@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { requireAuth } from '../auth.js';
-import { safeJson, normalizeType } from '../utils.js';
+import { safeJson, normalizeType, clampInt } from '../utils.js';
 import { db } from '../db.js';
 import { tryConsumeAi, refundAi, aiQuota, isVip, tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
@@ -176,7 +176,7 @@ async function generateSection({ subject, chapter, count = 3, difficulty = '中�
     ).all(subject, '').map(r => r.chapter);
     safeChapter = validChapters.includes(chapter) ? chapter : null;
   }
-  const n = Math.min(Math.max(Number(count) || 3, 1), 5);
+  const n = clampInt(count, 1, 5, 3);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
   const qtype = ['single', 'multiple', 'judge'].includes(type) ? type : 'single';
   // 为章节注入考纲知识要点，确保专项套卷题目紧扣真实考点
@@ -284,8 +284,8 @@ router.post('/paper', requireAuth, aiLimiter, async (req, res) => {
   const { count = 3, perSection = 3, difficulty = '中等' } = req.body || {};
   if (!isAiConfigured()) return notConfigured(res);
 
-  const weakCount = Math.min(Math.max(Number(count) || 3, 1), 5);
-  const per = Math.min(Math.max(Number(perSection) || 3, 1), 5);
+  const weakCount = clampInt(count, 1, 5, 3);
+  const per = clampInt(perSection, 1, 5, 3);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
   const weak = topWeakChapters(req.userId, weakCount);
   if (!weak.length) {
@@ -513,7 +513,7 @@ router.post('/generate', requireAuth, aiLimiter, async (req, res) => {
     ).all(subject, '').map(r => r.chapter);
     safeChapter = validChapters.includes(chapter) ? chapter : null;
   }
-  const n = Math.min(Math.max(Number(count) || 3, 1), 5);
+  const n = clampInt(count, 1, 5, 3);
   const level = ['基础', '中等', '较难'].includes(difficulty) ? difficulty : '中等';
   const qtype = ['single', 'multiple', 'judge'].includes(type) ? type : 'single';
 

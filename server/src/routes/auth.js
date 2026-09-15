@@ -3,6 +3,7 @@ import { db } from '../db.js';
 import { signToken, hashPassword, verifyPassword, needsRehash, requireAuth } from '../auth.js';
 import { ensureInviteCode, addPoints, bindInvite } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
+import { clampInt } from '../utils.js';
 
 const router = Router();
 
@@ -85,7 +86,7 @@ router.put('/profile', requireAuth, (req, res) => {
   // 输入长度/范围限制，防止脏数据入库
   const school = String(target_school || '').slice(0, 100) || null;
   const orgName = String(org || '').slice(0, 100) || null;
-  const score = target_score == null ? null : Math.min(Math.max(Number(target_score) || 0, 0), 750);
+  const score = target_score == null ? null : clampInt(target_score, 0, 750, 0);
   const hk = Array.isArray(hui_kao) ? hui_kao.slice(0, 20) : null;
   // hui_kao_scores 为 {科目: 等级} 对象（如 {语文:'A'}），与 stats/recommend 的 Object.values 读取口径一致
   const hkScores = (hui_kao_scores && typeof hui_kao_scores === 'object' && !Array.isArray(hui_kao_scores))

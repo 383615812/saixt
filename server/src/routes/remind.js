@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { config } from '../config.js';
-import { todayStr } from '../utils.js';
+import { todayStr, clampInt } from '../utils.js';
 import { rateLimit } from '../rateLimit.js';
 
 const router = Router();
@@ -126,8 +126,8 @@ router.post('/remind/test', requireAuth, testLimiter, (req, res) => {
 // 提醒记录
 router.get('/remind/logs', requireAuth, (req, res) => {
   const { limit = 20, offset = 0 } = req.query;
-  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 100, 20);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
   const total = db.prepare('SELECT COUNT(*) AS c FROM reminder_logs WHERE user_id = ?').get(req.userId).c || 0;
   const rows = db.prepare('SELECT id, type, content, created_at FROM reminder_logs WHERE user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?')
     .all(req.userId, safeLimit, safeOffset);

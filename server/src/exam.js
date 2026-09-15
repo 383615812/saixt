@@ -1,6 +1,6 @@
 import { db } from './db.js';
 import { tx } from './commerce.js';
-import { gradeAnswer, withImages, addDays } from './utils.js';
+import { gradeAnswer, withImages, addDays, clampInt } from './utils.js';
 
 // 套卷模拟考试：客观题自动评分，主观题不进自动判分分母、交卷后由用户自评（方案 A）
 const EXAM_TYPES = ['single', 'multiple', 'judge'];
@@ -158,8 +158,8 @@ export function startExam(userId, { subject, size, durationSec, difficulty, chap
   const subj = String(subject || '').trim();
   if (!subj) throw new Error('请选择考试科目');
   const preset = EXAM_PRESETS.find(p => p.size === Number(size));
-  const n = Math.min(Math.max(Number(size) || (preset ? preset.size : 20), 5), 100);
-  const dur = Math.min(Math.max(Number(durationSec) || (preset ? preset.durationSec : n * 90), 60), 4 * 3600);
+  const n = clampInt(size, 5, 100, preset ? preset.size : 20);
+  const dur = clampInt(durationSec, 60, 4 * 3600, preset ? preset.durationSec : n * 90);
   const diff = Object.keys(DIFF_MAP).includes(difficulty) ? difficulty : '综合';
   const chs = Array.isArray(chapters)
     ? [...new Set(chapters.map(c => String(c).trim()).filter(Boolean))].slice(0, 50)

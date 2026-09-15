@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { getBalance, spendPoints, isVip, addAiTopup, tx } from '../commerce.js';
+import { clampInt } from '../utils.js';
 
 const router = Router();
 
@@ -10,8 +11,8 @@ router.get('/points/me', requireAuth, (req, res) => {
   const uid = req.userId;
   const balance = getBalance(uid);
   const { limit = 30, offset = 0 } = req.query;
-  const safeLimit = Math.min(Math.max(Number(limit) || 30, 1), 200);
-  const safeOffset = Math.max(Number(offset) || 0, 0);
+  const safeLimit = clampInt(limit, 1, 200, 30);
+  const safeOffset = clampInt(offset, 0, 1e6, 0);
 
   // 今日已获取
   const todayGain = db.prepare(

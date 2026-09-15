@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
-import { createCache } from '../utils.js';
+import { createCache, clampInt } from '../utils.js';
 
 const router = Router();
 
@@ -11,8 +11,8 @@ const rankingCache = createCache(30_000);
 
 // 排行榜：按累计答对题数排序（真实刷题记录），支持分页、并列排名与周期筛选（全部/本周）
 router.get('/', requireAuth, (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const limit = clampInt(req.query.limit, 1, 200, 20);
+  const offset = clampInt(req.query.offset, 0, 1e6, 0);
   const range = req.query.range === 'week' ? 'week' : 'all';
   // 本周 = 最近 7 天（含今天）；全时段不加日期条件
   const dateClause = range === 'week' ? ` AND date(r.created_at) >= date('now','localtime','-6 days') ` : ' ';
@@ -78,8 +78,8 @@ router.get('/', requireAuth, (req, res) => {
 
 // 模考榜：按每人历史最高一次模考成绩排序（并列同名次），仅暴露昵称与成绩
 router.get('/exam', requireAuth, (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
-  const offset = Math.max(Number(req.query.offset) || 0, 0);
+  const limit = clampInt(req.query.limit, 1, 200, 50);
+  const offset = clampInt(req.query.offset, 0, 1e6, 0);
 
   const all = rankingCache.get('exam', () => db.prepare(
     `SELECT u.id AS user_id, u.nickname,
