@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { requireAuth } from '../auth.js';
-import { safeJson } from '../utils.js';
+import { safeJson, normalizeType } from '../utils.js';
 import { db } from '../db.js';
 import { tryConsumeAi, refundAi, aiQuota, isVip, tx } from '../commerce.js';
 import { rateLimit } from '../rateLimit.js';
@@ -250,7 +250,7 @@ ${formatHint}`;
   );
   // 整组题目入库放在同一事务内，避免中途失败留下半截脏数据
   const withIds = tx(() => normalized.map(q => {
-    const info = insertQ.run(subject, safeChapter || null, q.type, diffMap[level] || 2, q.stem, JSON.stringify(q.options), q.answer, q.analysis, 'AI生成');
+    const info = insertQ.run(subject, safeChapter || null, normalizeType(q.type), diffMap[level] || 2, q.stem, JSON.stringify(q.options), q.answer, q.analysis, 'AI生成');
     return { ...q, id: Number(info.lastInsertRowid) };
   }));
   return { questions: withIds, level, qtype };
@@ -619,7 +619,7 @@ ${formatHint}`;
       const info = insertQ.run(
         subject,
         safeChapter || null,
-        q.type,
+        normalizeType(q.type),
         diffMap[level] || 2,
         q.stem,
         JSON.stringify(q.options),

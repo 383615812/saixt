@@ -29,6 +29,20 @@ export function mapQuestions(rows) {
   return rows.map(withImages);
 }
 
+// 题型枚举规范化：全站唯一合法值为 single/multiple/judge/subjective。
+// 历史上导入脚本写入过 'subj'（主观题缩写）、'multi'（多选缩写）等非法值，
+// 会导致题型筛选落空、前端不渲染、统计口径错乱。此处统一归一，未知值兜底为 single。
+const TYPE_ALIASES = {
+  subj: 'subjective', subjective: 'subjective', essay: 'subjective', short: 'subjective',
+  multi: 'multiple', multiple: 'multiple', multi_choice: 'multiple',
+  single: 'single', choice: 'single', radio: 'single',
+  judge: 'judge', truefalse: 'judge', tf: 'judge'
+};
+export function normalizeType(t) {
+  const key = String(t ?? '').trim().toLowerCase();
+  return TYPE_ALIASES[key] || 'single';
+}
+
 // ---------- 日期工具：统一 YYYY-MM-DD 格式化 ----------
 
 export function formatDate(d) {

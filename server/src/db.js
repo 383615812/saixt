@@ -2,6 +2,7 @@
 import { readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeType } from './utils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -438,7 +439,7 @@ function seedIfEmpty(table, file, mapper) {
 seedIfEmpty('questions', 'questions.json', {
   stmt: `INSERT INTO questions (id, subject, chapter, type, difficulty, stem, options, answer, analysis, source)
          VALUES (?,?,?,?,?,?,?,?,?,?)`,
-  args: q => [q.id, q.subject, q.chapter, q.type, q.difficulty, q.stem, JSON.stringify(q.options), q.answer, q.analysis, q.source]
+  args: q => [q.id, q.subject, q.chapter, normalizeType(q.type), q.difficulty, q.stem, JSON.stringify(q.options), q.answer, q.analysis, q.source]
 });
 
 seedIfEmpty('schools', 'schools.json', {
