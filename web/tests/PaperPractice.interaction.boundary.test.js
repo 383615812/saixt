@@ -47,8 +47,8 @@ function multiPaper() {
   return {
     paper_title: '薄弱专项套卷', total: 1,
     sections: [{
-      subject: '通用技术', chapter: '结构与设计', qtype: 'multi', accuracy: 40,
-      questions: [{ id: 207, type: 'multi', stem: '以下正确的是', options: ['A. 甲', 'B. 乙', 'C. 丙'], answer: 'BC' }]
+      subject: '通用技术', chapter: '结构与设计', qtype: 'multiple', accuracy: 40,
+      questions: [{ id: 207, type: 'multiple', stem: '以下正确的是', options: ['A. 甲', 'B. 乙', 'C. 丙'], answer: 'BC' }]
     }]
   }
 }

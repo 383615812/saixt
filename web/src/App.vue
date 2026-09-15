@@ -404,13 +404,16 @@ router.afterEach(() => {
 }
 @media (max-width: 480px) {
   .footer-inner { grid-template-columns: 1fr; gap: 18px; }
-  .footer { padding: 26px 0 30px; }
+  .footer { padding: 26px 0 calc(72px + var(--safe-bottom)); }
 }
 @media (max-width: 600px) {
-  .main { padding: 18px 0 calc(36px + var(--safe-bottom)); }
-  .footer { padding: 24px 0 calc(24px + var(--safe-bottom)); }
-  .footer-inner { flex-direction: column; }
+  /* 底部固定导航栏高度为 calc(56px + safe-bottom)（见上方 .tabbar）。
+     此处三个底部间距必须留出大于该高度的余量，否则页脚末行会被底栏压住、
+     「回到顶部」按钮会完全落进底栏范围内（tabbar z-index 95 > top-btn 90）而不可点击。
+     注意本块在文件中位于 900px 断点块之后，同优先级后者覆盖前者，故必须自行给足余量。 */
+  .main { padding: 18px 0 calc(80px + var(--safe-bottom)); }
+  .footer { padding: 24px 0 calc(72px + var(--safe-bottom)); }
   .footer-note { text-align: left; }
-  .top-btn { right: 16px; bottom: calc(16px + var(--safe-bottom)); width: 40px; height: 40px; font-size: 1.1rem; }
+  .top-btn { right: 16px; bottom: calc(72px + var(--safe-bottom)); width: 40px; height: 40px; font-size: 1.1rem; }
 }
 </style>

@@ -1,4 +1,5 @@
 ﻿import { createRouter, createWebHistory } from 'vue-router'
+import { isChunkLoadError, recoverFromChunkError, clearChunkReload } from './chunkRecovery'
 
 const routes = [
   { path: '/', name: 'home', component: () => import('./views/Home.vue'), meta: { title: '首页' } },
@@ -44,15 +45,33 @@ const router = createRouter({
   }
 })
 
+// 读取登录态：localStorage 在「禁用 Cookie / 受限 WebView」下会直接抛异常，
+// 若不兜住会让 beforeEach 抛错 → 导航中断 → 整页空白
+function readToken() {
+  try {
+    return localStorage.getItem('saixt_token')
+  } catch {
+    return null
+  }
+}
+
 router.beforeEach((to) => {
-  const token = localStorage.getItem('saixt_token')
+  const token = readToken()
   if (to.meta.auth && !token && to.name !== 'login') {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 })
 
+// 懒加载 chunk 失效自愈：部署后旧页面引用的 hash 资源已不存在时，动态 import 会失败并
+// 让 <router-view> 整页空白。此处做有限次硬刷新恢复，详见 chunkRecovery.js。
+router.onError((error) => {
+  if (isChunkLoadError(error)) recoverFromChunkError()
+})
+
 router.afterEach((to) => {
   document.title = to.meta?.title ? `${to.meta.title} · 云南春招智能学习平台` : '云南春招智能学习平台'
+  // 导航成功即说明资源完好，清零自愈计数——afterEach 在懒加载组件解析完成后才触发
+  clearChunkReload()
 })
 
 export default router
