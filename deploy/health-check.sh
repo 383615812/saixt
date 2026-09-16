@@ -69,7 +69,15 @@ if [ ! -f "$DB" ]; then echo "  数据库不存在: $DB"; else
 fi
 
 echo ""
-echo "===== [7/8] AI（DeepSeek）就绪探测 ====="
+echo "===== [7/9] 支付渠道就绪探测 ====="
+if [ -f "$APP/server/scripts/pay-probe.mjs" ]; then
+  node "$APP/server/scripts/pay-probe.mjs" 2>&1 | tail -6
+else
+  echo "  pay-probe.mjs 未找到，跳过"
+fi
+
+echo ""
+echo "===== [8/9] AI（DeepSeek）就绪探测 ====="
 if [ -f "$APP/server/scripts/ai-probe.mjs" ]; then
   node "$APP/server/scripts/ai-probe.mjs" 2>&1 | tail -5
 else
@@ -77,5 +85,5 @@ else
 fi
 
 echo ""
-echo "===== [8/8] 结论 ====="
+echo "===== [9/9] 结论 ====="
 echo "  健康检查完成"
