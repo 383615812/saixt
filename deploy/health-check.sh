@@ -60,8 +60,8 @@ echo ""
 echo "===== [6/7] 数据库只读体检 ====="
 DB="$APP/server/data/saixt.db"
 if [ ! -f "$DB" ]; then echo "  数据库不存在: $DB"; else
-  if [ -f "$APP/scripts/ops/audit-data.mjs" ]; then
-    node "$APP/scripts/ops/audit-data.mjs" "$DB" 2>&1 | tail -45
+  if [ -f "$APP/server/scripts/audit-data.mjs" ]; then
+    node "$APP/server/scripts/audit-data.mjs" "$DB" 2>&1 | tail -45
   else
     echo "  audit-data.mjs 未找到，仅做基础检查"
     node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('$DB',{readOnly:true});console.log('  打开成功，users='+db.prepare('SELECT COUNT(*) c FROM users').get().c+', questions='+db.prepare('SELECT COUNT(*) c FROM questions').get().c)"
@@ -69,5 +69,13 @@ if [ ! -f "$DB" ]; then echo "  数据库不存在: $DB"; else
 fi
 
 echo ""
-echo "===== [7/7] 结论 ====="
+echo "===== [7/8] AI（DeepSeek）就绪探测 ====="
+if [ -f "$APP/server/scripts/ai-probe.mjs" ]; then
+  node "$APP/server/scripts/ai-probe.mjs" 2>&1 | tail -5
+else
+  echo "  ai-probe.mjs 未找到，跳过"
+fi
+
+echo ""
+echo "===== [8/8] 结论 ====="
 echo "  健康检查完成"
