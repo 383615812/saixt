@@ -75,6 +75,54 @@ sudo cp /tmp/ynva.env "$APP/.env"
 sudo chown -R ubuntu:ubuntu "$APP"
 sudo chmod 600 "$APP/.env"
 
+# ⚠️ 坑8：CORS 白名单写死了旧服务器 IP（62.234.79.165），迁移后失效，
+#    且 .env 的 CORS_ORIGIN 为空 → 跨域预检 400。改为从环境变量读取、
+#    支持逗号分隔多来源、过滤空值，并写入新域名。
+sudo sed -i 's|^CORS_ORIGIN=.*|CORS_ORIGIN=https://www.xlxzb.com,http://localhost:5173|' "$APP/.env"
+sudo python3 - <<'PYCORS'
+p = '/opt/ynva/main.py'
+s = open(p, encoding='utf-8').read()
+old = '''app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://62.234.79.165",
+        "http://62.234.79.165:8000",
+        os.getenv("CORS_ORIGIN", ""),
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)'''
+new = '''# CORS 白名单：本地开发来源 + 环境变量 CORS_ORIGIN（逗号分隔多来源）
+# 说明：部署在子路径 https://www.xlxzb.com/ynva/ 后，同源访问不受 CORS 影响；
+# 跨源调用（App / 小程序 / 独立前端域名）需在此显式放行。
+_CORS_LOCAL = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+_CORS_ENV = [
+    o.strip()
+    for o in (os.getenv("CORS_ORIGIN") or "").split(",")
+    if o.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_LOCAL + _CORS_ENV,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)'''
+if 'allow_origins=_CORS_LOCAL + _CORS_ENV' in s:
+    print('    CORS 已是修复版，跳过')
+elif old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print('    CORS 已改为环境变量白名单')
+else:
+    print('    ⚠️ CORS 代码块未匹配，请人工核对')
+PYCORS
+
 # ⚠️ 坑7：get_study_diary 在用户无打卡记录时，filter 条件退化成
 #    `study_date >= ""`（空串），SQLAlchemy 2.0.54 直接抛 ArgumentError
 #    → 接口 500。旧服务器 SQLAlchemy 版本宽松未暴露。无打卡时跳过查询即可。
