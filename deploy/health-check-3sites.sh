@@ -88,8 +88,77 @@ else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "前端API前缀注入" "(index.html)" "${APILINE:-未找到}")"); FAIL=$((FAIL+1))
 fi
 
+echo "=== 8) 春招 axios baseURL 前缀确认（必须是 /saixt/api）==="
+SJS=$(curl -s --max-time 15 "$BASE/saixt/" | grep -oE '/saixt/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+if [ -n "$SJS" ]; then
+  BURL=$(curl -s --max-time 25 "$BASE$SJS" | grep -oE '"/saixt/api"' | head -1)
+  if [ -n "$BURL" ]; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招axios baseURL" "(bundle)" "$BURL")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招axios baseURL" "(bundle)" "未找到 /saixt/api")"); FAIL=$((FAIL+1))
+  fi
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招axios baseURL" "(bundle)" "未找到入口JS")"); FAIL=$((FAIL+1))
+fi
+
+echo "=== 9) 两站 Service Worker 子路径自适配（sw.js 内不得有裸路径预缓存）==="
+# 云智学 sw.js：应含 BASE 变量并用 BASE + 'api'
+YNVA_SW=$(curl -s --max-time 15 "$BASE/ynva/static/sw.js")
+if echo "$YNVA_SW" | grep -q "const BASE = '/ynva'" && echo "$YNVA_SW" | grep -q "BASE + '/api/'"; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "云智学SW子路径适配" "/ynva/static/sw.js" "BASE已注入")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "云智学SW子路径适配" "/ynva/static/sw.js" "缺BASE或API判定")"); FAIL=$((FAIL+1))
+fi
+# 春招 sw.js：应含 BASE 推导 且 startsWith(BASE + 'api')，且不得再有裸 '/index.html' 预缓存
+SAI_SW=$(curl -s --max-time 15 "$BASE/saixt/sw.js")
+if echo "$SAI_SW" | grep -q "startsWith(BASE + 'api')" && ! echo "$SAI_SW" | grep -qE "^\s+'/(index\.html|logo\.svg)',?$"; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招SW子路径适配" "/saixt/sw.js" "BASE已推导")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招SW子路径适配" "/saixt/sw.js" "仍是裸路径")"); FAIL=$((FAIL+1))
+fi
+
+echo "=== 10) 春招真实业务链路（注册→登录→鉴权接口）==="
+# 只测 200 无法证明"页面能用"：这里做一次真实写入+读取，验证前后端与数据库贯通
+SP=$(date +%s | tail -c 9)
+PROBE_PHONE="19${SP}"
+[ ${#PROBE_PHONE} -eq 11 ] || PROBE_PHONE="199$(date +%s | tail -c 9)"
+REG=$(curl -s --max-time 20 -X POST "$BASE/saixt/api/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"phone\":\"$PROBE_PHONE\",\"password\":\"Probe@2026\",\"name\":\"巡检探测\"}" -o /tmp/saxt_reg.json -w '%{http_code}')
+STOK=$(curl -s --max-time 20 -X POST "$BASE/saixt/api/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"phone\":\"$PROBE_PHONE\",\"password\":\"Probe@2026\"}" \
+  | grep -oE '"token":"[^"]+"' | cut -d'"' -f4)
+if [ -n "$STOK" ]; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招注册+登录拿token" "/saixt/api/auth/*" "HTTP $REG")"); PASS=$((PASS+1))
+  for u in /api/auth/me /api/questions /api/stats/dashboard /api/checkin/me; do
+    C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$BASE/saixt$u" -H "Authorization: Bearer $STOK")
+    if [ "$C" = "200" ]; then
+      ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招$(basename $u)" "$u" "$C")"); PASS=$((PASS+1))
+    else
+      ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200)' "春招$(basename $u)" "$u" "$C")"); FAIL=$((FAIL+1))
+    fi
+  done
+  echo "  ℹ️  探测手机号 $PROBE_PHONE 已创建，需清理：DELETE FROM users WHERE phone='$PROBE_PHONE'"
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招注册+登录拿token" "/saixt/api/auth/*" "HTTP $REG 无token")"); FAIL=$((FAIL+1))
+fi
+
+# 清理探测数据：脚本在服务器本机运行时直接删库，否则打印待清理提示
+if [ -n "${PROBE_PHONE:-}" ]; then
+  if [ -f /opt/saixt/server/data/saixt.db ] && command -v node >/dev/null 2>&1; then
+    node -e "
+      const { DatabaseSync } = require('node:sqlite');
+      const db = new DatabaseSync('/opt/saixt/server/data/saixt.db');
+      try { db.exec(\"DELETE FROM users WHERE phone='$PROBE_PHONE'\"); console.log('  🧹 已清理探测手机号 $PROBE_PHONE'); }
+      catch(e) { console.log('  ⚠️ 清理失败: ' + e.message); }
+    " 2>/dev/null
+  else
+    echo "  ⚠️  探测手机号 $PROBE_PHONE 需手工清理（DELETE FROM users WHERE phone='$PROBE_PHONE'）"
+  fi
+fi
+
 echo ""
 printf '%s\n' "${ROWS[@]}"
+
 echo ""
 echo "================================"
 echo " 通过: $PASS项  失败: $FAIL项"
