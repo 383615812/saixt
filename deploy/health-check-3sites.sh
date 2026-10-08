@@ -228,24 +228,53 @@ if grep -q "<urlset" <<<"$SM" && [ "${SMN:-0}" -ge 5 ]; then
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "sitemap.xml" "/sitemap.xml" "无效或入口不足(${SMN:-0})")"); FAIL=$((FAIL+1))
 fi
-OG=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 25 "$BASE/og-cover.png")
-case "$OG" in
-  "200 image/png") ROWS+=("$(printf '  ✅ %-34s %-30s %s' "分享图 og-cover.png" "/og-cover.png" "$OG")"); PASS=$((PASS+1));;
-  *) ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200 image/png)' "分享图 og-cover.png" "/og-cover.png" "$OG")"); FAIL=$((FAIL+1));;
-esac
-for pair in "门户页:$BASE/" "职教高考:$BASE/ynva/"; do
-  nm=${pair%%:*}; uu=${pair#*:}
+# 四张分享图必须都是「可用栅格图」：微信/QQ/微博卡片只渲染 PNG/JPG，
+# 早先小龙虾用的是 SVG（/xiaolongxia/icons/og-image.svg）→ 分享出去没有缩略图，
+# 而这种问题在页面上完全看不出来（HTTP 200、文件也在），只能靠巡检守。
+for f in og-cover.png og-xiaolongxia.png og-saixt.png og-ynva.png; do
+  OG=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 25 "$BASE/$f")
+  case "$OG" in
+    "200 image/png") ROWS+=("$(printf '  ✅ %-34s %-30s %s' "分享图 $f" "/$f" "$OG")"); PASS=$((PASS+1));;
+    *) ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200 image/png)' "分享图 $f" "/$f" "$OG")"); FAIL=$((FAIL+1));;
+  esac
+done
+# 每站必须声明「自己的」分享图（不能四站共用一张，更不能指向 SVG）
+for spec in "门户页:/:og-cover.png" "小龙虾:/xiaolongxia/:og-xiaolongxia.png" \
+            "职教高考:/ynva/:og-ynva.png" "春招:/saixt/:og-saixt.png"; do
+  nm=${spec%%:*}; rest=${spec#*:}
+  pp=${rest%%:*}; want=${rest#*:}
   # 先落变量再 here-string：直接把 curl 接给 `grep -q` 时，grep 命中即退出会让 curl 吃
   # SIGPIPE(141)，pipefail 判整条管道失败 → 大页面（职教 index.html ~1MB）稳定误报。
-  body=$(curl -s --max-time 25 "$uu")
-  if grep -q "og-cover.png" <<<"$body"; then
-    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$nm og:image" "$uu" "已声明")"); PASS=$((PASS+1))
+  body=$(curl -s --max-time 25 "$BASE$pp")
+  if grep -q "og:image\" content=\"https://www.xlxzb.com/$want" <<<"$body"; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$nm og:image" "$pp" "$want")"); PASS=$((PASS+1))
   else
-    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "$nm og:image" "$uu" "未声明")"); FAIL=$((FAIL+1))
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "$nm og:image" "$pp" "未指向 $want")"); FAIL=$((FAIL+1))
   fi
 done
 
-echo "=== 14) 上传体积限制（nginx client_max_body_size，原默认 1M 会让 2MB+ 直接 413）==="
+echo "=== 14) 规范化 URL（canonical）与裸域收敛 ==="
+# xlxzb.com 与 www.xlxzb.com 都能 200 → 搜索引擎视为重复内容。四个入口都必须
+# 声明 canonical 指向 https://www.xlxzb.com/…，且页面内不得再残留裸域绝对 URL
+# （小龙虾曾整站用 https://xlxzb.com/… 写死 canonical/hreflang/og:url）。
+check_canon() {
+  local name="$1" pp="$2" expect="$3" body can apex
+  body=$(curl -s --max-time 25 "$BASE$pp")
+  can=$(grep -o 'rel="canonical" href="[^"]*"' <<<"$body" | head -1 | sed 's/.*href="//;s/"$//')
+  apex=$(grep -c 'https://xlxzb.com/' <<<"$body" 2>/dev/null)
+  if [ "$can" = "$expect" ] && [ "${apex:-0}" -eq 0 ]; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$name canonical" "$pp" "$expect")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "$name canonical" "$pp" \
+            "canonical=${can:-无} 裸域残留=${apex:-0}")"); FAIL=$((FAIL+1))
+  fi
+}
+check_canon "门户页" "/" "https://www.xlxzb.com/"
+check_canon "小龙虾" "/xiaolongxia/" "https://www.xlxzb.com/xiaolongxia/"
+check_canon "职教高考" "/ynva/" "https://www.xlxzb.com/ynva/"
+check_canon "春招" "/saixt/" "https://www.xlxzb.com/saixt/"
+
+echo "=== 15) 上传体积限制（nginx client_max_body_size，原默认 1M 会让 2MB+ 直接 413）==="
 # 判定「是否被 nginx 拦掉」而不是「业务是否接受」：用一个 1.5MB 的合法 JSON 打业务端点，
 # 只要返回的不是 nginx 的 413 HTML，就说明 nginx 已放行（业务层自行返回 4xx 属正常）。
 if [ "${SKIP_UPLOAD_PROBE:-0}" = "1" ]; then

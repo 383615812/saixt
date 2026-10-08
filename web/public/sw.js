@@ -8,7 +8,7 @@
  *   - addAll(['/index.html']) 会去请求域名根，命中同域其它站的 302 页面 → install 失败、离线功能整体失效；
  *   - startsWith('/api') 永远匹配不到 /saixt/api/... → API 离线回退形同虚设。
  * BASE 由 sw.js 自身的 URL 推导，因此同一份文件在根部署与任意子路径部署都正确。 */
-const CACHE = 'springzhaokao-v26'
+const CACHE = 'springzhaokao-v27'
 
 // sw.js 位于 <base>/sw.js → BASE = '/saixt/'（根部署时为 '/'）
 const BASE = (() => {

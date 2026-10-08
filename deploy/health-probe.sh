@@ -158,7 +158,7 @@ echo "=== 合规与静态资源（备案/主体/SEO/安全头）==="
 # 路由被吞或路径错配而 404 —— 这里做常驻护栏（HTTP 层，经 nginx 与线上完全一致）。
 ICP_EXPECT="滇ICP备2026019339号-1"
 ENTITY_EXPECT="云南文华教育科技有限责任公司"
-for pair in "robots.txt:https://www.xlxzb.com/robots.txt:rb"             "sitemap.xml:https://www.xlxzb.com/sitemap.xml:sm"             "分享图:https://www.xlxzb.com/og-cover.png:og"; do
+for pair in "robots.txt:https://www.xlxzb.com/robots.txt:x"             "sitemap.xml:https://www.xlxzb.com/sitemap.xml:x"             "分享图 og-cover:https://www.xlxzb.com/og-cover.png:x"             "分享图 og-xiaolongxia:https://www.xlxzb.com/og-xiaolongxia.png:x"             "分享图 og-saixt:https://www.xlxzb.com/og-saixt.png:x"             "分享图 og-ynva:https://www.xlxzb.com/og-ynva.png:x"; do
   N="${pair%%:*}"; rest="${pair#*:}"
   U="${rest%:*}"   # URL 自带冒号，只能从尾部截断，不能用 %%:*
   C=$(curl -s -k --resolve www.xlxzb.com:443:127.0.0.1 -m 8 -o /tmp/hp_probe_body -w '%{http_code}' "$U" 2>/dev/null)
@@ -184,6 +184,17 @@ for U in https://www.xlxzb.com/ https://www.xlxzb.com/ynva/; do
   else
     echo "安全头 $U  ${H}/5  ABNORMAL"; degraded=$((degraded+1))
   fi
+done
+
+# canonical：xlxzb.com 与 www.xlxzb.com 都能 200（不是 301），页面若不声明 canonical
+# 会被搜索引擎当成重复内容；小龙虾曾整站写死裸域，属改版易复发项，纳入常驻护栏。
+for spec in "/:https://www.xlxzb.com/"             "/xiaolongxia/:https://www.xlxzb.com/xiaolongxia/"             "/ynva/:https://www.xlxzb.com/ynva/"             "/saixt/:https://www.xlxzb.com/saixt/"; do
+  P="${spec%%:*}"; WANT="${spec#*:}"
+  BODY=$(curl -s -k --resolve www.xlxzb.com:443:127.0.0.1 -m 10 "https://www.xlxzb.com$P" 2>/dev/null)
+  case "$BODY" in
+    *"rel=\"canonical\" href=\"$WANT\""*) echo "canonical $P  $WANT  OK";;
+    *) echo "canonical $P  缺失/不匹配(期望 $WANT)  ABNORMAL"; degraded=$((degraded+1));;
+  esac
 done
 
 echo "=== 磁盘使用率 ==="

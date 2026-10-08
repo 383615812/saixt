@@ -7,7 +7,9 @@
 #        /logo.svg 曾只剩 Server 头）
 #   2) 放开 client_max_body_size（原默认 1M，实测 2MB 上传 413）
 #   3) 站点级 robots.txt / sitemap.xml（原被 PWA 正则 301 到 /xiaolongxia/）
-#   4) /og-cover.png（og:image 分享图，须显式 location，否则被静态正则接管而 404）
+#   4) /og-*.png（og:image 分享图，须显式 location，否则被静态正则接管而 404）
+#      门户 + 三站各一张：og-cover / og-xiaolongxia / og-saixt / og-ynva
+#      （微信、QQ 卡片只渲染栅格图，SVG 分享图等于没有缩略图）
 # 用法: sudo bash nginx-harden-and-seo.sh
 # ============================================================
 set -e
@@ -88,6 +90,31 @@ if old_re in block:
     block = block.replace(old_re, new_re, 1)
     changed.append('PWA 正则去掉 robots/sitemap')
 
+# ---- og:image 分享图（四张，每站一张）----
+OG_FILES = ['og-cover.png', 'og-xiaolongxia.png', 'og-saixt.png', 'og-ynva.png']
+OG_LOCS = '''
+        # ===== 品牌社交分享图（og:image，每站一张）=====
+        # 必须显式声明：否则 /og-*.png 命中静态资源正则 location，到 /var/www/html 取文件 → 404
+        # 注意必须用 `location =`（精确匹配优先级最高）；若写成正则 `~ ^/og-` 会被
+        # 前面已出现的 `\\.(js|css|png)$` 正则先匹配走（nginx 正则按出现顺序，先命中者胜）。
+''' + '\n'.join(
+    '        location = /%s {\n            alias /var/www/portal/%s;\n'
+    '            include /etc/nginx/snippets/security-headers.conf;\n        }' % (f, f)
+    for f in OG_FILES) + '\n'
+
+missing_og = [f for f in OG_FILES if ('location = /' + f) not in block]
+if missing_og:
+    # 就地替换旧的单张 og-cover 段（若存在），否则整段插入
+    tag = '# ===== 品牌社交分享图'
+    if tag in block:
+        k = block.find(tag)
+        end = block.find('\n        }', k)
+        assert end > 0, '旧 og 段结束锚点缺失'
+        block = block[:k] + OG_LOCS.strip('\n') + block[end + len('\n        }'):]
+    else:
+        block = block.rstrip('\n') + '\n' + OG_LOCS
+    changed.append('og 分享图 location ×%d（缺 %s）' % (len(OG_FILES), ','.join(missing_og)))
+
 seo_block = '''
         # ===== 站点级 robots.txt / sitemap.xml =====
         # 原被上面 PWA 正则 301 到 /xiaolongxia/，导致门户页与三站入口无法被搜索引擎按根域收录
@@ -101,18 +128,12 @@ seo_block = '''
             default_type application/xml;
             include /etc/nginx/snippets/security-headers.conf;
         }
-        # ===== 品牌社交分享图（og:image）=====
-        # 必须显式声明：否则 /og-cover.png 命中静态资源正则 location，到 /var/www/html 取文件 → 404
-        location = /og-cover.png {
-            alias /var/www/portal/og-cover.png;
-            include /etc/nginx/snippets/security-headers.conf;
-        }
 '''
-if 'location = /og-cover.png' not in block:
+if 'location = /robots.txt' not in block:
     marker = '# ===== 研途AI (saixt) 子系统'
     assert marker in block, 'saixt 段锚点缺失，无法插入 SEO 段'
     block = block.replace(marker, '\n\n' + seo_block.strip('\n') + '\n\n                ' + marker, 1)
-    changed.append('robots/sitemap/og-cover location')
+    changed.append('robots/sitemap location')
 
 s = head + block + tail
 io.open(p, 'w', encoding='utf-8').write(s)
