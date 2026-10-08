@@ -54,9 +54,8 @@ cat > /tmp/_docker_lr <<EOF
 # xiaolongxia-order-service）没有上限、会无限增长。copytruncate 无需重启容器。
 # 注意：已受 docker 自身 max-file 轮转的容器会同时命中本规则，属正常，不会丢数据。
 /var/lib/docker/containers/*/*-json.log {
-    daily
-    rotate 3
     size ${ROT_MAX_MB}M
+    rotate 3
     copytruncate
     compress
     delaycompress
@@ -69,13 +68,24 @@ rm -f /tmp/_docker_lr
 echo "  已写入 $LR"
 sudo logrotate -d "$LR" 2>&1 | grep -E "considering|error|reading|rotating|log needs|does not need" | head -12
 echo
-echo "  （logrotate 由系统 logrotate.timer 每日自动执行，无需另加 cron）"
-systemctl list-timers logrotate.timer --no-pager 2>/dev/null | head -3
+echo "  注意：必须是 size-only（已去掉 daily）。daily+size 组合会让 logrotate 在 24h 内即使超 50M 也不轮转，等于没上限。"
 
 echo
 echo "=== [3] 复验：是否还有超限日志 ==="
 REST=$(sudo find "$LOG_DIR" -name '*-json.log' -size +${THRESH_MB}M 2>/dev/null | wc -l)
 echo "  仍超限文件数: $REST"
 echo
-echo "提示：想让存量容器真正带上 50M 上限（而非靠 logrotate 兜底），需在维护窗口执行："
+echo "=== [4] 安装高频 logrotate（root cron.d，每 10 分钟强制执行上限）==="
+# 关键：docker 日志属主是 root，logrotate 必须以 root 运行，不能放进 ubuntu 用户 crontab。
+# 仅 size-only 还不够——系统 logrotate 默认每天才跑一次，快日志一天能涨到 ~1GB 撑爆磁盘。
+# 用 /etc/cron.d 每 10 分钟以 root 跑一次，确保任何日志一旦越过 50M 立即被截断。
+cat > /tmp/_docker_lr_cron <<'LRC'
+*/10 * * * * root /usr/sbin/logrotate /etc/logrotate.d/docker-containers >/dev/null 2>&1
+LRC
+sudo install -m 644 /tmp/_docker_lr_cron /etc/cron.d/docker-logrotate
+rm -f /tmp/_docker_lr_cron
+echo "  已写入 /etc/cron.d/docker-logrotate（root，每 10 分钟）"
+echo
+echo "提示：logrotate 现在每 10 分钟（root cron.d）强制把存量容器日志压在 50M 内；"
+echo "      若想让容器自身带上 docker max-size（而非靠 logrotate 兜底），仍需维护窗口 force-recreate："
 echo "  cd <xiaolongxia compose 目录> && docker compose up -d --force-recreate gateway order-service"
