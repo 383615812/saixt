@@ -72,24 +72,34 @@ fi
 
 # ⚠️ 只测 HTTP 200 会漏掉「页面能开但前端 API 全挂」这类子路径部署故障
 #    （前端用绝对路径 /api/*，迁到子路径后会打到同域其它站）。
-#    这里模拟真实链路：登录 demo 账号拿 token，再打业务接口。
-echo "=== 6) 前端 API 链路（token + 业务接口，验证子路径前缀正确）==="
-TOKEN=$(curl -s --max-time 15 -X POST "$BASE/ynva/api/auth/login" -H 'Content-Type: application/json' \
-  -d '{"username":"demo_student","password":"__wrong__"}' \
+# ⚠️ 更严重的历史缺陷：本节原先用「故意错误的口令」登录，拿不到 token 就整段跳过，
+#    ⇒ 职教 register 500（bcrypt 5.x 与 passlib 1.7.4 不兼容）与
+#       study-diary 500（SQLAlchemy「空串条件」ArgumentError）
+#       两个**真实用户级故障**在 67 项全绿的巡检里完全隐身（靠翻 nginx access log 才发现）。
+#    现改为「真实注册 → 登录 → 业务接口」全链路，并清理探测账号。
+echo "=== 6) 职教真实业务链路（注册→登录→鉴权接口）==="
+YPROBE="zzprobe$(date +%s | tail -c 9)"
+YREG=$(curl -s --max-time 20 -X POST "$BASE/ynva/api/auth/register" -H 'Content-Type: application/json' \
+  -d "{\"username\":\"$YPROBE\",\"password\":\"Probe@2026\",\"display_name\":\"巡检探测\"}" \
+  -o /tmp/ynva_reg.json -w '%{http_code}')
+YTOK=$(curl -s --max-time 20 -X POST "$BASE/ynva/api/auth/login" -H 'Content-Type: application/json' \
+  -d "{\"username\":\"$YPROBE\",\"password\":\"Probe@2026\"}" \
   | grep -oE '"access_token":"[^"]+"' | cut -d'"' -f4)
-if [ -z "$TOKEN" ]; then
-  # 探测账号不存在时用注册做只读探测（失败也仅记为提示，不计失败项）
-  echo "  ℹ️  demo_student 登录失败（可能口令不同），跳过带 token 的业务接口检查"
-  ROWS+=("$(printf '  ℹ️ %-34s %-30s %s' "云智学token链路" "(需有效账号)" "跳过")")
-else
-  for u in /api/auth/me /api/users/1/today-focus /api/users/1/study-diary; do
-    C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$BASE/ynva$u" -H "Authorization: Bearer $TOKEN")
+YID=$(grep -oE '"id":[0-9]+' /tmp/ynva_reg.json 2>/dev/null | head -1 | cut -d: -f2)
+[ -n "${YID:-}" ] || YID=1
+if [ -n "$YTOK" ]; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教注册+登录拿token" "/ynva/api/auth/*" "注册HTTP $YREG")"); PASS=$((PASS+1))
+  for u in "/api/auth/me" "/api/users/$YID/today-focus" "/api/users/$YID/study-diary"; do
+    C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$BASE/ynva$u" -H "Authorization: Bearer $YTOK")
     if [ "$C" = "200" ]; then
-      ROWS+=("$(printf '  ✅ %-34s %-30s %s' "云智学$(basename $u)" "$u" "$C")"); PASS=$((PASS+1))
+      ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教$(basename $u)" "$u" "$C")"); PASS=$((PASS+1))
     else
-      ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200)' "云智学$(basename $u)" "$u" "$C")"); FAIL=$((FAIL+1))
+      ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200)' "职教$(basename $u)" "$u" "$C")"); FAIL=$((FAIL+1))
     fi
   done
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教注册+登录拿token" "/ynva/api/auth/*" "注册HTTP $YREG 无token")"); FAIL=$((FAIL+1))
+  echo "  ℹ️  注册返回体: $(head -c 200 /tmp/ynva_reg.json 2>/dev/null)"
 fi
 
 echo "=== 7) 前端 API 前缀注入确认（const API 必须指向 /ynva）==="
@@ -135,7 +145,7 @@ SP=$(date +%s | tail -c 9)
 PROBE_PHONE="19${SP}"
 [ ${#PROBE_PHONE} -eq 11 ] || PROBE_PHONE="199$(date +%s | tail -c 9)"
 REG=$(curl -s --max-time 20 -X POST "$BASE/saixt/api/auth/register" -H 'Content-Type: application/json' \
-  -d "{\"phone\":\"$PROBE_PHONE\",\"password\":\"Probe@2026\",\"name\":\"巡检探测\"}" -o /tmp/saxt_reg.json -w '%{http_code}')
+  -d "{\"phone\":\"$PROBE_PHONE\",\"password\":\"Probe@2026\",\"nickname\":\"巡检探测\"}" -o /tmp/saxt_reg.json -w '%{http_code}')
 STOK=$(curl -s --max-time 20 -X POST "$BASE/saixt/api/auth/login" -H 'Content-Type: application/json' \
   -d "{\"phone\":\"$PROBE_PHONE\",\"password\":\"Probe@2026\"}" \
   | grep -oE '"token":"[^"]+"' | cut -d'"' -f4)
@@ -154,17 +164,27 @@ else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招注册+登录拿token" "/saixt/api/auth/*" "HTTP $REG 无token")"); FAIL=$((FAIL+1))
 fi
 
-# 清理探测数据：脚本在服务器本机运行时直接删库，否则打印待清理提示
+# 清理探测数据。注意两个历史坑：
+#  1) 原先内联 `node -e "... " 2>/dev/null` 把一切错误都吞掉 —— 失败也静默，
+#     探测账号就是在无人察觉的情况下累积的（曾查到 id 270/271/272 三个残留）。
+#  2) 原先 register 传的是 `name`，而接口读的是 `nickname` ⇒ 昵称被忽略、
+#     退化成「考生+尾号4位」，与真实用户不可区分（现已改为传 nickname）。
+# users 被 27 张子表外键引用，必须连子表行一起删 ⇒ 统一交给 saixt-probe-cleanup.cjs。
 if [ -n "${PROBE_PHONE:-}" ]; then
-  if [ -f /opt/saixt/server/data/saixt.db ] && command -v node >/dev/null 2>&1; then
-    node -e "
-      const { DatabaseSync } = require('node:sqlite');
-      const db = new DatabaseSync('/opt/saixt/server/data/saixt.db');
-      try { db.exec(\"DELETE FROM users WHERE phone='$PROBE_PHONE'\"); console.log('  🧹 已清理探测手机号 $PROBE_PHONE'); }
-      catch(e) { console.log('  ⚠️ 清理失败: ' + e.message); }
-    " 2>/dev/null
+  if [ -x /home/ubuntu/saixt-probe-cleanup.cjs ] && [ -f /opt/saixt/server/data/saixt.db ] && command -v node >/dev/null 2>&1; then
+    node /home/ubuntu/saixt-probe-cleanup.cjs --phone "$PROBE_PHONE" 2>&1 | sed 's/^/  /'
   else
-    echo "  ⚠️  探测手机号 $PROBE_PHONE 需手工清理（DELETE FROM users WHERE phone='$PROBE_PHONE'）"
+    echo "  ⚠️  探测手机号 $PROBE_PHONE 未清理（非服务器本机运行）——周任务会兜底扫除"
+  fi
+fi
+
+# 清理职教探测账号（第 6 段真实注册产生）。
+# 职教 users 表被约 20 张子表外键引用且多为非空约束，删起来麻烦 ⇒ 用通用外键清理脚本。
+if [ -n "${YPROBE:-}" ]; then
+  if [ -x /home/ubuntu/ynva-probe-cleanup.sh ] && command -v psql >/dev/null 2>&1; then
+    bash /home/ubuntu/ynva-probe-cleanup.sh "zzprobe%" 2>&1 | sed 's/^/  /'
+  else
+    echo "  ⚠️  职教探测账号 $YPROBE 需手工清理（在服务器执行 bash /home/ubuntu/ynva-probe-cleanup.sh）"
   fi
 fi
 
@@ -396,18 +416,21 @@ else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教登录限流" "11 次同账号登录" "无限流（可无限撞库）")"); FAIL=$((FAIL+1))
 fi
 
-# 17.3 职教 AI 命题端点限流：该端点会让大模型真实计费，探测用空 subject 触发处理函数提前
-# 返回 —— 既不调用大模型也不写库；但限流依赖在进入处理函数之前就已计数，第 6 次仍应 429。
+# 17.3 职教 AI 命题端点限流：该端点会让大模型真实计费，故必须有硬限流。
+# 限流为「按账号 8/min（校园 NAT 友好）+ 按 IP 200/min 兜底」（见 fix-ynva-ratelimit.sh）。
+# 探测用空 subject：处理函数提前返回（不调大模型、不写库），但限流依赖在处理函数之前已计数，
+# 故对「同一账号」连发 9 次应至少 1 次 429（证明 per-user 桶生效）。
+# 用不存在的高位 user_id(999999) 避免消耗真实用户的限流桶。
 AILH=0
-for _i in $(seq 1 6); do
+for _i in $(seq 1 9); do
   _c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' \
-       -d '{}' "$BASE/ynva/api/users/1/ai-generate-questions")
+       -d '{}' "$BASE/ynva/api/users/999999/ai-generate-questions")
   [ "$_c" = "429" ] && AILH=$((AILH+1))
 done
 if [ "$AILH" -ge 1 ]; then
-  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教AI命题限流" "6 次空 subject" "$AILH 次 429")"); PASS=$((PASS+1))
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教AI命题限流" "9 次同账号" "$AILH 次 429（per-user 桶生效）")"); PASS=$((PASS+1))
 else
-  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教AI命题限流" "6 次空 subject" "无限流（可烧大模型额度）")"); FAIL=$((FAIL+1))
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教AI命题限流" "9 次同账号" "无限流（可烧大模型额度）")"); FAIL=$((FAIL+1))
 fi
 
 echo "=== 18) 应用端口不得公网直连（明文 HTTP 会绕过 TLS/安全头/限流）==="
