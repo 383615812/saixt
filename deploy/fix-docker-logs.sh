@@ -18,8 +18,8 @@ set -uo pipefail
 cd /tmp || exit 2
 
 LOG_DIR=/var/lib/docker/containers
-THRESH_MB=${1:-100}     # 超过该体积的日志立即截断
-ROT_MAX_MB=${2:-100}    # logrotate 兜底阈值
+THRESH_MB=${1:-50}      # 超过该体积的日志立即截断
+ROT_MAX_MB=${2:-50}     # logrotate 兜底阈值（与 daemon.json 的 50m 对齐）
 LR=/etc/logrotate.d/docker-containers
 
 echo "=== [0] 现状：超过 ${THRESH_MB}MB 的容器日志 ==="
@@ -55,8 +55,8 @@ cat > /tmp/_docker_lr <<EOF
 # 注意：已受 docker 自身 max-file 轮转的容器会同时命中本规则，属正常，不会丢数据。
 /var/lib/docker/containers/*/*-json.log {
     daily
-    rotate 4
-    maxsize ${ROT_MAX_MB}M
+    rotate 3
+    size ${ROT_MAX_MB}M
     copytruncate
     compress
     delaycompress

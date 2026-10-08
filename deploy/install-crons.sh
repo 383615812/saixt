@@ -7,6 +7,7 @@
 #   40 3  * * *   backup-3sites.sh         三站数据库备份
 #   30 4  * * 0   verify-backups.sh        每周日「备份可恢复性演练」
 #   15 5  * * 0   disk-hygiene.sh          每周日磁盘卫生（清构建缓存 + 出体检报告）
+#   20 5  * * *   probe-cleanup            每日扫除巡检探测账号（两站）
 #
 # 注意：crontab 里 % 是特殊字符（换行），必须转义为 \% —— 本脚本不含 %。
 # ============================================================================
@@ -38,6 +39,9 @@ add_line "verify-backups.sh"  '30 4 * * 0 /home/ubuntu/verify-backups.sh >> /hom
 # 磁盘卫生：只自动清理「零风险」的两项（构建缓存 + 已退出容器），
 # 备份目录/镜像的删除一律不自动执行，只写进报告供人审阅。
 add_line "disk-hygiene.sh"    '15 5 * * 0 /home/ubuntu/disk-hygiene.sh --buildcache --containers --apply > /home/ubuntu/disk-hygiene.log 2>&1; /home/ubuntu/disk-hygiene.sh >> /home/ubuntu/disk-hygiene.log 2>&1; if grep -qE "(8[5-9]|9[0-9])% /" /home/ubuntu/disk-hygiene.log; then { echo "=== $(date) 磁盘水位告警 ==="; grep -E "(8[5-9]|9[0-9])% /" /home/ubuntu/disk-hygiene.log; } >> /home/ubuntu/health-probe-alerts.log; fi'
+# 探测账号兜底扫除：巡检若从远程机器运行，本机清理分支不生效，账号会残留。
+# 每日按「职教用户名 zzprobe*」「春招昵称 巡检探测」两个**明确指纹**清扫，不会误伤真实用户。
+add_line "probe-cleanup"      '20 5 * * * { echo "=== $(date) ==="; /home/ubuntu/ynva-probe-cleanup.sh 2>&1; node /home/ubuntu/saixt-probe-cleanup.cjs 2>&1; } >> /home/ubuntu/probe-cleanup.log 2>&1'
 
 crontab "$TMP" && rm -f "$TMP"
 echo
