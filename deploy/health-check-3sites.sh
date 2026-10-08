@@ -23,7 +23,7 @@ chk() { # chk <名称> <路径> <期望码>
   fi
 }
 
-echo "=== 1) 小龙虾AI学习系统 (/xiaolongxia/) ==="
+echo "=== 1) 小龙虾AI学习系统 (/xiaolongxia/) + 商业导航页 (/ /portal/) ==="
 chk "小龙虾首页"        "/xiaolongxia/"                     200
 chk "小龙猫favicon"     "/xiaolongxia/icons/favicon.svg"    200
 chk "小龙虾PWA图标"     "/xiaolongxia/icons/icon-192.png"   200
@@ -41,13 +41,15 @@ chk "云智学OpenAPI"     "/ynva/openapi.json"               200
 chk "云智学静态页"      "/ynva/static/index.html"          200
 chk "云智学知识图谱"    "/ynva/static/knowledge-graph.html" 200
 
-echo "=== 4) 根路径跳转 ==="
-ROOT=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$BASE/")
-if [ "$ROOT" = "302" ]; then
-  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "根路径302跳转" "/" "$ROOT")"); PASS=$((PASS+1))
+echo "=== 4) 根路径（商业导航页，2026-10-08 起替代原302跳转）==="
+ROOT=$(curl -s -o /tmp/_portal_root.html -w '%{http_code}' --max-time 15 "$BASE/")
+if [ "$ROOT" = "200" ] && grep -q '知源教育' /tmp/_portal_root.html 2>/dev/null; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "根路径商业导航页" "/" "$ROOT")"); PASS=$((PASS+1))
 else
-  ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 302)' "根路径302跳转" "/" "$ROOT")"); FAIL=$((FAIL+1))
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "根路径商业导航页" "/" "$ROOT")"); FAIL=$((FAIL+1))
 fi
+# 备用入口
+chk "导航页备用入口"      "/portal/"                     200
 
 echo "=== 5) 登录鉴权冒烟（期望 401 = 鉴权生效，非 404/500）==="
 LOGC=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST "$BASE/ynva/api/auth/login" \

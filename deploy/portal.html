@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知源教育 · 让每一步成长都有迹可循</title>
+<meta name="description" content="知源教育旗下三大学习系统：中小学AI素养教育、云南中职春招升学平台、职教高考AI Agent。覆盖 K12 到中高职全学段，用AI 陪伴每一段成长。">
+<meta name="keywords" content="AI教育,中小学AI,春招,职教高考,中职升学,智能学习">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236366f1'/><stop offset='1' stop-color='%2306b6d4'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='serif'>知</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c18;
+  --bg-soft:#0d1424;
+  --card:rgba(255,255,255,.045);
+  --card-hover:rgba(255,255,255,.075);
+  --border:rgba(255,255,255,.10);
+  --border-strong:rgba(255,255,255,.20);
+  --text:#f2f5fa;
+  --text-dim:#a5b0c4;
+  --text-faint:#6b7689;
+  --c1:#6366f1;
+  --c2:#06b6d4;
+  --c3:#f59e0b;
+  --gold:#d4af6a;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* 背景纹理 */
+body::before{
+  content:'';position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%,rgba(99,102,241,.18),transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 10%,rgba(6,182,212,.10),transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 40%,rgba(245,158,11,.05),transparent 60%);
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:-1;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,#000 40%,transparent 100%);
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ========== 顶栏 ========== */
+header{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(20px);background:rgba(8,12,24,.72);
+  border-bottom:1px solid var(--border);
+}
+.nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:600;letter-spacing:.3px}
+.brand-mark{
+  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  font-family:serif;font-size:18px;color:#fff;
+  box-shadow:0 3px 14px rgba(99,102,241,.4);
+}
+.brand-txt{font-size:17px}
+.brand-txt span{color:var(--text-faint);font-weight:400;font-size:13px;margin-left:8px}
+.nav-links{display:flex;gap:26px;font-size:14px;color:var(--text-dim)}
+.nav-links a{color:inherit;text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+
+/* ========== 主视觉 ========== */
+.hero{padding:96px 0 68px;text-align:center;position:relative}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:9px;
+  font-size:12.5px;letter-spacing:2.5px;color:var(--gold);
+  border:1px solid rgba(212,175,106,.28);border-radius:100px;
+  padding:7px 20px;margin-bottom:34px;text-transform:uppercase;
+}
+.eyebrow::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+h1{
+  font-size:clamp(34px,5.4vw,62px);font-weight:700;
+  letter-spacing:-1.2px;line-height:1.24;margin-bottom:26px;
+}
+h1 .grad{
+  background:linear-gradient(105deg,#a5b4fc 0%,#67e8f9 45%,#fcd34d 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-sub{
+  font-size:17px;color:var(--text-dim);max-width:660px;margin:0 auto 44px;line-height:1.85;
+}
+.hero-stats{
+  display:flex;justify-content:center;gap:0;flex-wrap:wrap;
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:26px 0;margin-top:8px;
+}
+.stat{flex:1;min-width:150px;padding:0 22px;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-num{font-size:29px;font-weight:700;letter-spacing:-.5px;line-height:1.2}
+.stat-lbl{font-size:12.5px;color:var(--text-faint);margin-top:5px;letter-spacing:.4px}
+
+/* ========== 引导条 ========== */
+.picker-head{text-align:center;margin-bottom:44px}
+.picker-head h2{font-size:15px;color:var(--text-faint);font-weight:400;letter-spacing:3px;margin-bottom:14px}
+.picker-head p{font-size:23px;font-weight:600}
+
+/* ========== 卡片 ========== */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-bottom:22px}
+.card{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:34px 30px 30px;overflow:hidden;
+  transition:transform .35s cubic-bezier(.2,.7,.3,1),border-color .35s,background .35s,box-shadow .35s;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--accent);opacity:.55;transition:opacity .35s;
+}
+.card::after{
+  content:'';position:absolute;top:-60px;right:-60px;width:180px;height:180px;border-radius:50%;
+  background:var(--accent);opacity:0;filter:blur(60px);transition:opacity .45s;
+}
+.card:hover{transform:translateY(-6px);border-color:var(--border-strong);background:var(--card-hover);box-shadow:0 22px 50px -18px rgba(0,0,0,.75)}
+.card:hover::before{opacity:1}
+.card:hover::after{opacity:.13}
+.c1{--accent:var(--c1)} .c2{--accent:var(--c2)} .c3{--accent:var(--c3)}
+
+.card-badge{
+  display:inline-block;font-size:11.5px;letter-spacing:1.2px;font-weight:600;
+  color:var(--accent);border:1px solid currentColor;border-radius:5px;
+  padding:3px 10px;margin-bottom:18px;align-self:flex-start;opacity:.9;
+}
+.card-icon{
+  width:52px;height:52px;border-radius:13px;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-size:24px;margin-bottom:20px;
+  box-shadow:0 8px 24px -6px var(--accent);
+}
+.card h3{font-size:23px;font-weight:650;margin-bottom:7px;letter-spacing:-.3px}
+.card-en{font-size:11.5px;color:var(--text-faint);letter-spacing:1.6px;text-transform:uppercase;margin-bottom:18px}
+.card-desc{font-size:14.5px;color:var(--text-dim);line-height:1.85;margin-bottom:22px;flex:1}
+.card-feats{list-style:none;margin-bottom:26px}
+.card-feats li{
+  font-size:13.5px;color:var(--text-dim);padding-left:20px;position:relative;margin-bottom:9px;
+}
+.card-feats li::before{
+  content:'';position:absolute;left:0;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--accent);
+}
+.card-cta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 19px;border-radius:10px;
+  background:rgba(255,255,255,.045);border:1px solid var(--border);
+  font-size:14.5px;font-weight:600;color:var(--text);
+  text-decoration:none;transition:all .3s;
+}
+.card:hover .card-cta{background:var(--accent);border-color:var(--accent);color:#fff}
+.card-cta svg{transition:transform .3s}
+.card:hover .card-cta svg{transform:translateX(4px)}
+
+/* ========== 选择指引 ========== */
+.guide{
+  background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+  border:1px solid var(--border);border-radius:16px;padding:36px 34px;margin-bottom:22px;
+}
+.guide-title{font-size:17px;font-weight:600;margin-bottom:6px}
+.guide-sub{font-size:13.5px;color:var(--text-faint);margin-bottom:26px}
+.guide-row{
+  display:grid;grid-template-columns:150px 1fr;gap:20px;
+  padding:15px 0;border-top:1px solid var(--border);align-items:baseline;
+}
+.guide-row:first-of-type{border-top:none}
+.guide-ask{font-size:14px;color:var(--text-dim);font-weight:500}
+.guide-ans{font-size:14.5px;line-height:1.8}
+.guide-ans b{color:var(--text);font-weight:600}
+.tag{
+  display:inline-block;padding:2px 9px;border-radius:5px;font-size:12.5px;
+  font-weight:600;margin-right:7px;border:1px solid;
+}
+.tag-a{color:#a5b4fc;border-color:rgba(99,102,241,.42);background:rgba(99,102,241,.10)}
+.tag-b{color:#67e8f9;border-color:rgba(6,182,212,.42);background:rgba(6,182,212,.10)}
+.tag-c{color:#fcd34d;border-color:rgba(245,158,11,.42);background:rgba(245,158,11,.10)}
+.guide-note{font-size:13px;color:var(--text-faint);margin-top:10px}
+
+/* ========== 页脚 ========== */
+footer{border-top:1px solid var(--border);margin-top:76px;padding:40px 0 46px}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.foot-l{font-size:13px;color:var(--text-faint);line-height:2}
+.foot-r{font-size:12.5px;color:var(--text-faint);text-align:right}
+.foot-r a{color:var(--text-dim);text-decoration:none;margin-left:20px;transition:color .2s}
+.foot-r a:hover{color:var(--text)}
+
+/* ========== 响应式 ========== */
+@media(max-width:940px){
+  .cards{grid-template-columns:1fr;max-width:520px;margin-left:auto;margin-right:auto}
+  .hero{padding:66px 0 48px}
+  .guide-row{grid-template-columns:1fr;gap:5px}
+  .guide-ask{font-size:13px;color:var(--text-faint)}
+  .stat{min-width:50%;border-right:none;padding:14px 10px}
+  .stat:nth-child(odd){border-right:1px solid var(--border)}
+  .nav-links{display:none}
+  .foot{flex-direction:column;align-items:flex-start}
+  .foot-r{text-align:left}
+  .foot-r a{margin:0 18px 0 0}
+}
+@media(max-width:560px){
+  .wrap{padding:0 18px}
+  .card{padding:28px 22px}
+  .hero-stats{gap:0}
+  .stat-num{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav class="nav">
+      <div class="brand">
+        <div class="brand-mark">知</div>
+        <div class="brand-txt">知源教育<span>ZHIYUAN EDU</span></div>
+      </div>
+      <div class="nav-links">
+        <a href="#paths">学习体系</a>
+        <a href="#guide">如何选择</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ 主视觉 ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">AI 伴学· 全学段成长</div>
+    <h1>让每一个学段<br>都有<span class="grad">专属的成长引擎</span></h1>
+    <p class="hero-sub">
+      从小学启蒙到中职升学，我们把AI 真正装进课堂与自习室——
+      不是炫技的工具，而是能诊断、能陪伴、能看见进步的成长伙伴。
+      请选择你的目标，我们为你指路。
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">覆盖学段</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">28,500+</div>
+        <div class="stat-lbl">题库容量</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">435</div>
+        <div class="stat-lbl">职教知识点</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">17</div>
+        <div class="stat-lbl">AI 教学服务</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 三大入口 ============ -->
+<section class="wrap" id="paths">
+  <div class="picker-head">
+    <h2>请选择你的身份</h2>
+    <p>三条路径，同一个目标：让孩子走得更稳、更远</p>
+  </div>
+
+  <div class="cards">
+
+    <!-- 春招 -->
+    <article class="card c1">
+      <div class="card-badge">中职 · 高职</div>
+      <div class="card-icon">📘</div>
+      <h3>云南春招智能学习平台</h3>
+      <div class="card-en">Spring Recruitment · Yunnan</div>
+      <p class="card-desc">
+        面向云南省中职、高职学生的升学备考平台。覆盖语文、数学、英语、
+        信息技术等主干科目，用真实考题与AI 讲解，把考点拆到你看得懂。
+      </p>
+      <ul class="card-feats">
+        <li>28,516 道真题精选，知识点逐题标注</li>
+        <li>AI 讲解 + 智能组卷，练完即懂</li>
+        <li>错题本自动归集，考前只看你该看的</li>
+        <li>学习数据看板，进步看得见</li>
+      </ul>
+      <a class="card-cta" href="/saixt/" target="_blank" rel="noopener">
+        进入平台
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </article>
+
+    <!-- 职教高考 -->
+    <article class="card c2">
+      <div class="card-badge">职教高考</div>
+      <div class="card-icon">🎓</div>
+      <h3>云智学 · 职教高考 AI Agent</h3>
+      <div class="card-en">YunZhiXue · Vocational AI Agent</div>
+      <p class="card-desc">
+        为职教高考学生打造的 AI 学习搭子。围绕电工、机械、计算机、
+        铁道等五大专业类，用知识图谱串起每一个考点，陪你从零构建学科能力。
+      </p>
+      <ul class="card-feats">
+        <li>五大专业类全覆盖，883 道核心题</li>
+        <li>435 个知识点，AI 智能规划学习路径</li>
+        <li>对话式答疑，随时追问"为什么"</li>
+        <li>学习日记与阶段小结，成长留痕</li>
+      </ul>
+      <a class="card-cta" href="/ynva/" target="_blank" rel="noopener">
+        进入平台
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </article>
+
+    <!-- 小龙虾 -->
+    <article class="card c3">
+      <div class="card-badge">小学 · 初中 · 高中</div>
+      <div class="card-icon">🦞</div>
+      <h3>小龙虾 AI 教育平台</h3>
+      <div class="card-en">Lobster AI · K12</div>
+      <p class="card-desc">
+        面向 K12 全学段的 AI 素养教育平台。从学习规划、错题诊断到
+        知识图谱与家校互通，用 17 个微服务支撑起一堂真正的 AI 助教课。
+      </p>
+      <ul class="card-feats">
+        <li>智能学习规划，因材施教</li>
+        <li>AI 辅导答疑与学习行为分析</li>
+        <li>知识图谱，串起学科脉络</li>
+        <li>家长端 / 教师端，家校同频</li>
+      </ul>
+      <a class="card-cta" href="/xiaolongxia/" target="_blank" rel="noopener">
+        进入平台
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </article>
+
+  </div>
+
+  <!-- ============ 选择指引 ============ -->
+  <div class="guide" id="guide">
+    <div class="guide-title">不确定选哪个？</div>
+    <div class="guide-sub">按下面的问题对号入座，通常三十秒就能定下来。</div>
+
+    <div class="guide-row">
+      <div class="guide-ask">学生目前学段？</div>
+      <div class="guide-ans">
+        <span class="tag tag-c">小学 / 初中 / 高中</span>选<b>小龙虾 AI 教育平台</b>——K12 全学段覆盖，重在素养与习惯养成。
+        <div class="guide-note">若学校已明确要走职教高考路线，请看下一行。</div>
+      </div>
+    </div>
+
+    <div class="guide-row">
+      <div class="guide-ask">目标是职教高考？</div>
+      <div class="guide-ans">
+        <span class="tag tag-b">职教高考</span>选<b>云智学</b>——专业类分明的知识图谱 + AI 对话答疑，是冲本科的主战场。
+      </div>
+    </div>
+
+    <div class="guide-row">
+      <div class="guide-ask">目标是春招 / 单招？</div>
+      <div class="guide-ans">
+        <span class="tag tag-a">春招 / 单招</span>选<b>云南春招智能学习平台</b>——按科目刷真题，最快补齐文化课短板。
+      </div>
+    </div>
+
+    <div class="guide-row">
+      <div class="guide-ask">还没想好？</div>
+      <div class="guide-ans">
+        <b>先从最紧迫的那场考试选起。</b>升学节点不会等人，先解决眼前的，
+        长远的能力建设可以随后跟上。三个系统的账号互不冲突，随时切换。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 页脚 ============ -->
+<footer>
+  <div class="wrap foot">
+    <div class="foot-l">
+      知源教育 · AI 伴学生成长<br>
+      三个学习系统，一套成长方法论
+    </div>
+    <div class="foot-r">
+      <a href="/xiaolongxia/">K12 AI 教育</a>
+      <a href="/saixt/">春招升学</a>
+      <a href="/ynva/">职教高考</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
