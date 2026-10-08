@@ -197,6 +197,26 @@ for spec in "/:https://www.xlxzb.com/"             "/xiaolongxia/:https://www.xl
   esac
 done
 
+# 性能与错误语义：catch-all 曾被写成 `return 302 /xiaolongxia/`，任何错链都被兜成
+# 「首页」（软 404），搜索收录与用户体验双输；HTTP/2 也曾在改 nginx 时被无意关掉。
+C404=$(curl -s -k --resolve www.xlxzb.com:443:127.0.0.1 -m 8 -o /tmp/hp404 -w '%{http_code}' https://www.xlxzb.com/__probe404__ 2>/dev/null)
+case "$C404" in
+  404) echo "未知路径 404 语义  正确  OK";;
+  *) echo "未知路径 404 语义  code=$C404（应为 404）  ABNORMAL"; degraded=$((degraded+1));;
+esac
+if command -v openssl >/dev/null 2>&1; then
+  ALPN=$(echo | openssl s_client -connect 127.0.0.1:443 -servername www.xlxzb.com -alpn h2 2>/dev/null | grep -i "ALPN protocol" | head -1)
+  case "$ALPN" in
+    *h2*) echo "HTTP/2 协商  h2  OK";;
+    *) echo "HTTP/2 协商  未协商出 h2  ABNORMAL"; degraded=$((degraded+1));;
+  esac
+fi
+CC_SAI=$(curl -sI -k --resolve www.xlxzb.com:443:127.0.0.1 -m 8 https://www.xlxzb.com/saixt/ 2>/dev/null | grep -ic 'cache-control')
+case "$CC_SAI" in
+  *[1-9]*) echo "春招入口可校验  OK";;
+  *) echo "春招入口可校验  异常  ABNORMAL"; degraded=$((degraded+1));;
+esac
+
 echo "=== 磁盘使用率 ==="
 df -P -h / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++' | while read -r fs size used avail use mount; do
   pct=${use%\%}

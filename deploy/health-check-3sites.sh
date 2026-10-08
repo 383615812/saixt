@@ -295,6 +295,68 @@ else
   rm -f "$BIG" /tmp/upload_probe.out
 fi
 
+echo "=== 16) 性能与错误语义（HTTP/2 / 静态缓存 / 404 语义）==="
+# 这几项都是「改错了页面也不会报错、但体验与收录实打实变差」的类型，必须常驻看护。
+HOST=$(printf '%s' "$BASE" | sed -E 's#^https?://##; s#/.*$##')
+
+# 16.1 HTTP/2：证书的 ALPN 是否协商出 h2（nginx 1.18 需 `listen 443 ssl http2;`）
+if command -v openssl >/dev/null 2>&1; then
+  ALPN=$(echo | openssl s_client -connect "$HOST:443" -servername "$HOST" -alpn h2 2>/dev/null \
+         | grep -i "ALPN protocol" | head -1)
+  if grep -q "h2" <<<"$ALPN"; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "HTTP/2 协商" "$HOST:443" "h2")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "HTTP/2 协商" "$HOST:443" "未协商出 h2（仍 HTTP/1.1）")"); FAIL=$((FAIL+1))
+  fi
+else
+  ROWS+=("$(printf '  ℹ️  %-34s %-30s %s' "HTTP/2 协商" "(无 openssl)" "已跳过")")
+fi
+
+# 16.2 未知路径必须是真 404（原 catch-all 302 兜到小龙虾 = 软 404，伤收录）
+NF_BODY=$(curl -s --max-time 25 "$BASE/this-page-should-404-probe")
+NF_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "$BASE/this-page-should-404-probe")
+if [ "$NF_CODE" = "404" ] && grep -q "没有找到这个页面" <<<"$NF_BODY"; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "未知路径 404 语义" "/this-page-should-404-probe" "404 + 品牌 404 页")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "未知路径 404 语义" "/this-page-should-404-probe" "code=$NF_CODE（应为 404）")"); FAIL=$((FAIL+1))
+fi
+
+# 16.3 统一 404 页不得吃掉接口的 JSON 404（error_page 只该接管 nginx 自身产生的 404）
+API404=$(curl -s -o /tmp/hc_api404.out -w '%{http_code} %{content_type}' --max-time 25 "$BASE/ynva/api/__probe_not_exist__")
+case "$API404" in
+  404\ application/json*) ROWS+=("$(printf '  ✅ %-34s %-30s %s' "接口 404 未被替换" "/ynva/api/__probe_not_exist__" "$API404")"); PASS=$((PASS+1));;
+  *) ROWS+=("$(printf '  ❌ %-34s %-30s %s' "接口 404 未被替换" "/ynva/api/__probe_not_exist__" "$API404")"); FAIL=$((FAIL+1));;
+esac
+rm -f /tmp/hc_api404.out
+
+# 16.4 春招带哈希的构建产物必须长缓存（Express 默认 max-age=0 ⇒ 每次全量回源校验）
+SA_ENTRY=$(curl -s --max-time 25 "$BASE/saixt/" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+if [ -n "$SA_ENTRY" ]; then
+  SA_CC=$(curl -sI --max-time 25 "$BASE/saixt/$SA_ENTRY" | grep -i '^cache-control' | head -1 | tr -d '\r')
+  if grep -q "immutable" <<<"$SA_CC"; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招产物长缓存" "/saixt/$SA_ENTRY" "immutable")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招产物长缓存" "/saixt/$SA_ENTRY" "无 immutable")"); FAIL=$((FAIL+1))
+  fi
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招产物长缓存" "/saixt/" "未定位到入口 chunk")"); FAIL=$((FAIL+1))
+fi
+
+# 16.5 职教不得再回退成 no-store（~550KB 单文件应用，no-store 会让每次访问全量重下）
+YNVA_CC=$(curl -sI --max-time 25 "$BASE/ynva/" | grep -i '^cache-control' | head -1 | tr -d '\r')
+if grep -qi "no-store" <<<"$YNVA_CC"; then
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教缓存策略" "/ynva/" "出现 no-store（全量重下）")"); FAIL=$((FAIL+1))
+else
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教缓存策略" "/ynva/" "${YNVA_CC:-无 Cache-Control}")"); PASS=$((PASS+1))
+fi
+
+# 16.6 favicon 应统一到品牌图标（原被 catch-all 302 到小龙虾）
+FAV=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 25 "$BASE/favicon.ico")
+case "$FAV" in
+  30*\ *logo.svg) ROWS+=("$(printf '  ✅ %-34s %-30s %s' "favicon 统一" "/favicon.ico" "→ /logo.svg")"); PASS=$((PASS+1));;
+  *) ROWS+=("$(printf '  ❌ %-34s %-30s %s' "favicon 统一" "/favicon.ico" "$FAV")"); FAIL=$((FAIL+1));;
+esac
+
 echo ""
 printf '%s\n' "${ROWS[@]}"
 
