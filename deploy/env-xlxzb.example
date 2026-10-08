@@ -1,0 +1,37 @@
+# ============================================================
+# 新服务器 www.xlxzb.com 的 saixt 后端环境变量模板
+# ------------------------------------------------------------
+# 用法：
+#   1) 复制为 /opt/saixt/server/.env
+#   2) 把带 <...> 的占位符替换为真实值
+#      - DEEPSEEK_API_KEY / WECHAT_* 直接沿用旧服务器(62.234.79.165)
+#        的 /opt/saixt/server/.env 同名值即可（迁移脚本可自动搬运）
+#      - SAIXT_SECRET 用 `openssl rand -hex 32` 新生成一个
+#   3) 迁移脚本 migrate-to-xlxzb.sh 支持传入旧 .env 自动覆盖以下字段：
+#      BASE_URL / CORS_ORIGIN / TRUST_PROXY / NODE_ENV / PORT
+# ============================================================
+
+NODE_ENV=production
+PORT=3000
+TRUST_PROXY=1
+
+# 站点对外地址（用于生成支付回调地址，必须含协议与域名，不含末尾斜杠）
+BASE_URL=https://www.xlxzb.com
+# 前端跨域白名单（与上面一致；多域名用逗号分隔）
+CORS_ORIGIN=https://www.xlxzb.com
+
+# 会话签名密钥（重要：换新值会让旧 token 全部失效，属正常）
+SAIXT_SECRET=<openssl rand -hex 32 生成>
+# 管理员手机号（逗号分隔，用于后台权限识别）
+ADMIN_PHONES=<管理员手机号>
+
+# ---- AI 服务（沿用旧服务器值）----
+DEEPSEEK_API_KEY=<沿用旧服务器值>
+
+# ---- 支付：生产环境必须 wechat 或 alipay，禁止 demo ----
+PAY_PROVIDER=wechat
+WECHAT_APPID=<沿用旧服务器值>
+WECHAT_MCH_ID=<沿用旧服务器值>
+WECHAT_SERIAL_NO=<沿用旧服务器值>
+WECHAT_API_V3_KEY=<沿用旧服务器值>
+WECHAT_PRIVATE_KEY_PATH=<商户私钥 pem 路径，沿用旧服务器值>
