@@ -75,6 +75,40 @@ sudo cp /tmp/ynva.env "$APP/.env"
 sudo chown -R ubuntu:ubuntu "$APP"
 sudo chmod 600 "$APP/.env"
 
+# ⚠️ 坑7：get_study_diary 在用户无打卡记录时，filter 条件退化成
+#    `study_date >= ""`（空串），SQLAlchemy 2.0.54 直接抛 ArgumentError
+#    → 接口 500。旧服务器 SQLAlchemy 版本宽松未暴露。无打卡时跳过查询即可。
+sudo python3 - <<'PYDIARY'
+p = '/opt/ynva/main.py'
+s = open(p, encoding='utf-8').read()
+old = """    for a in (
+        db.query(StudyActivity)
+        .filter(
+            StudyActivity.user_id == user_id,
+            StudyActivity.study_date >= rows[0].checkin_date if rows else "",
+        )
+        .all()
+    ):
+        activity_map[a.study_date] = a
+"""
+new = """    if rows:
+        for a in (
+            db.query(StudyActivity)
+            .filter(
+                StudyActivity.user_id == user_id,
+                StudyActivity.study_date >= rows[0].checkin_date,
+            )
+            .all()
+        ):
+            activity_map[a.study_date] = a
+"""
+if old in s:
+    open(p, 'w', encoding='utf-8').write(s.replace(old, new, 1))
+    print('    get_study_diary 空数据崩溃已修')
+else:
+    print('    get_study_diary 已是修复版或结构不同，跳过')
+PYDIARY
+
 echo "[5] venv + 依赖"
 sudo -u ubuntu python3 -m venv "$APP/.venv"
 sudo -u ubuntu "$APP/.venv/bin/pip" install --quiet --upgrade pip
@@ -84,9 +118,12 @@ sudo -u ubuntu "$APP/.venv/bin/pip" install --quiet -r "$APP/requirements-docker
 # ⚠️ 坑4：requirements-docker.txt 不完整。旧服务器用系统 python3.12 跑，
 #    额外装了 python-jose / passlib / bcrypt / numpy，缺任一个都会
 #    ModuleNotFoundError → systemd 无限重启。用 AST 扫描一次性补齐。
-echo "[6] 补齐 requirements 未声明的运行时依赖"
+# ⚠️ 坑5：bcrypt 必须钉死 3.2.2。bcrypt 5.x 与 passlib 1.7.4 不兼容
+#    （4.1 移除 __about__；5.0 对 >72 字节密码直接抛 ValueError 而非截断），
+#    表现为 register/login 500。旧服务器装的是 3.2.2，务必对齐。
+echo "[6] 补齐 requirements 未声明的运行时依赖（bcrypt 必须钉 3.2.2）"
 sudo -u ubuntu "$APP/.venv/bin/pip" install --quiet \
-  'python-jose[cryptography]>=3.3' passlib bcrypt numpy python-dotenv \
+  'python-jose[cryptography]>=3.3' passlib 'bcrypt==3.2.2' numpy python-dotenv \
   -i https://mirrors.tencent.com/pypi/simple/
 
 echo "[7] 校验所有第三方 import 可用"
@@ -171,7 +208,60 @@ sudo systemctl is-active $SVC
 sudo ss -ltnp | grep ':8000' || { echo "8000 未监听，查看 journalctl -u $SVC"; exit 1; }
 curl -s -o /dev/null -w '    local :8000 -> HTTP %{http_code}\n' http://127.0.0.1:8000/
 
-echo "[12] 公网验证"
+echo "[12] 前端子路径化（关键！原前端假设独占域名根）"
+# ⚠️ 坑6：前端 index.html 里 `const API = ''`，所有请求是 `/api/*`、`/static/*`
+#    绝对路径。旧服务器上职教独占域名根 `/` 所以正常；迁到子路径后这些请求
+#    会打到域名根（撞上同域的小龙虾站），表现为「页面能开但登录/接口全挂」。
+#    修法：注入 __APP_BASE__ 运行时变量，把 API 与静态引用统一加前缀。
+sudo python3 - <<'PYFIX'
+# -*- coding: utf-8 -*-
+import io, re
+HTML = '/opt/ynva/static/index.html'
+SW = '/opt/ynva/static/sw.js'
+BASE = '/ynva'
+h = io.open(HTML, encoding='utf-8').read()
+
+if 'window.__APP_BASE__' not in h:
+    m = re.search(r'<head[^>]*>', h); assert m, 'no <head>'
+    h = h[:m.end()] + '<script>window.__APP_BASE__=%r;</script>\n' % BASE + h[m.end():]
+h = h.replace("const API = '';", "const API = window.__APP_BASE__ || '';")
+h = h.replace("window.open('/static/knowledge-graph.html'",
+              "window.open(API + '/static/knowledge-graph.html'")
+h = h.replace("navigator.serviceWorker.register('/static/sw.js')",
+              "navigator.serviceWorker.register(API + '/static/sw.js')")
+io.open(HTML, 'w', encoding='utf-8').write(h)
+
+s = io.open(SW, encoding='utf-8').read()
+s = s.replace("const API_CACHE = 'yunzhixue-api-v2';",
+              "const API_CACHE = 'yunzhixue-api-v3';\nconst BASE = '/ynva';")
+s = s.replace("const CACHE_NAME = 'yunzhixue-v2';", "const CACHE_NAME = 'yunzhixue-v3';")
+s = s.replace("const STATIC_CACHE = 'yunzhixue-static-v2';", "const STATIC_CACHE = 'yunzhixue-static-v3';")
+s = s.replace("  '/static/index.html',", "  BASE + '/static/index.html',")
+s = s.replace("url.pathname.startsWith('/static/')", "url.pathname.startsWith(BASE + '/static/')")
+s = s.replace("url.pathname.startsWith('/api/')", "url.pathname.startsWith(BASE + '/api/')")
+s = s.replace("caches.match('/static/index.html')", "caches.match(BASE + '/static/index.html')")
+io.open(SW, 'w', encoding='utf-8').write(s)
+print('    前端已子路径化（API=/ynva，SW bump 至 v3）')
+PYFIX
+# no-cache：防浏览器/旧 SW 长期缓存旧页面
+sudo python3 - <<'PYNC'
+p = '/etc/nginx/nginx.conf'
+s = open(p).read()
+anchor = "        location ^~ /ynva/ {\n            proxy_pass http://127.0.0.1:8000/;"
+i = s.find(anchor); assert i != -1, 'ynva block missing'
+end = s.find('location ', i + len(anchor))
+blk = s[i:end if end != -1 else len(s)]
+if 'no-store' not in blk:
+    add = (anchor + "\n"
+           "            proxy_hide_header Cache-Control;\n"
+           "            add_header Cache-Control \"no-cache, no-store, must-revalidate\" always;\n"
+           "            add_header Pragma \"no-cache\" always;")
+    open(p, 'w').write(s[:i] + add + s[i+len(anchor):])
+    print('    nginx no-cache 已加')
+PYNC
+sudo nginx -t && sudo systemctl reload nginx
+
+echo "[13] 公网验证"
 for u in /ynva/ /ynva/static/index.html /ynva/health /ynva/openapi.json; do
   printf '    %s -> ' "$u"
   curl -s -o /dev/null -w '%{http_code}\n' "https://www.xlxzb.com$u"

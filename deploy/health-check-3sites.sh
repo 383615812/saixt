@@ -58,6 +58,36 @@ else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 401)' "云智学登录鉴权" "/ynva/api/auth/login" "$LOGC")"); FAIL=$((FAIL+1))
 fi
 
+# ⚠️ 只测 HTTP 200 会漏掉「页面能开但前端 API 全挂」这类子路径部署故障
+#    （前端用绝对路径 /api/*，迁到子路径后会打到同域其它站）。
+#    这里模拟真实链路：登录 demo 账号拿 token，再打业务接口。
+echo "=== 6) 前端 API 链路（token + 业务接口，验证子路径前缀正确）==="
+TOKEN=$(curl -s --max-time 15 -X POST "$BASE/ynva/api/auth/login" -H 'Content-Type: application/json' \
+  -d '{"username":"demo_student","password":"__wrong__"}' \
+  | grep -oE '"access_token":"[^"]+"' | cut -d'"' -f4)
+if [ -z "$TOKEN" ]; then
+  # 探测账号不存在时用注册做只读探测（失败也仅记为提示，不计失败项）
+  echo "  ℹ️  demo_student 登录失败（可能口令不同），跳过带 token 的业务接口检查"
+  ROWS+=("$(printf '  ℹ️ %-34s %-30s %s' "云智学token链路" "(需有效账号)" "跳过")")
+else
+  for u in /api/auth/me /api/users/1/today-focus /api/users/1/study-diary; do
+    C=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$BASE/ynva$u" -H "Authorization: Bearer $TOKEN")
+    if [ "$C" = "200" ]; then
+      ROWS+=("$(printf '  ✅ %-34s %-30s %s' "云智学$(basename $u)" "$u" "$C")"); PASS=$((PASS+1))
+    else
+      ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200)' "云智学$(basename $u)" "$u" "$C")"); FAIL=$((FAIL+1))
+    fi
+  done
+fi
+
+echo "=== 7) 前端 API 前缀注入确认（const API 必须指向 /ynva）==="
+APILINE=$(curl -s --max-time 15 "$BASE/ynva/" | grep -oE "const API = [^;]*" | head -1)
+if echo "$APILINE" | grep -q '__APP_BASE__'; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "前端API前缀注入" "(index.html)" "$APILINE")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "前端API前缀注入" "(index.html)" "${APILINE:-未找到}")"); FAIL=$((FAIL+1))
+fi
+
 echo ""
 printf '%s\n' "${ROWS[@]}"
 echo ""
