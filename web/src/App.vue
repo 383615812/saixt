@@ -102,7 +102,7 @@
           <span class="foot-title">平台说明</span>
           <p>考试信息以云南省教育厅、云南省招生考试院官方发布为准</p>
           <p><a class="icp-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer nofollow">滇ICP备2026019339号-1</a></p>
-          <p>© 2026 昆明梦飞教育培训学校 · 版权所有</p>
+          <p>© 2026 云南文华教育科技有限责任公司 · 版权所有</p>
         </div>
       </div>
     </footer>
