@@ -86,7 +86,7 @@ fi
 
 echo "=== 7) 前端 API 前缀注入确认（const API 必须指向 /ynva）==="
 APILINE=$(curl -s --max-time 15 "$BASE/ynva/" | grep -oE "const API = [^;]*" | head -1)
-if echo "$APILINE" | grep -q '__APP_BASE__'; then
+if grep -q '__APP_BASE__' <<<"$APILINE"; then
   ROWS+=("$(printf '  ✅ %-34s %-30s %s' "前端API前缀注入" "(index.html)" "$APILINE")"); PASS=$((PASS+1))
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "前端API前缀注入" "(index.html)" "${APILINE:-未找到}")"); FAIL=$((FAIL+1))
@@ -108,14 +108,14 @@ fi
 echo "=== 9) 两站 Service Worker 子路径自适配（sw.js 内不得有裸路径预缓存）==="
 # 云智学 sw.js：应含 BASE 变量并用 BASE + 'api'
 YNVA_SW=$(curl -s --max-time 15 "$BASE/ynva/static/sw.js")
-if echo "$YNVA_SW" | grep -q "const BASE = '/ynva'" && echo "$YNVA_SW" | grep -q "BASE + '/api/'"; then
+if grep -q "const BASE = '/ynva'" <<<"$YNVA_SW" && grep -q "BASE + '/api/'" <<<"$YNVA_SW"; then
   ROWS+=("$(printf '  ✅ %-34s %-30s %s' "云智学SW子路径适配" "/ynva/static/sw.js" "BASE已注入")"); PASS=$((PASS+1))
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "云智学SW子路径适配" "/ynva/static/sw.js" "缺BASE或API判定")"); FAIL=$((FAIL+1))
 fi
 # 春招 sw.js：应含 BASE 推导 且 startsWith(BASE + 'api')，且不得再有裸 '/index.html' 预缓存
 SAI_SW=$(curl -s --max-time 15 "$BASE/saixt/sw.js")
-if echo "$SAI_SW" | grep -q "startsWith(BASE + 'api')" && ! echo "$SAI_SW" | grep -qE "^\s+'/(index\.html|logo\.svg)',?$"; then
+if grep -q "startsWith(BASE + 'api')" <<<"$SAI_SW" && ! grep -qE "^\s+'/(index\.html|logo\.svg)',?$" <<<"$SAI_SW"; then
   ROWS+=("$(printf '  ✅ %-34s %-30s %s' "春招SW子路径适配" "/saixt/sw.js" "BASE已推导")"); PASS=$((PASS+1))
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招SW子路径适配" "/saixt/sw.js" "仍是裸路径")"); FAIL=$((FAIL+1))
@@ -169,8 +169,10 @@ ENTITY="云南文华教育科技有限责任公司"
 check_legal() {
   local name="$1" url="$2" body hit_no hit_ent
   body=$(curl -s --max-time 25 "$url")
-  hit_no=$(printf '%s' "$body" | grep -c "$ICP_NO" 2>/dev/null)
-  hit_ent=$(printf '%s' "$body" | grep -c "$ENTITY" 2>/dev/null)
+  # 用 here-string 而非 `printf | grep -c`：脚本开头是 `set -uo pipefail`，
+  # 管道里 grep 提前退出会让上游吃 SIGPIPE（141），pipefail 把整条管道判为失败 → 误报。
+  hit_no=$(grep -c "$ICP_NO" <<<"$body" 2>/dev/null)
+  hit_ent=$(grep -c "$ENTITY" <<<"$body" 2>/dev/null)
   if [ "${hit_no:-0}" -ge 1 ] && [ "${hit_ent:-0}" -ge 1 ]; then
     ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$name" "$url" "$ICP_NO + 主体")"); PASS=$((PASS+1))
   else
@@ -186,6 +188,82 @@ if [ -n "$SA_JS" ]; then
   check_legal "春招版权+备案(入口JS)" "$BASE/saixt/$SA_JS"
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招版权+备案" "/saixt/" "未定位到入口JS")"); FAIL=$((FAIL+1))
+fi
+
+echo "=== 12) 安全响应头全覆盖（nginx add_header 不累加，子 location 易丢父级头）==="
+# 曾经的缺陷：server 块配了安全头，但自带 add_header 的 location（/、/ynva/、/portal/、
+# /logo.svg、静态资源正则）会整体丢弃父级 add_header → 实测只剩 Server 头。
+# 修法是 snippets/security-headers.conf + 各 location include，这里做回归看护。
+SEC_WANT=5   # x-frame-options / x-content-type-options / referrer-policy / permissions-policy / hsts
+check_sec() {
+  local name="$1" url="$2" n
+  n=$(curl -sI --max-time 25 "$url" | grep -icE \
+      'x-frame-options|x-content-type-options|referrer-policy|permissions-policy|strict-transport-security')
+  if [ "${n:-0}" -ge "$SEC_WANT" ]; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$name" "$url" "$n/$SEC_WANT 头")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 >=%s)' "$name" "$url" "${n:-0} 头" "$SEC_WANT")"); FAIL=$((FAIL+1))
+  fi
+}
+check_sec "门户页安全头" "$BASE/"
+check_sec "门户备用入口安全头" "$BASE/portal/"
+check_sec "春招安全头" "$BASE/saixt/"
+check_sec "职教高考安全头" "$BASE/ynva/"
+check_sec "小龙虾安全头" "$BASE/xiaolongxia/"
+check_sec "品牌图标安全头" "$BASE/logo.svg"
+check_sec "分享图安全头" "$BASE/og-cover.png"
+
+echo "=== 13) SEO 资源（robots / sitemap / og:image）==="
+# robots.txt 与 sitemap.xml 曾被 PWA 正则 301 到 /xiaolongxia/，导致根域无法被正确收录。
+RB=$(curl -s --max-time 25 "$BASE/robots.txt")
+if grep -q "Sitemap: https://www.xlxzb.com/sitemap.xml" <<<"$RB"; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "robots.txt" "/robots.txt" "含 Sitemap 声明")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "robots.txt" "/robots.txt" "缺失或未声明 Sitemap")"); FAIL=$((FAIL+1))
+fi
+SM=$(curl -s --max-time 25 "$BASE/sitemap.xml")
+SMN=$(grep -c "<loc>" <<<"$SM" 2>/dev/null)
+if grep -q "<urlset" <<<"$SM" && [ "${SMN:-0}" -ge 5 ]; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "sitemap.xml" "/sitemap.xml" "$SMN 个入口")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "sitemap.xml" "/sitemap.xml" "无效或入口不足(${SMN:-0})")"); FAIL=$((FAIL+1))
+fi
+OG=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 25 "$BASE/og-cover.png")
+case "$OG" in
+  "200 image/png") ROWS+=("$(printf '  ✅ %-34s %-30s %s' "分享图 og-cover.png" "/og-cover.png" "$OG")"); PASS=$((PASS+1));;
+  *) ROWS+=("$(printf '  ❌ %-34s %-30s %s (期望 200 image/png)' "分享图 og-cover.png" "/og-cover.png" "$OG")"); FAIL=$((FAIL+1));;
+esac
+for pair in "门户页:$BASE/" "职教高考:$BASE/ynva/"; do
+  nm=${pair%%:*}; uu=${pair#*:}
+  # 先落变量再 here-string：直接把 curl 接给 `grep -q` 时，grep 命中即退出会让 curl 吃
+  # SIGPIPE(141)，pipefail 判整条管道失败 → 大页面（职教 index.html ~1MB）稳定误报。
+  body=$(curl -s --max-time 25 "$uu")
+  if grep -q "og-cover.png" <<<"$body"; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$nm og:image" "$uu" "已声明")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "$nm og:image" "$uu" "未声明")"); FAIL=$((FAIL+1))
+  fi
+done
+
+echo "=== 14) 上传体积限制（nginx client_max_body_size，原默认 1M 会让 2MB+ 直接 413）==="
+# 判定「是否被 nginx 拦掉」而不是「业务是否接受」：用一个 1.5MB 的合法 JSON 打业务端点，
+# 只要返回的不是 nginx 的 413 HTML，就说明 nginx 已放行（业务层自行返回 4xx 属正常）。
+if [ "${SKIP_UPLOAD_PROBE:-0}" = "1" ]; then
+  ROWS+=("$(printf '  ℹ️  %-34s %-30s %s' "上传体积探测" "(SKIP_UPLOAD_PROBE=1)" "已跳过")")
+else
+  BIG=$(mktemp)
+  { printf '{"phone":"19900000000","password":"probe","pad":"'; head -c 1500000 /dev/zero | tr '\0' 'a'; printf '"}'; } > "$BIG"
+  for pair in "春招:$BASE/saixt/api/auth/login" "职教高考:$BASE/ynva/api/auth/login"; do
+    nm=${pair%%:*}; uu=${pair#*:}
+    C=$(curl -s -o /tmp/upload_probe.out -w '%{http_code}' --max-time 60 \
+        -X POST -H 'Content-Type: application/json' --data-binary @"$BIG" "$uu")
+    if [ "$C" = "413" ] && grep -qi "nginx" /tmp/upload_probe.out; then
+      ROWS+=("$(printf '  ❌ %-34s %-30s %s (仍被 nginx 拦)' "$nm 1.5MB 上传" "$uu" "$C")"); FAIL=$((FAIL+1))
+    else
+      ROWS+=("$(printf '  ✅ %-34s %-30s %s (nginx 已放行)' "$nm 1.5MB 上传" "$uu" "$C")"); PASS=$((PASS+1))
+    fi
+  done
+  rm -f "$BIG" /tmp/upload_probe.out
 fi
 
 echo ""

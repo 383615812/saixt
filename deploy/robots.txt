@@ -1,0 +1,23 @@
+# 文华教育 · 站点爬虫规则（https://www.xlxzb.com）
+# 同域部署四个入口：根路径商业导航页 + 三个学习系统子路径。
+
+User-agent: *
+# 四个入口页可收录
+Allow: /$
+Allow: /portal/
+Allow: /xiaolongxia/
+Allow: /saixt/
+Allow: /ynva/
+
+# 接口、用户数据与题目图片不参与收录（避免无意义抓取与内容外泄）
+Disallow: /api/
+Disallow: /saixt/api/
+Disallow: /ynva/api/
+Disallow: /qimages/
+Disallow: /xiaolongxia/api/
+
+# 三个子站均为 SPA，深链统一由各自入口页承接，避免爬虫抓取空壳路由
+Disallow: /saixt/login
+Disallow: /ynva/static/knowledge-graph.html
+
+Sitemap: https://www.xlxzb.com/sitemap.xml
