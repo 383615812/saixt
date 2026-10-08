@@ -93,11 +93,52 @@ awk -v l="$LOAD" 'BEGIN{exit !(l<4)}' && ok "负载 $LOAD 正常" || bad "负载
 sudo du -sh /tmp 2>/dev/null | awk '{print "     /tmp 占用 " $1}' | grep -q . && sudo du -sh /tmp 2>/dev/null | awk '{if ($1 ~ /G/) print "  ⚠️  /tmp 占用 " $1 "（多为构建残留，可清理）"}'
 
 echo ""
+echo "=== 6b) 上传大小限制（nginx 未设则默认 1M，多站共用易被忽略）==="
+BODY=$(sudo nginx -T 2>/dev/null | grep -c 'client_max_body_size')
+if [ "$BODY" -eq 0 ]; then
+  note "nginx 未设 client_max_body_size ⇒ 全局默认 1M；当前两站均无上传接口，暂不阻塞"
+elif [ "$BODY" -gt 0 ]; then
+  ok "已设置 client_max_body_size ($BODY 处)"
+fi
+
+echo ""
 echo "=== 7) CORS 配置 ==="
 CO=$(grep -E '^CORS_ORIGIN=' /opt/saixt/server/.env 2>/dev/null | cut -d= -f2)
 [ -n "$CO" ] && ok "saixt CORS_ORIGIN=$CO" || bad "saixt CORS_ORIGIN 未配置"
 YC=$(grep -E '^CORS_ORIGIN=' /opt/ynva/.env 2>/dev/null | cut -d= -f2)
-[ -n "$YC" ] && ok "ynva CORS_ORIGIN=$YC" || note "ynva CORS_ORIGIN 为空（写死旧服务器IP；同源访问不受影响，仅跨源场景受限）"
+[ -n "$YC" ] && ok "ynva CORS_ORIGIN=$YC" || note "ynva CORS_ORIGIN 为空（同源访问不受影响，仅跨源场景受限）"
+
+echo ""
+echo "=== 7b) JWT 密钥强度（三站共存下的串站/伪造风险）==="
+# 1) SECRET_KEY 必须已配置：为空则回退代码里的开发默认密钥，任何人可伪造 token
+YS=$(grep -E '^SECRET_KEY=' /opt/ynva/.env 2>/dev/null | cut -d= -f2-)
+if [ -z "$YS" ]; then
+  bad "ynva SECRET_KEY 为空！正在使用代码内开发默认密钥，可被伪造登录 token"
+elif [ ${#YS} -lt 32 ]; then
+  bad "ynva SECRET_KEY 过短 (${#YS} 字符)，建议 >= 32"
+else
+  ok "ynva SECRET_KEY 已配置且强度足够 (${#YS} 字符)"
+fi
+# 2) 两站密钥必须不同，否则可跨站伪造 token
+SS=$(grep -E '^SAIXT_SECRET=' /opt/saixt/server/.env 2>/dev/null | cut -d= -f2-)
+YS2=$(grep -E '^SECRET_KEY=' /opt/ynva/.env 2>/dev/null | cut -d= -f2-)
+if [ -n "$SS" ] && [ -n "$YS2" ] && [ "$SS" = "$YS2" ]; then
+  bad "两站 JWT 密钥相同！可互相伪造 token"
+elif [ -n "$SS" ] && [ -n "$YS2" ]; then
+  ok "两站 JWT 密钥互不相同（无跨站伪造风险）"
+else
+  note "无法比对两站密钥（至少一站未配置）"
+fi
+# 3) .env 文件权限不应全员可读
+for f in /opt/ynva/.env /opt/saixt/server/.env; do
+  if [ -f "$f" ]; then
+    M=$(stat -c '%a' "$f" 2>/dev/null)
+    case "$M" in
+      600|640) ok "$(basename $(dirname $f))/$(basename $f) 权限 $M (安全)";;
+      *) note "$(basename $(dirname $f))/$(basename $f) 权限 $M (建议收紧到 600)";;
+    esac
+  fi
+done
 
 echo ""
 echo "=== 8) 并发互不干扰（各 10 并发）==="
