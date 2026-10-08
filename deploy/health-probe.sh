@@ -217,6 +217,16 @@ case "$CC_SAI" in
   *) echo "春招入口可校验  异常  ABNORMAL"; degraded=$((degraded+1));;
 esac
 
+# 危险端点护栏：/api/system/reset 曾是【公开 GET + 零鉴权】，一次 GET 即 reset_db() 重建整库。
+# ⚠️ 只用 OPTIONS 探测，**绝不用 GET** —— 万一封堵失效，GET 会立刻清库。
+#    OPTIONS 在 nginx 精确匹配处被短路为 404；即便 nginx 规则被删，Starlette 对非 GET 返回
+#    405 也不会执行处理函数。两种路径都不可能触发重置。
+RS_C=$(curl -s -k --resolve www.xlxzb.com:443:127.0.0.1 -X OPTIONS -m 8 -o /dev/null -w '%{http_code}' https://www.xlxzb.com/ynva/api/system/reset 2>/dev/null)
+case "$RS_C" in
+  404|405) echo "危险端点 /api/system/reset  已封堵  OK";;
+  *) echo "危险端点 /api/system/reset  未封堵(code=$RS_C)  ABNORMAL"; degraded=$((degraded+1));;
+esac
+
 echo "=== 磁盘使用率 ==="
 df -P -h / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++' | while read -r fs size used avail use mount; do
   pct=${use%\%}

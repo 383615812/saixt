@@ -357,6 +357,49 @@ case "$FAV" in
   *) ROWS+=("$(printf '  ❌ %-34s %-30s %s' "favicon 统一" "/favicon.ico" "$FAV")"); FAIL=$((FAIL+1));;
 esac
 
+echo "=== 17) 危险端点封堵与接口限流（负路径探测）==="
+# 17.1 数据库重置端点必须不可达。
+# ⚠️ 只用 OPTIONS 探测，**绝不用 GET**：该端点一旦未被封堵，一次 GET 就会立即执行
+#     reset_db() 重建整库。OPTIONS 在 nginx 层被精确匹配短路为 404；即便 nginx 规则
+#     被移除，Starlette 对非 GET 方法返回 405 也不会执行处理函数 —— 两种路径都不可能触发重置。
+RS=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS --max-time 20 "$BASE/ynva/api/system/reset")
+case "$RS" in
+  404) ROWS+=("$(printf '  ✅ %-34s %-30s %s' "危险端点 system/reset" "OPTIONS" "404 已封堵")"); PASS=$((PASS+1));;
+  405) ROWS+=("$(printf '  ⚠️ %-34s %-30s %s' "危险端点 system/reset" "OPTIONS" "405 应用层拦截，nginx 规则缺失")"); PASS=$((PASS+1));;
+  *)   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "危险端点 system/reset" "OPTIONS" "code=$RS 未被封堵！")"); FAIL=$((FAIL+1));;
+esac
+
+# 17.2 职教登录防爆破：同账号连续第 11 次应被 429。
+# 用专用探测账号 __rl_probe__（独立计数桶），不污染真实账号。
+# 注：春招的限流桶是 login/register/password 共用一个 limiter 实例、按 IP 共享，
+#     在此做触发式探测会把该 IP 的登录桶打满并持续 10 分钟，反而误伤后续登录检查 ——
+#     故春招只保留功能性 401 检查（见第 10 段），不做触发式探测。
+RLH=0
+for _i in $(seq 1 11); do
+  _c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' \
+       -d '{"username":"__rl_probe__","password":"x"}' "$BASE/ynva/api/auth/login")
+  [ "$_c" = "429" ] && RLH=$((RLH+1))
+done
+if [ "$RLH" -ge 1 ]; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教登录限流" "11 次同账号登录" "$RLH 次 429")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教登录限流" "11 次同账号登录" "无限流（可无限撞库）")"); FAIL=$((FAIL+1))
+fi
+
+# 17.3 职教 AI 命题端点限流：该端点会让大模型真实计费，探测用空 subject 触发处理函数提前
+# 返回 —— 既不调用大模型也不写库；但限流依赖在进入处理函数之前就已计数，第 6 次仍应 429。
+AILH=0
+for _i in $(seq 1 6); do
+  _c=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' \
+       -d '{}' "$BASE/ynva/api/users/1/ai-generate-questions")
+  [ "$_c" = "429" ] && AILH=$((AILH+1))
+done
+if [ "$AILH" -ge 1 ]; then
+  ROWS+=("$(printf '  ✅ %-34s %-30s %s' "职教AI命题限流" "6 次空 subject" "$AILH 次 429")"); PASS=$((PASS+1))
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教AI命题限流" "6 次空 subject" "无限流（可烧大模型额度）")"); FAIL=$((FAIL+1))
+fi
+
 echo ""
 printf '%s\n' "${ROWS[@]}"
 
