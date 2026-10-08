@@ -251,6 +251,30 @@ for p in 3000 8000; do
   fi
 done
 
+# AI 能力护栏：职教 /opt/ynva/.env 的 DEEPSEEK_API_KEY / DASHSCOPE_API_KEY 为空时，
+# /api/users/{id}/agent 会直接返回 "AI 服务暂时不可用:xxx" —— 站点全 200、接口也 200，
+# 但「AI Agent 学习系统」的核心能力其实是死的。这类「绿得发亮却功能全废」必须看配置态。
+# 直连 127.0.0.1:8000（该端点已被 nginx 收敛为 404，仅本机可查），不产生任何模型调用费用。
+AIST=$(curl -s -m 10 -o - http://127.0.0.1:8000/api/system/ai-models 2>/dev/null)
+if printf '%s' "$AIST" | grep -q '"configured":true'; then
+  echo "职教 AI 模型已配置  OK"
+else
+  echo "职教 AI 模型未配置(configured=false,答案降级为模板)  ABNORMAL"
+  degraded=$((degraded+1))
+fi
+
+# 备份可恢复性演练新鲜度：演练脚本若长期没人跑，护栏本身就形同虚设。
+VLOG=/home/ubuntu/verify-backups.log
+if [ -f "$VLOG" ]; then
+  VDAYS=$(( ( $(date +%s) - $(stat -c %Y "$VLOG") ) / 86400 ))
+  if [ "$VDAYS" -le 14 ]; then
+    echo "备份演练记录  ${VDAYS}天前  OK"
+  else
+    echo "备份演练记录  ${VDAYS}天前(>14天未演练)  ABNORMAL"
+    degraded=$((degraded+1))
+  fi
+fi
+
 echo "=== 磁盘使用率 ==="
 df -P -h / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++' | while read -r fs size used avail use mount; do
   pct=${use%\%}
