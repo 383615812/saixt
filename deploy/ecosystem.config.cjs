@@ -14,10 +14,12 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3000,
+        HOST: '127.0.0.1', // 仅监听回环，对外一律走 Nginx（避免公网明文直连 :3000 绕过 TLS/安全头/限流）
         TRUST_PROXY: 1, // 前面有 Nginx 一层反向代理
       },
       env_production: {
         NODE_ENV: 'production',
+        HOST: '127.0.0.1',
         TRUST_PROXY: 1,
       },
       max_memory_restart: '300M', // 内存超限自动重启，兜底内存泄漏

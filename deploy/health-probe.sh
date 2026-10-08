@@ -227,6 +227,30 @@ case "$RS_C" in
   *) echo "危险端点 /api/system/reset  未封堵(code=$RS_C)  ABNORMAL"; degraded=$((degraded+1));;
 esac
 
+# 接口文档/指标收敛护栏：/docs、/redoc、/openapi.json、/metrics 曾经公网 200，
+# 等于把 110+ 路由(含零鉴权遗留端点)的完整契约与主机指标摆到公网。改版/换配置易复发。
+for path in /ynva/docs /ynva/redoc /ynva/openapi.json /ynva/metrics; do
+  DC=$(curl -s -k --resolve www.xlxzb.com:443:127.0.0.1 -m 8 -o /dev/null -w '%{http_code}' "https://www.xlxzb.com$path" 2>/dev/null)
+  case "$DC" in
+    404) echo "文档/指标 $path  已收敛  OK";;
+    *)   echo "文档/指标 $path  公网可见(code=$DC)  ABNORMAL"; degraded=$((degraded+1));;
+  esac
+done
+
+# 应用端口绑定护栏（2026-10-08 修复）：春招 :3000 曾监听 0.0.0.0 —— 公网可明文直连后端，
+# 绕过 nginx 的 TLS / 安全响应头 / 上传体积限制 / 按 IP 限流，登录口令明文传输。
+# 两个应用必须只监听回环（运维改代码、换依赖、重装 PM2 时最易退化）。
+for p in 3000 8000; do
+  ROW=$(ss -ltnH 2>/dev/null | awk -v port=":$p" '$4 ~ port"$" {print $4}' | tr '\n' ' ')
+  if [ -z "$ROW" ]; then
+    echo "端口 $p  未监听  ABNORMAL"; degraded=$((degraded+1))
+  elif printf '%s' "$ROW" | grep -qE '^(0\.0\.0\.0|\*|\[::\]):'; then
+    echo "端口 $p  监听所有网卡($ROW)  ABNORMAL"; degraded=$((degraded+1))
+  else
+    echo "端口 $p  仅监听回环  OK"
+  fi
+done
+
 echo "=== 磁盘使用率 ==="
 df -P -h / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++' | while read -r fs size used avail use mount; do
   pct=${use%\%}

@@ -49,6 +49,11 @@ if (PAY_PROVIDER === 'demo' && process.env.NODE_ENV === 'production') {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
+// 绑定地址：默认仅监听回环（127.0.0.1），由同机 Nginx 反向代理对外服务。
+// 安全说明：此前默认监听 0.0.0.0，公网可直接访问 http://<IP>:3000 明文 HTTP，
+// 既绕过 Nginx 的 TLS / 安全响应头 / 上传体积限制 / 限流，又让登录口令在链路上明文传输。
+// 若确需对局域网暴露（如内网联调），显式设置 HOST=0.0.0.0。
+const HOST = process.env.HOST || '127.0.0.1';
 
 // 反向代理下的真实客户端 IP 识别：Nginx 等一层代理设 TRUST_PROXY=1，两层=2……
 // 不设则 req.ip 取自 TCP 对端（即代理地址），会导致按 IP 限流（登录/注册）被共享误伤，也让暴力防护失效。
@@ -138,10 +143,13 @@ app.use((err, req, res, next) => {
   res.status(status).json({ code: status, message: status >= 500 ? '服务器内部错误' : '请求参数格式错误' });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`[saixt-server] 已启动 env=${process.env.NODE_ENV || 'development'} port=${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`[saixt-server] 已启动 env=${process.env.NODE_ENV || 'development'} bind=${HOST}:${PORT}`);
   console.log(`[saixt-server] 站点地址: ${process.env.BASE_URL || 'http://localhost:' + PORT}`);
   console.log(`[saixt-server] 健康检查: ${process.env.BASE_URL || 'http://localhost:' + PORT}/api/health`);
+  if (HOST === '0.0.0.0' || HOST === '::') {
+    console.warn('[saixt-server] ⚠️ 当前监听所有网卡(0.0.0.0)，若无需局域网直连请改回 HOST=127.0.0.1');
+  }
   console.log(`[saixt-server] 支付渠道: ${PAY_PROVIDER}${PAY_PROVIDER === 'demo' ? '（模拟支付，配置 PAY_PROVIDER=wechat/alipay 接入真实支付）' : (providerReady() ? '（参数已配置）' : '（参数未配置完整，请检查 .env）')}`);
   startScheduler();
 });

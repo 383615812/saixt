@@ -37,9 +37,17 @@ chk "春招深链practice"  "/saixt/practice"                  200
 echo "=== 3) 云智学·职教高考AI系统 (/ynva/) ==="
 chk "云智学首页"        "/ynva/"                           200
 chk "云智学health"      "/ynva/health"                     200
-chk "云智学OpenAPI"     "/ynva/openapi.json"               200
 chk "云智学静态页"      "/ynva/static/index.html"          200
 chk "云智学知识图谱"    "/ynva/static/knowledge-graph.html" 200
+# 接口文档/指标必须对公网不可见（精确匹配短路 404）。
+# 曾经 /ynva/docs 与 /ynva/openapi.json 是 200：等于把 110+ 路由(含零鉴权遗留端点)的
+# 完整契约摆到公网，攻击面清单一览无余。运维查文档走 SSH 隧道直连 :8000。
+chk "云智学OpenAPI已收敛" "/ynva/openapi.json"              404
+chk "云智学Swagger已收敛" "/ynva/docs"                      404
+chk "云智学Redoc已收敛"   "/ynva/redoc"                     404
+chk "云智学指标已收敛"    "/ynva/metrics"                   404
+# 注：数据销毁级的 /ynva/api/system/reset 不在本段用 GET 探测 —— 万一 nginx 规则失效，
+#     一次 GET 就会真的清库。它由第 17 段用 OPTIONS 做负路径探测（见该段注释）。
 
 echo "=== 4) 根路径（商业导航页，2026-10-08 起替代原302跳转）==="
 ROOT=$(curl -s -o /tmp/_portal_root.html -w '%{http_code}' --max-time 15 "$BASE/")
@@ -280,7 +288,9 @@ echo "=== 15) 上传体积限制（nginx client_max_body_size，原默认 1M 会
 if [ "${SKIP_UPLOAD_PROBE:-0}" = "1" ]; then
   ROWS+=("$(printf '  ℹ️  %-34s %-30s %s' "上传体积探测" "(SKIP_UPLOAD_PROBE=1)" "已跳过")")
 else
-  BIG=$(mktemp)
+  # 显式用 /tmp 下的固定名：Windows/GitBash 下 mktemp 默认落在 %TEMP%（盘符路径），
+  # 部分沙箱/钩子对带盘符前缀的删除会拒绝，导致临时文件残留。
+  BIG="/tmp/saixt_upload_probe.$$"
   { printf '{"phone":"19900000000","password":"probe","pad":"'; head -c 1500000 /dev/zero | tr '\0' 'a'; printf '"}'; } > "$BIG"
   for pair in "春招:$BASE/saixt/api/auth/login" "职教高考:$BASE/ynva/api/auth/login"; do
     nm=${pair%%:*}; uu=${pair#*:}
@@ -399,6 +409,26 @@ if [ "$AILH" -ge 1 ]; then
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "职教AI命题限流" "6 次空 subject" "无限流（可烧大模型额度）")"); FAIL=$((FAIL+1))
 fi
+
+echo "=== 18) 应用端口不得公网直连（明文 HTTP 会绕过 TLS/安全头/限流）==="
+# 2026-10-08 实测发现 http://119.45.196.149:3000 可直连春招后端（HTTP 200），
+# 绕过 Nginx 的 TLS、安全响应头、上传体积限制与按 IP 限流，且登录口令明文传输。
+# 处置：两个应用改为仅监听 127.0.0.1。此处从公网复验「拿不到应用响应」。
+# 判定：命中业务 JSON(200) = 暴露；000/502/403 等其余一律视为不可用（安全）。
+SRVIP="${SRVIP:-119.45.196.149}"
+port_exposed() { # port_exposed <端口> <探针路径>
+  local code
+  code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 8 "http://$SRVIP:$1$2")
+  [ "$code" = "200" ] && return 0 || return 1
+}
+for pair in "3000:/api/health" "8000:/health" "8080:/"; do
+  _p="${pair%%:*}"; _path="${pair#*:}"
+  if port_exposed "$_p" "$_path"; then
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "端口 $_p 公网直连" "$SRVIP:$_p" "暴露！应仅监听 127.0.0.1")"); FAIL=$((FAIL+1))
+  else
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "端口 $_p 公网直连" "$SRVIP:$_p" "已关闭")"); PASS=$((PASS+1))
+  fi
+done
 
 echo ""
 printf '%s\n' "${ROWS[@]}"
