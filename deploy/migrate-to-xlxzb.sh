@@ -85,7 +85,7 @@ if [ -n "$OLDENV" ] && [ -f "$OLDENV" ]; then
   sed -i 's#^PAY_PROVIDER=.*#PAY_PROVIDER=wechat#' "$APP/server/.env"
 else
   echo "    未提供旧 .env，请手工补全 $APP/server/.env（参考 deploy/.env.xlxzb.example）"
-  [ -f "$APP/server/.env" ] || cp "$APP/deploy/.env.xlxzb.example" "$APP/server/.env"
+  [ -f "$APP/server/.env" ] || cp "$APP/deploy/env-xlxzb.example" "$APP/server/.env"
 fi
 
 echo "==> [5] 恢复生产库"
