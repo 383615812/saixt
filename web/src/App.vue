@@ -101,6 +101,7 @@
         <div class="foot-col foot-note">
           <span class="foot-title">平台说明</span>
           <p>考试信息以云南省教育厅、云南省招生考试院官方发布为准</p>
+          <p><a class="icp-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer nofollow">滇ICP备2026019339号-1</a></p>
           <p>© 2026 昆明梦飞教育培训学校 · 版权所有</p>
         </div>
       </div>
@@ -397,6 +398,8 @@ router.afterEach(() => {
 .foot-col a:active { transform: translateX(2px) scale(0.98); }
 .foot-title { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.04em; margin-bottom: 4px; }
 .foot-note p { color: var(--muted); font-size: 0.8rem; margin-top: 0; line-height: 1.8; }
+.icp-link { color: var(--muted); text-decoration: none; border-bottom: 1px dashed var(--rule-soft); transition: color 0.2s var(--ease), border-color 0.2s var(--ease); }
+.icp-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 @media (max-width: 860px) {
   .footer-inner { grid-template-columns: 1fr 1fr; gap: 22px; }

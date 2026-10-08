@@ -160,6 +160,30 @@ if [ -n "${PROBE_PHONE:-}" ]; then
   fi
 fi
 
+# 备案号是合规硬要求，且极易在改版/重构前端时被连带删掉（页脚重写、组件替换），
+# 因此纳入常驻巡检：四处必须都能在公网页面上取到备案号 + 工信部链接。
+echo "=== 11) ICP 备案号展示（导航页 / 小龙虾 / 春招 / 职教高考）==="
+ICP_NO="滇ICP备2026019339号-1"
+check_icp() {
+  local name="$1" url="$2" hit
+  hit=$(curl -s --max-time 25 "$url" | grep -c "$ICP_NO" 2>/dev/null)
+  if [ "${hit:-0}" -ge 1 ]; then
+    ROWS+=("$(printf '  ✅ %-34s %-30s %s' "$name" "$url" "$ICP_NO")"); PASS=$((PASS+1))
+  else
+    ROWS+=("$(printf '  ❌ %-34s %-30s %s' "$name" "$url" "未找到备案号")"); FAIL=$((FAIL+1))
+  fi
+}
+check_icp "商业导航页备案号" "$BASE/"
+check_icp "小龙虾备案号" "$BASE/xiaolongxia/"
+check_icp "职教高考备案号" "$BASE/ynva/"
+# 春招是 SPA，备案号在入口 JS chunk 里，先取 index.html 再定位入口 JS
+SA_JS=$(curl -s --max-time 25 "$BASE/saixt/" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+if [ -n "$SA_JS" ]; then
+  check_icp "春招备案号(入口JS)" "$BASE/saixt/$SA_JS"
+else
+  ROWS+=("$(printf '  ❌ %-34s %-30s %s' "春招备案号" "/saixt/" "未定位到入口JS")"); FAIL=$((FAIL+1))
+fi
+
 echo ""
 printf '%s\n' "${ROWS[@]}"
 
