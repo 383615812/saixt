@@ -55,8 +55,11 @@ pm2 -v
 echo "==> [2] 从 bundle 解出版本到 $APP"
 mkdir -p "$APP"
 # bundle 当作 git 仓库直接克隆（bundle 内含完整历史，可 clone）
+# 注意：部分 bundle 的 HEAD 符号引用缺失，直 clone 后不会自动 checkout，
+# 故用 --no-checkout + 显式 checkout -f master 保证文件落地。
 TMPREPO=$(mktemp -d)
-git clone "$BUNDLE" "$TMPREPO" 2>/dev/null
+git clone --no-checkout "$BUNDLE" "$TMPREPO" 2>/dev/null
+git -C "$TMPREPO" checkout -f master 2>/dev/null || git -C "$TMPREPO" checkout -f HEAD 2>/dev/null
 rm -rf "$APP/server" "$APP/web" "$APP/deploy" "$APP/package.json" "$APP/package-lock.json"
 cp -a "$TMPREPO/server" "$APP/server"
 cp -a "$TMPREPO/web" "$APP/web"
@@ -115,6 +118,10 @@ echo "============================================================"
 echo " 代码/后端/数据库已就位。最后一步（需手工）："
 echo " 1) 把 deploy/nginx.xlxzb.saixt.conf 里的两个 location 块"
 echo "    插入新服务器 Nginx 现有 'listen 443 ssl' server 块内（在 location / 之前）"
-echo " 2) nginx -t && systemctl reload nginx"
-echo " 3) 浏览器访问 https://www.xlxzb.com/saixt/ 验证"
+echo " 2) ⚠️ 关键：若新服务器已有正则静态资源 location"
+echo "    (如 location ~* \.(js|css|png|...)$)，必须给 /saixt/ 与 /qimages/ 加"
+echo "    '^~' 修饰符 (location ^~ /saixt/)，否则静态资源会被正则块拦截返回 404。"
+echo "    可直接用 deploy/nginx-saixt-prefixfix.sh 一键修正。"
+echo " 3) nginx -t && systemctl reload nginx"
+echo " 4) 浏览器访问 https://www.xlxzb.com/saixt/ 验证"
 echo "============================================================"
