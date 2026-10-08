@@ -275,11 +275,37 @@ if [ -f "$VLOG" ]; then
   fi
 fi
 
+# Docker 缓存护栏：构建缓存（buildx）在每次 `docker build` 后静默增长，
+# 与业务无关、删之无损，但从来没人清理 ⇒ 曾一次性堆积 10.8G。
+# 这里探到 >5G 就报，提示「该清缓存了」。stopped 容器同理（均为已完成构建容器）。
+BC=$(sudo docker buildx du 2>/dev/null | awk '/^Total:/{print $2}')
+MB=0
+case "$BC" in
+  *GB) MB=$(awk -v v="${BC%GB}" 'BEGIN{printf "%d", v*1024}');;
+  *MB) MB=${BC%MB}; MB=${MB%.*};;
+esac
+[ -n "${MB:-}" ] || MB=0
+if [ "$MB" -ge 5120 ]; then
+  echo "Docker 构建缓存 ${BC}  ABNORMAL(>=5G，建议 docker buildx prune -af)"
+  degraded=$((degraded+1))
+else
+  echo "Docker 构建缓存 ${BC:-0B}  OK"
+fi
+STOPN=$(sudo docker ps -aq --filter status=exited 2>/dev/null | wc -l)
+if [ "${STOPN:-0}" -ge 5 ]; then
+  echo "Docker 已停止容器 ${STOPN} 个  ABNORMAL(>=5，建议 docker container prune -f)"
+  degraded=$((degraded+1))
+else
+  echo "Docker 已停止容器 ${STOPN:-0} 个  OK"
+fi
+
 echo "=== 磁盘使用率 ==="
 df -P -h / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++' | while read -r fs size used avail use mount; do
   pct=${use%\%}
   if [ "$pct" -ge 90 ]; then
     echo "$mount  使用 ${use}  ABNORMAL(>=90%)"
+  elif [ "$pct" -ge 85 ]; then
+    echo "$mount  使用 ${use}  WARN(>=85%，接近阈值)"
   else
     echo "$mount  使用 ${use}  OK"
   fi
