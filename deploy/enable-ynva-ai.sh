@@ -67,5 +67,8 @@ echo "=== [5] 端到端验证（真实调用一次，会产生少量费用）===
 curl -s -m 60 -X POST http://127.0.0.1:8000/api/users/1/agent \
   -H 'Content-Type: application/json' -d '{"message":"你好，请用一句话介绍你自己"}' | head -c 500; echo
 
+echo "=== [6] 清理验证产生的测试对话（仅删本条测试消息，不动真实数据）==="
+sudo -u postgres psql -d yunzhixue -tAc "DELETE FROM agent_interactions WHERE user_message = '你好，请用一句话介绍你自己';" 2>/dev/null || echo "（清理跳过：无 postgres 权限时请手动删 agent_interactions 中本条测试行）"
+
 echo
 echo "回滚： sudo cp $YNVA_ENV.bak.aikey.$TS $YNVA_ENV && sudo systemctl restart yn-vocational-agent"
