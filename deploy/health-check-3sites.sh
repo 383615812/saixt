@@ -43,13 +43,15 @@ chk "云智学知识图谱"    "/ynva/static/knowledge-graph.html" 200
 
 echo "=== 4) 根路径（商业导航页，2026-10-08 起替代原302跳转）==="
 ROOT=$(curl -s -o /tmp/_portal_root.html -w '%{http_code}' --max-time 15 "$BASE/")
-if [ "$ROOT" = "200" ] && grep -q '知源教育' /tmp/_portal_root.html 2>/dev/null; then
+if [ "$ROOT" = "200" ] && grep -q '文华教育' /tmp/_portal_root.html 2>/dev/null; then
   ROWS+=("$(printf '  ✅ %-34s %-30s %s' "根路径商业导航页" "/" "$ROOT")"); PASS=$((PASS+1))
 else
   ROWS+=("$(printf '  ❌ %-34s %-30s %s' "根路径商业导航页" "/" "$ROOT")"); FAIL=$((FAIL+1))
 fi
 # 备用入口
 chk "导航页备用入口"      "/portal/"                     200
+# favicon 曾因文件与引用路径不一致而 404，且只在浏览器标签页可见、极易漏检
+chk "导航页Logo(favicon)"  "/logo.svg"                    200
 
 echo "=== 5) 登录鉴权冒烟（期望 401 = 鉴权生效，非 404/500）==="
 LOGC=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 -X POST "$BASE/ynva/api/auth/login" \

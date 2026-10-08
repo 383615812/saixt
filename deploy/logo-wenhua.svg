@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="文华教育">
+  <defs>
+    <linearGradient id="whRing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#F2D492"/>
+      <stop offset="45%"  stop-color="#D4AF6A"/>
+      <stop offset="100%" stop-color="#A97C3C"/>
+    </linearGradient>
+    <linearGradient id="whInk" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%"   stop-color="#8B93F8"/>
+      <stop offset="100%" stop-color="#3D46B8"/>
+    </linearGradient>
+    <linearGradient id="whGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFE9B8" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#FFE9B8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外环：双线金环，寓意"有边界、有章法" -->
+  <circle cx="48" cy="48" r="44" fill="none" stroke="url(#whRing)" stroke-width="2.2" opacity=".95"/>
+  <circle cx="48" cy="48" r="39.5" fill="none" stroke="url(#whRing)" stroke-width="0.9" opacity=".5"/>
+
+  <!-- 顶部光辉：知识之光 -->
+  <path d="M28 30 Q48 15 68 30" fill="none" stroke="url(#whGlow)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M30.5 27.5 Q48 14.5 65.5 27.5" fill="none" stroke="url(#whRing)" stroke-width="1.5" stroke-linecap="round" opacity=".9"/>
+
+  <!-- 开启的书页：左右两页以中缝为轴对称展开 -->
+  <path d="M20 40 Q33 34.5 46.2 40 L46.2 71 Q33 65.5 20 71 Z"
+        fill="url(#whInk)" fill-opacity=".9"/>
+  <path d="M76 40 Q63 34.5 49.8 40 L49.8 71 Q63 65.5 76 71 Z"
+        fill="url(#whInk)" fill-opacity=".62"/>
+  <!-- 书页高光 -->
+  <path d="M22.5 43.5 Q33 39 44 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".5" stroke-linecap="round"/>
+  <path d="M73.5 43.5 Q63 39 52 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".34" stroke-linecap="round"/>
+  <!-- 书脊 -->
+  <path d="M48 39.4 L48 71.6" stroke="#F2D492" stroke-width="1.6" stroke-linecap="round" opacity=".95"/>
+
+  <!-- 基座：稳步向前 -->
+  <path d="M26 76.5 L70 76.5" stroke="url(#whRing)" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+  <path d="M33 81 L63 81" stroke="url(#whRing)" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+</svg>

@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>知源教育 · 让每一步成长都有迹可循</title>
-<meta name="description" content="知源教育旗下三大学习系统：中小学AI素养教育、云南中职春招升学平台、职教高考AI Agent。覆盖 K12 到中高职全学段，用AI 陪伴每一段成长。">
-<meta name="keywords" content="AI教育,中小学AI,春招,职教高考,中职升学,智能学习">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236366f1'/><stop offset='1' stop-color='%2306b6d4'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><text x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='serif'>知</text></svg>">
+<title>文华教育 · 让每一步成长都有迹可循</title>
+<meta name="description" content="文华教育旗下三大学习系统：中小学AI素养教育、云南中职春招升学平台、职教高考AI Agent。覆盖 K12 到中高职全学段，用AI 陪伴每一段成长。">
+<meta name="keywords" content="文华教育,AI教育,中小学AI,春招,职教高考,中职升学,智能学习">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -56,22 +56,27 @@ header{
   backdrop-filter:blur(20px);background:rgba(8,12,24,.72);
   border-bottom:1px solid var(--border);
 }
-.nav{display:flex;align-items:center;justify-content:space-between;height:66px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:600;letter-spacing:.3px}
+.nav{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:600;letter-spacing:.3px}
 .brand-mark{
-  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
-  background:linear-gradient(135deg,var(--c1),var(--c2));
-  font-family:serif;font-size:18px;color:#fff;
-  box-shadow:0 3px 14px rgba(99,102,241,.4);
+  width:40px;height:40px;flex:0 0 40px;
+  filter:drop-shadow(0 3px 10px rgba(212,175,106,.35));
 }
-.brand-txt{font-size:17px}
-.brand-txt span{color:var(--text-faint);font-weight:400;font-size:13px;margin-left:8px}
+.brand-mark svg{width:100%;height:100%;display:block}
+.brand-txt{display:flex;flex-direction:column;line-height:1.25}
+.brand-cn{font-size:19px;font-weight:650;letter-spacing:2.5px}
+.brand-en{font-size:9.5px;color:var(--text-faint);letter-spacing:2.2px;text-transform:uppercase;font-weight:500}
 .nav-links{display:flex;gap:26px;font-size:14px;color:var(--text-dim)}
 .nav-links a{color:inherit;text-decoration:none;transition:color .2s}
 .nav-links a:hover{color:var(--text)}
 
 /* ========== 主视觉 ========== */
 .hero{padding:96px 0 68px;text-align:center;position:relative}
+.hero-logo{
+  width:104px;height:104px;margin:0 auto 30px;
+  filter:drop-shadow(0 8px 30px rgba(212,175,106,.32));
+}
+.hero-logo svg{width:100%;height:100%;display:block}
 .eyebrow{
   display:inline-flex;align-items:center;gap:9px;
   font-size:12.5px;letter-spacing:2.5px;color:var(--gold);
@@ -208,6 +213,11 @@ footer{border-top:1px solid var(--border);margin-top:76px;padding:40px 0 46px}
   .card{padding:28px 22px}
   .hero-stats{gap:0}
   .stat-num{font-size:24px}
+  .hero-logo{width:76px;height:76px;margin-bottom:22px}
+  .brand-mark{width:34px;height:34px;flex:0 0 34px}
+  .brand-cn{font-size:16px;letter-spacing:1.8px}
+  .brand-en{font-size:8.5px;letter-spacing:1.6px}
+  .nav{height:62px}
 }
 </style>
 </head>
@@ -217,8 +227,37 @@ footer{border-top:1px solid var(--border);margin-top:76px;padding:40px 0 46px}
   <div class="wrap">
     <nav class="nav">
       <div class="brand">
-        <div class="brand-mark">知</div>
-        <div class="brand-txt">知源教育<span>ZHIYUAN EDU</span></div>
+        <div class="brand-mark">
+          <!-- 文华教育标识：双线金环 + 知识之光 + 开启书页 + 稳步基座 -->
+          <svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="whRing" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#F2D492"/><stop offset="45%" stop-color="#D4AF6A"/><stop offset="100%" stop-color="#A97C3C"/>
+              </linearGradient>
+              <linearGradient id="whInk" x1="0.2" y1="0" x2="0.8" y2="1">
+                <stop offset="0%" stop-color="#8B93F8"/><stop offset="100%" stop-color="#3D46B8"/>
+              </linearGradient>
+              <linearGradient id="whGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#FFE9B8" stop-opacity=".85"/><stop offset="100%" stop-color="#FFE9B8" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <circle cx="48" cy="48" r="44" fill="none" stroke="url(#whRing)" stroke-width="2.2" opacity=".95"/>
+            <circle cx="48" cy="48" r="39.5" fill="none" stroke="url(#whRing)" stroke-width=".9" opacity=".5"/>
+            <path d="M28 30 Q48 15 68 30" fill="none" stroke="url(#whGlow)" stroke-width="7" stroke-linecap="round"/>
+            <path d="M30.5 27.5 Q48 14.5 65.5 27.5" fill="none" stroke="url(#whRing)" stroke-width="1.5" stroke-linecap="round" opacity=".9"/>
+            <path d="M20 40 Q33 34.5 46.2 40 L46.2 71 Q33 65.5 20 71 Z" fill="url(#whInk)" fill-opacity=".9"/>
+            <path d="M76 40 Q63 34.5 49.8 40 L49.8 71 Q63 65.5 76 71 Z" fill="url(#whInk)" fill-opacity=".62"/>
+            <path d="M22.5 43.5 Q33 39 44 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".5" stroke-linecap="round"/>
+            <path d="M73.5 43.5 Q63 39 52 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".34" stroke-linecap="round"/>
+            <path d="M48 39.4 L48 71.6" stroke="#F2D492" stroke-width="1.6" stroke-linecap="round" opacity=".95"/>
+            <path d="M26 76.5 L70 76.5" stroke="url(#whRing)" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+            <path d="M33 81 L63 81" stroke="url(#whRing)" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+          </svg>
+        </div>
+        <div class="brand-txt">
+          <span class="brand-cn">文华教育</span>
+          <span class="brand-en">WENHUA EDUCATION</span>
+        </div>
       </div>
       <div class="nav-links">
         <a href="#paths">学习体系</a>
@@ -231,12 +270,38 @@ footer{border-top:1px solid var(--border);margin-top:76px;padding:40px 0 46px}
 <!-- ============ 主视觉 ============ -->
 <section class="hero">
   <div class="wrap">
-    <div class="eyebrow">AI 伴学· 全学段成长</div>
+    <div class="hero-logo">
+      <svg viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-label="文华教育标识">
+        <defs>
+          <linearGradient id="hRing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#F2D492"/><stop offset="45%" stop-color="#D4AF6A"/><stop offset="100%" stop-color="#A97C3C"/>
+          </linearGradient>
+          <linearGradient id="hInk" x1="0.2" y1="0" x2="0.8" y2="1">
+            <stop offset="0%" stop-color="#8B93F8"/><stop offset="100%" stop-color="#3D46B8"/>
+          </linearGradient>
+          <linearGradient id="hGlow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FFE9B8" stop-opacity=".85"/><stop offset="100%" stop-color="#FFE9B8" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <circle cx="48" cy="48" r="44" fill="none" stroke="url(#hRing)" stroke-width="2.2" opacity=".95"/>
+        <circle cx="48" cy="48" r="39.5" fill="none" stroke="url(#hRing)" stroke-width=".9" opacity=".5"/>
+        <path d="M28 30 Q48 15 68 30" fill="none" stroke="url(#hGlow)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M30.5 27.5 Q48 14.5 65.5 27.5" fill="none" stroke="url(#hRing)" stroke-width="1.5" stroke-linecap="round" opacity=".9"/>
+        <path d="M20 40 Q33 34.5 46.2 40 L46.2 71 Q33 65.5 20 71 Z" fill="url(#hInk)" fill-opacity=".9"/>
+        <path d="M76 40 Q63 34.5 49.8 40 L49.8 71 Q63 65.5 76 71 Z" fill="url(#hInk)" fill-opacity=".62"/>
+        <path d="M22.5 43.5 Q33 39 44 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".5" stroke-linecap="round"/>
+        <path d="M73.5 43.5 Q63 39 52 43.5" fill="none" stroke="#fff" stroke-width="1" opacity=".34" stroke-linecap="round"/>
+        <path d="M48 39.4 L48 71.6" stroke="#F2D492" stroke-width="1.6" stroke-linecap="round" opacity=".95"/>
+        <path d="M26 76.5 L70 76.5" stroke="url(#hRing)" stroke-width="2.4" stroke-linecap="round" opacity=".85"/>
+        <path d="M33 81 L63 81" stroke="url(#hRing)" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+      </svg>
+    </div>
+    <div class="eyebrow">以文化人 · 以 AI 启智</div>
     <h1>让每一个学段<br>都有<span class="grad">专属的成长引擎</span></h1>
     <p class="hero-sub">
-      从小学启蒙到中职升学，我们把AI 真正装进课堂与自习室——
+      从小学启蒙到中职升学，我们把 AI 真正装进课堂与自习室——
       不是炫技的工具，而是能诊断、能陪伴、能看见进步的成长伙伴。
-      请选择你的目标，我们为你指路。
+      文以化人，华以载道；请选择你的目标，我们为你指路。
     </p>
     <div class="hero-stats">
       <div class="stat">
@@ -377,7 +442,7 @@ footer{border-top:1px solid var(--border);margin-top:76px;padding:40px 0 46px}
 <footer>
   <div class="wrap foot">
     <div class="foot-l">
-      知源教育 · AI 伴学生成长<br>
+      文华教育 · 以文化人，以 AI 启智<br>
       三个学习系统，一套成长方法论
     </div>
     <div class="foot-r">
