@@ -1,0 +1,34 @@
+# ============================================================================
+# xlxzb 告警外发通道配置（放到 /home/ubuntu/.xlxzb-alert.conf，权限 600）
+# ----------------------------------------------------------------------------
+# 说明：本文件可**只配一个通道**，也可多配（全部配置则全部发送）。
+#       未配置任何通道时，notify-dispatch.sh 静默跳过（dormant），不影响巡检。
+# 生效：cron 每 10 分钟跑 health-probe；有异常/恢复/每 6h 提醒时自动外发。
+# 手动测试： bash /home/ubuntu/notify-dispatch.sh "测试告警" <<< "联通性测试 OK"
+# ============================================================================
+
+# —— 方案 A：企业微信群机器人（推荐，1 分钟搞定）————
+# 企微群 → 右上角「…」→ 群机器人 → 添加 → 复制 Webhook 地址，形如：
+# https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxx
+WECOM_WEBHOOK_URL=
+
+# —— 方案 B：钉钉群机器人 ————
+# 钉钉群 → 群设置 → 智能群助手 → 添加机器人 → 自定义 → 复制 Webhook：
+# https://oapi.dingtalk.com/robot/send?access_token=xxxxxxxx
+DINGTALK_WEBHOOK_URL=
+
+# —— 方案 C：通用 Webhook（自建服务 / 其他平台）————
+# 收到 POST JSON: {"title","body","host","ts"}
+GENERIC_WEBHOOK_URL=
+
+# —— 方案 D：邮件（腾讯企业邮 smtp.qcloudmail.com:465）————
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+# 多个收件人用英文逗号分隔
+MAIL_TO=
+
+# 标题前缀（可选）
+ALERT_SUBJECT_PREFIX=

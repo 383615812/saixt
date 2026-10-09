@@ -39,18 +39,35 @@ PREV_AT=${PREV_AT:-0}
 
 write_state() { printf '%s %s\n' "$1" "$2" > "$STATE"; }
 
+# ---------------------------------------------------------------------------
+# 外发告警（最后一公里）。见 notify-dispatch.sh：未配置通道时静默跳过。
+# 只在"真正写告警"时调用，避免每 10 分钟骚扰。
+DISPATCH=/home/ubuntu/notify-dispatch.sh
+dispatch() { # $1=标题  $2=正文
+  [ -x "$DISPATCH" ] || return 0
+  printf '%s' "$2" | "$DISPATCH" "$1" >>"$ALERTS".dispatch.log 2>&1 || true
+}
+
 if [ "$SIG" = "0" ]; then
   if [ "$PREV_SIG" != "0" ]; then
-    { echo "=== $(date '+%F %T') 已恢复正常（此前异常 ${PREV_SIG} 项）==="; } >> "$ALERTS"
+    MSG="=== $(date '+%F %T') 已恢复正常（此前异常 ${PREV_SIG} 项）==="
+    echo "$MSG" >> "$ALERTS"
+    dispatch "xlxzb 已恢复(此前异常${PREV_SIG}项)" "$MSG"
   fi
   write_state 0 "$NOW"
   exit 0
 fi
 
 if [ "$SIG" != "$PREV_SIG" ]; then
-  { echo "=== $(date '+%F %T') 异常项 ${SIG}（上次 ${PREV_SIG:-0}）==="; cat "$LATEST"; } >> "$ALERTS"
+  BLOCK="=== $(date '+%F %T') 异常项 ${SIG}（上次 ${PREV_SIG:-0}）===
+$(cat "$LATEST")"
+  printf '%s\n' "$BLOCK" >> "$ALERTS"
+  dispatch "xlxzb 异常${SIG}项" "$BLOCK"
   write_state "$SIG" "$NOW"
 elif [ $((NOW - PREV_AT)) -ge "$REPEAT_SEC" ]; then
-  { echo "=== $(date '+%F %T') 异常项 ${SIG} 持续未修复（每 6h 提醒一次）==="; grep 'ABNORMAL' "$LATEST"; } >> "$ALERTS"
+  BLOCK="=== $(date '+%F %T') 异常项 ${SIG} 持续未修复（每 6h 提醒一次）===
+$(grep 'ABNORMAL' "$LATEST")"
+  printf '%s\n' "$BLOCK" >> "$ALERTS"
+  dispatch "xlxzb 异常${SIG}项(持续未修复)" "$BLOCK"
   write_state "$SIG" "$NOW"
 fi

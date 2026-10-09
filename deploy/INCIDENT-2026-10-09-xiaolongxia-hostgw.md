@@ -149,3 +149,52 @@ sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh                       # dry-ru
 sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh --apply --only xiaolongxia-user-service
 sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh --apply
 ```
+
+## 七、后续完善：告警触达（最后一公里，2026-10-09）
+
+### 暴露的缺口
+
+复盘告警历史发现：**探针探测完全正常，是"送达"环节断了**。
+
+| 时间 | 巡检判定 |
+|---|---|
+| 06:10:02 | 异常项 **21**（网关 21 个服务路径全挂）← 探针已准确抓到 |
+| 06:31 / 07:02 / 07:32 | 异常项 22 / 23 / 22（持续） |
+| 08:10:03 | 已恢复正常（人工修复后） |
+
+即：**系统在 06:10 就知道出事了，但告警只写进 `/home/ubuntu/health-probe-alerts.log`
+（服务器本地文件，无人查看）**，故障空转约 2 小时才被人工发现。
+根因是**没有任何外发通道**（`/opt/ynva/.env` 的 SMTP 账号口令为空、全机无 webhook、无本地 MTA）。
+
+### 修复
+
+新增 `deploy/notify-dispatch.sh`（配置驱动的告警外发分发器）：
+
+- **dormant 设计**：读 `/home/ubuntu/.xlxzb-alert.conf`（600）；**未配置任何通道时静默退出**，
+  零副作用、不影响现有巡检；配置后自动生效。
+- 支持通道（可多选并存）：企微群机器人 / 钉钉群机器人 / 通用 Webhook / SMTP 邮件。
+- JSON 由 `python3` 生成（中文、引号、换行安全）；每通道单次尝试 + 10s 超时，失败只落日志不阻断。
+- `notify-if-changed.sh` 已接入：**仅**在"异常项变化 / 恢复 / 每 6h 重复提醒"时外发，避免每 10 分钟骚扰。
+- 配置模板：`deploy/xlxzb-alert.conf.example`。
+
+### 验证
+
+| 用例 | 结果 |
+|---|---|
+| 未配置通道（dormant） | 静默、exit 0 ✅ |
+| 接线（异常项 0→2） | 追加告警日志并调用分发 ✅ |
+| 外发线路（mock 端点） | 企微/钉钉 JSON 结构正确、generic 200、中文与引号转义正确 ✅ |
+| 真实巡检回归 | 总体"正常"、无新增误报、配置 600 ✅ |
+
+### 待办（需用户提供）
+
+**只需给出一个通道即可生效**（推荐企微群机器人，1 分钟）：
+
+```
+# 编辑 /home/ubuntu/.xlxzb-alert.conf，填入任意一个：
+WECOM_WEBHOOK_URL=https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx
+```
+
+> ⚠️ **互补建议**：cron 探针在**整机宕机/nginx 挂掉**时无法报警（cron 也随之停摆）。
+> 主机级告警应在**腾讯云「云监控」控制台**配置（CPU/内存/磁盘/主机存活），
+> 推送微信/短信 —— 与脚本探针形成"主机级 + 应用级"双层覆盖。
