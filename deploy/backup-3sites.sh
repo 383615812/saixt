@@ -63,6 +63,9 @@ sudo cp /opt/ynva/.env "$BK/ynva-env-$STAMP" 2>/dev/null
 # 4) 保留 14 天（并清掉 pg_dump 失败可能留下的半截 .tmp）
 find "$BK" -type f \( -name 'saixt-*.db' -o -name 'yunzhixue-*.dump' -o -name 'ynva-env-*' -o -name '*.tmp' \) -mtime +14 -delete 2>/dev/null
 find "$BK" -type f -name '*.dump.tmp' -o -type f -name '*.db.tmp' -delete 2>/dev/null
+# 清掉外部（校验/恢复演练）打开备份库时产生的 WAL/SHM 副文件：它们不在上面的 -mtime 名单内，
+# 否则会永久残留；而 VACUUM INTO 产出的 .db 是自带完整数据的独立库，不需要这两个副文件。
+find "$BK" -type f \( -name '*.db-wal' -o -name '*.db-shm' \) -delete 2>/dev/null
 chmod 600 "$BK"/* 2>/dev/null
 rm -rf "$TMPD"
 echo "[$(date '+%m-%d %H:%M')] 共 $(ls -1 "$BK" 2>/dev/null | wc -l) 个文件 / $(du -sh "$BK" 2>/dev/null | cut -f1)"
