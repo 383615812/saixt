@@ -140,7 +140,12 @@ for c in conts:
             if a and a != name:
                 cmd += ['--network-alias', a]
     cmd += [cfg['Image']]
-    cmd += [q(t) for t in tail_args]
+    # 注意：此处【不可】对 tail_args 逐个 q() 二次引用——下方 runstr 会统一 shlex.quote 一次。
+    # 双重引用会让【含空格】的参数（典型：shell 形式 Entrypoint=["/bin/sh"] + Cmd=["-c","java ..."]）
+    # 在 eval 还原后带上字面单引号 → 容器执行 /bin/sh -c "'java ...'" → command not found → exit 127。
+    # （2026-10-09 全量加固事故根因：10 个 shell-form 容器因此崩溃重启）
+    # 不含特殊字符的单 token 参数（如 -Xmx256m / -jar）quote 后原样，故 exec 形式容器恰好免疫。
+    cmd += tail_args
     runstr = ' '.join(shlex.quote(x) for x in cmd)
     post = ''
     for n in extra_nets:
@@ -211,10 +216,19 @@ print(d[os.environ["N"]])')
     FAIL=$((FAIL+1)); continue
   fi
   ok=0
-  for i in $(seq 1 25); do
+  for i in $(seq 1 30); do
     st=$(sudo docker inspect -f '{{.State.Running}}' "$n" 2>/dev/null)
+    rst=$(sudo docker inspect -f '{{.State.Restarting}}' "$n" 2>/dev/null)
     hc=$(sudo docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}na{{end}}' "$n" 2>/dev/null)
-    if [ "$st" = "true" ] && { [ "$hc" = "na" ] || [ "$hc" = "healthy" ]; }; then ok=1; break; fi
+    if [ "$st" = "true" ] && [ "$rst" = "false" ] && { [ "$hc" = "na" ] || [ "$hc" = "healthy" ]; }; then
+      # 二次确认：再等 4s，确认仍 Running、未 Restarting 且 RestartCount 仍为 0
+      # （防止被"崩溃-重启间隙"骗过：exit 127 的容器也会短暂出现 Running）
+      sleep 4
+      st2=$(sudo docker inspect -f '{{.State.Running}}' "$n" 2>/dev/null)
+      rst2=$(sudo docker inspect -f '{{.State.Restarting}}' "$n" 2>/dev/null)
+      rc=$(sudo docker inspect -f '{{.RestartCount}}' "$n" 2>/dev/null)
+      if [ "$st2" = "true" ] && [ "$rst2" = "false" ] && [ "$rc" = "0" ]; then ok=1; break; fi
+    fi
     sleep 1
   done
   if [ "$ok" -eq 1 ]; then
