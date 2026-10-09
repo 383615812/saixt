@@ -323,6 +323,44 @@ while read -r fs size used avail use mount; do
 done < <(df -P / /var 2>/dev/null | awk 'NR>1 && !seen[$6]++')
 degraded=$((degraded+disk_bad))
 
+# ---------- 系统层护栏（2026-10-09 补）----------
+# 上次 P0 教训：15 个微服务崩溃重启循环（load 15+），而四站首页仍全 200。
+# 业务路径探测能兜住"服务已挂"，但系统层信号（失败单元 / 容器崩溃循环）此前无人看。
+# 判据依据（实测）：`docker restart`（人工/脚本，如每日 pool-refresh）**不增加**
+#   RestartCount；只有**重启策略**触发的重启才增加 ⇒ 用"增量"判定崩溃循环，零误报。
+echo
+echo "=== 系统层（systemd 失败单元 / 容器崩溃循环）==="
+FAILED=$(systemctl --failed --no-legend --plain 2>/dev/null | wc -l)
+if [ "${FAILED:-0}" -eq 0 ]; then
+  echo "systemd 失败单元 0  OK"
+else
+  echo "systemd 失败单元 ${FAILED}  ABNORMAL"
+  systemctl --failed --no-legend --plain 2>/dev/null | head -5 | sed 's/^/    /'
+  degraded=$((degraded+1))
+fi
+
+RSTATE=/home/ubuntu/.health-probe-restarts
+CUR="$(sudo docker ps --format '{{.Names}}' 2>/dev/null | while read -r c; do
+  printf '%s=%s\n' "$c" "$(sudo docker inspect -f '{{.RestartCount}}' "$c" 2>/dev/null)"
+done)"
+BUMP=""
+if [ -f "$RSTATE" ]; then
+  while IFS='=' read -r name cnt; do
+    [ -n "$name" ] || continue
+    case "$cnt" in ''|*[!0-9]*) cnt=0;; esac
+    prev=$(awk -F= -v n="$name" '$1==n{print $2}' "$RSTATE" 2>/dev/null | head -1)
+    case "$prev" in ''|*[!0-9]*) prev=0;; esac
+    [ "$cnt" -gt "$prev" ] && BUMP="$BUMP $name(+$((cnt-prev)))"
+  done <<< "$CUR"
+fi
+printf '%s\n' "$CUR" > "$RSTATE" 2>/dev/null || true
+if [ -z "$BUMP" ]; then
+  echo "容器重启增量 无  OK"
+else
+  echo "容器重启增量:$BUMP  ABNORMAL(疑似崩溃循环)"
+  degraded=$((degraded+1))
+fi
+
 # ---------- 总体 ----------
 echo
 echo "============================================================="
