@@ -100,17 +100,52 @@ Docker 在 `nat/DOCKER` 链为发布端口生成的 DNAT 规则**带有入接口
 | 四站公网 | `/` `/xiaolongxia/` `/saixt/` `/ynva/` 全 **200** ✅ |
 | 综合验收 | `health-check-3sites.sh` **71/71 通过** ✅ |
 
-## 五、遗留建议（未执行，待拍板）
+## 五、根治（2026-10-09 当日完成）
 
-**根治方案**：将这 15 个容器的 `DB_HOST` / `REDIS_HOST` / `NACOS_*` 由 `172.17.0.1`
-改为 Docker DNS 名 `mysql` / `redis` / `nacos`（与 notification/crawler 一致），
-彻底摆脱对宿主网关路由的依赖。需重建 15 个容器（有停机窗口），建议维护期执行。
-在此之前，本 DNAT 补丁 + cron reconcile 已可稳定支撑。
+**方案**：把这 15 个容器的 `DB_HOST` / `REDIS_HOST` / `NACOS_SERVER` /
+`SPRING_CLOUD_NACOS_(DISCOVERY_)SERVER_ADDR` 由 `172.17.0.1` 改为 Docker DNS 名
+`mysql` / `redis` / `nacos:8848`（与一直稳定的 notification/crawler 一致），
+彻底摆脱对宿主网关路由的依赖。
+
+**工具**：新增 `deploy/fix-xiaolongxia-dns-env.sh`（复用端口加固脚本的重建引擎）
+
+- 默认 dry-run；`--apply` 逐个重建，`--only <name>` 支持金丝雀；
+- 旧容器 rename 为 `.bak-<ts>` 保留，异常立即回滚；
+- **强化健康校验**：等待日志出现 `Started .*Application in` / `Tomcat started on port`
+  且 `Running && Restarting=false && RestartCount==0`（避免被"启动中途/崩溃间隙"骗过，
+  这正是上一轮加固脚本的盲区）；
+- 保留挂载/网络/端口绑定/重启策略/Entrypoint/Cmd 原样；规避 shlex 双重引用坑。
+
+**执行**：先在 `user-service` 金丝雀（env 确认改为 `DB_HOST=mysql`、12.9s 启动、rc=0），
+再全量重建 14 个 —— **14/14 成功，0 回滚**。
+
+**撤除临时缓解**：15 个容器 env 全部改净后，执行
+`fix-xiaolongxia-hostgw-reach.sh --remove --apply` 删除全部 10 条 DNAT 补丁规则，
+并移除 `/etc/cron.d/xiaolongxia-hostgw-dnat`；`剩余补丁规则数 = 0`。
+
+**撤除后独立验证**（证明根治已独立成立，不再依赖任何补丁）：
+
+| 项目 | 结果 |
+|---|---|
+| env 引用 `172.17.0.1` 的容器 | **0 个** ✅ |
+| 微服务稳定性 | 17/17 `rc=0`、`restarting=false` ✅ |
+| 网关健康 / 路由 | **200**，日志持续正常代理下游 ✅ |
+| Nacos 注册 | **16** 个 ✅ |
+| 系统负载 | **0.82** ✅ |
+| 综合验收 | **71/71 通过** ✅ |
+
+> 注：`fix-xiaolongxia-hostgw-reach.sh` 作为历史缓解工具保留在仓库中（默认 dry-run），
+> 若将来再出现同类配置回退可应急使用；当前已不需要。
 
 ## 六、复跑 / 回滚
 
 ```bash
-sudo bash /home/ubuntu/fix-xiaolongxia-hostgw-reach.sh            # dry-run
-sudo bash /home/ubuntu/fix-xiaolongxia-hostgw-reach.sh --apply    # 应用
-sudo bash /home/ubuntu/fix-xiaolongxia-hostgw-reach.sh --remove --apply   # 回滚
+# —— 临时缓解（保留备用，当前已撤除）——
+sudo bash /home/ubuntu/fix-xiaolongxia-hostgw-reach.sh --apply
+sudo bash /home/ubuntu/fix-xiaolongxia-hostgw-reach.sh --remove --apply
+
+# —— 根治（已执行）——
+sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh                       # dry-run
+sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh --apply --only xiaolongxia-user-service
+sudo bash /home/ubuntu/fix-xiaolongxia-dns-env.sh --apply
 ```
