@@ -1,47 +1,52 @@
 #!/usr/bin/env bash
 # 小龙虾AI 系统健康巡检探针（v2）
 # 覆盖四类故障面，全部只读：
-#   1) 网关 22 条 /health 端点（无需 token）
+#   1) 网关后端 /health 端点（经 nginx 反代，无需 token）
 #   2) 前端构建产物：nginx 反代的 SPA 首页 200 + 引用的 entry JS 实际存在
 #   3) HTTPS 证书剩余天数（certbot 自动续期，但续期失败会静默过期）
 #   4) 磁盘使用率（/ 与 /var，避免磁盘写满导致服务雪崩）
 # 用法：
-#   bash health-probe.sh                                    # 默认探本机
-#   bash health-probe.sh http://host:8080                   # 指定网关
-#   bash health-probe.sh http://host:8080 https://host/xl/  # 指定前端基址
+#   bash health-probe.sh                                    # 默认探本机(经 nginx)
+#   bash health-probe.sh http://127.0.0.1                   # 指定网关基址(经 nginx)
+#   bash health-probe.sh http://127.0.0.1 https://host/xl/  # 指定前端基址
 # 退出码：0=全部正常；>0=存在异常项数（供 cron 告警判定）。
+#
+# ⚠️ 历史坑(2026-10-09 复验发现)：原先 GW 直连 :8080 且 PATHS 用 /api/<svc>/health，
+#   但网关真实路由是 经 nginx 的 /xiaolongxia/api/<svc>-service/health
+#   （nginx proxy_pass 把 /xiaolongxia 前缀透传给网关，直连 :8080 的裸 /api/<svc>/health
+#   一律 000/404/500）。结果每 10 分钟巡检都在误报网关全红。现改为经 nginx 探测，
+#   与 health-check-3sites.sh 的判定口径一致，也能顺带验证 nginx 本身。
 set -u
 
-GW="${1:-http://127.0.0.1:8080}"
+GW="${1:-http://127.0.0.1}"
 FE_BASE="${2:-https://127.0.0.1/xiaolongxia/}"
 FE_ROOT="/var/www/html/xiaolongxia"
 
 degraded=0   # 全局异常计数
 
-# ---------- 1) 网关端点 ----------
+# ---------- 1) 网关后端 /health 端点(经 nginx 真实路由 /xiaolongxia/api/<svc>-service/health) ----------
 PATHS=(
-  /api/health
-  /api/user/health
-  /api/student/health
-  /api/core/health
-  /api/crawler/health
-  /api/alert/health
-  /api/knowledge/health
-  /api/teacher/health
-  /api/parent/health
-  /api/tutor/health
-  /api/hermes/health
-  /api/auth/health
-  /api/learning-progress/health
-  /api/plan/health
-  /api/resource/health
-  /api/notification/health
-  /api/data-analysis/health
-  /api/agent/health
-  /api/learning-analysis/health
-  /api/report/health
-  /api/exam/health
-  /api/order/health
+  /xiaolongxia/api/user-service/health
+  /xiaolongxia/api/student-service/health
+  /xiaolongxia/api/core-service/health
+  /xiaolongxia/api/crawler-service/health
+  /xiaolongxia/api/alert-service/health
+  /xiaolongxia/api/knowledge-service/health
+  /xiaolongxia/api/teacher-service/health
+  /xiaolongxia/api/parent-service/health
+  /xiaolongxia/api/tutor-service/health
+  /xiaolongxia/api/hermes-service/health
+  /xiaolongxia/api/auth-service/health
+  /xiaolongxia/api/learning-progress-service/health
+  /xiaolongxia/api/plan-service/health
+  /xiaolongxia/api/resource-service/health
+  /xiaolongxia/api/notification-service/health
+  /xiaolongxia/api/data-analysis-service/health
+  /xiaolongxia/api/agent-service/health
+  /xiaolongxia/api/learning-analysis-service/health
+  /xiaolongxia/api/report-service/health
+  /xiaolongxia/api/exam-service/health
+  /xiaolongxia/api/order-service/health
 )
 
 ok=0; bad=0
@@ -205,7 +210,7 @@ case "$C404" in
   *) echo "未知路径 404 语义  code=$C404（应为 404）  ABNORMAL"; degraded=$((degraded+1));;
 esac
 if command -v openssl >/dev/null 2>&1; then
-  ALPN=$(echo | openssl s_client -connect 127.0.0.1:443 -servername www.xlxzb.com -alpn h2 2>/dev/null | grep -i "ALPN protocol" | head -1)
+  ALPN=$(echo | openssl s_client -connect 127.0.0.1:443 -servername www.xlxzb.com -alpn h2 2>/dev/null | grep -ai "ALPN protocol" | head -1)
   case "$ALPN" in
     *h2*) echo "HTTP/2 协商  h2  OK";;
     *) echo "HTTP/2 协商  未协商出 h2  ABNORMAL"; degraded=$((degraded+1));;

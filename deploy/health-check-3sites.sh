@@ -332,7 +332,7 @@ HOST=$(printf '%s' "$BASE" | sed -E 's#^https?://##; s#/.*$##')
 # 16.1 HTTP/2：证书的 ALPN 是否协商出 h2（nginx 1.18 需 `listen 443 ssl http2;`）
 if command -v openssl >/dev/null 2>&1; then
   ALPN=$(echo | openssl s_client -connect "$HOST:443" -servername "$HOST" -alpn h2 2>/dev/null \
-         | grep -i "ALPN protocol" | head -1)
+         | grep -ai "ALPN protocol" | head -1)
   if grep -q "h2" <<<"$ALPN"; then
     ROWS+=("$(printf '  ✅ %-34s %-30s %s' "HTTP/2 协商" "$HOST:443" "h2")"); PASS=$((PASS+1))
   else
